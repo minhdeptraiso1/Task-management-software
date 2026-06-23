@@ -1,0 +1,71 @@
+# =========================
+# OS / editor
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# =========================
+# Local environment / secrets
+# =========================
+.env
+.env.*
+!.env.example
+*.local
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Frontend: Node / Vite / React
+# =========================
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+# =========================
+# Backend: Java / Gradle / Spring Boot
+# =========================
+.gradle/
+build/
+out/
+target/
+bin/
+
+*.class
+*.jar
+*.war
+*.ear
+
+# Keep Gradle wrapper files for other machines/CI
+!gradle/wrapper/gradle-wrapper.jar
+
+# =========================
+# Runtime / temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# =========================
+# Codex local working files
+# =========================
+.agents/
+.codex/

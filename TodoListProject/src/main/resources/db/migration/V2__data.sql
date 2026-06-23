@@ -1,0 +1,20 @@
+INSERT INTO users (id,
+                   username,
+                   email,
+                   password,
+                   role,
+                   enabled,
+                   created_at,
+                   updated_at,
+                   created_by,
+                   updated_by)
+VALUES (gen_random_uuid(),
+        'admin',
+        'admin@example.com',
+        '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', -- password:  123456
+        'ADMIN',
+        true,
+        now(),
+        now(),
+        'system',
+        'system');

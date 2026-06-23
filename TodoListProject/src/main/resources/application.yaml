@@ -1,0 +1,43 @@
+server:
+  servlet:
+    context-path: ${CONTEXT_PATH}
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  cache:
+    type: redis
+
+jwt:
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
+  secret: ${JWT_SECRET}
+
+springdoc:
+  swagger-ui:
+    path: /swagger
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  cache:
+    default-ttl: ${CACHE_DEFAULT_TTL}
+    ttl:
+      user_detail: ${CACHE_TTL_USER_DETAIL}
+      user_current: ${CACHE_TTL_USER_CURRENT}
+      user_search: ${CACHE_TTL_USER_SEARCH}

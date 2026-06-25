@@ -27,7 +27,6 @@ public class AuditLogServiceImpl implements AuditLogService {
     public void log(UUID userId, String action) {
 
         AuditLog log = AuditLog.builder()
-                .id(UUID.randomUUID())
                 .userId(userId)
                 .action(action)
                 .createdAt(Instant.now())

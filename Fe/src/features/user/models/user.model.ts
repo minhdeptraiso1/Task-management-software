@@ -1,11 +1,4 @@
-export type UserRole =
-  | 'ADMIN'
-  | 'PROJECT_MANAGER'
-  | 'SCRUM_MASTER'
-  | 'PRODUCT_OWNER'
-  | 'DEVELOPER'
-  | 'TESTER'
-  | 'VIEWER'
+export type UserRole = 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
 
 export interface User {
   id: string
@@ -44,20 +37,12 @@ export interface UpdateUserData {
 
 export const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Quản trị viên',
-  PROJECT_MANAGER: 'Quản lý dự án',
-  SCRUM_MASTER: 'Scrum Master',
-  PRODUCT_OWNER: 'Product Owner',
-  DEVELOPER: 'Developer',
-  TESTER: 'Tester',
-  VIEWER: 'Người xem',
+  MANAGER: 'Quản lý',
+  EMPLOYEE: 'Nhân viên',
 }
 
 export const roleDescriptions: Record<UserRole, string> = {
-  ADMIN: 'Quản trị toàn bộ hệ thống, người dùng và phân quyền.',
-  PROJECT_MANAGER: 'Quản lý dự án, thành viên và tiến độ.',
-  SCRUM_MASTER: 'Điều phối sprint, daily meeting và quy trình Scrum.',
-  PRODUCT_OWNER: 'Quản lý product backlog và ưu tiên yêu cầu.',
-  DEVELOPER: 'Thực hiện công việc phát triển trong dự án.',
-  TESTER: 'Kiểm thử, xác nhận chất lượng và phản hồi lỗi.',
-  VIEWER: 'Chỉ xem dữ liệu được cấp quyền.',
+  ADMIN: 'Quản lý tài khoản, audit log và cấu hình toàn hệ thống.',
+  MANAGER: 'Tạo dự án, điều phối dự án và quản lý thành viên trong phạm vi được quyền.',
+  EMPLOYEE: 'Tham gia các dự án được thêm vào và thao tác theo vai trò trong từng dự án.',
 }

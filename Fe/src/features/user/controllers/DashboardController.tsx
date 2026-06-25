@@ -11,7 +11,7 @@ import { UserFormModal } from '../views/UserFormModal'
 const emptyPage: UserPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 8 }
 const emptyAuditPage: AuditLogPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 12, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: UserFilters = { keyword: '', role: '', enabled: '' }
-const fallbackRoles: UserRole[] = ['ADMIN', 'PROJECT_MANAGER', 'SCRUM_MASTER', 'PRODUCT_OWNER', 'DEVELOPER', 'TESTER', 'VIEWER']
+const fallbackRoles: UserRole[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
 type AdminSection = 'members' | 'audit'
 
 export function DashboardController({ me, onLogout }: { me: User; onLogout: () => void }) {

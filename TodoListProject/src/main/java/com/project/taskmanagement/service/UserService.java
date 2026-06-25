@@ -15,6 +15,11 @@ public interface UserService {
             Pageable pageable
     );
 
+    UserPageResponse searchProjectCandidateUsers(
+            UserSearchRequest request,
+            Pageable pageable
+    );
+
     void deleteUserById(UUID userId);
 
     UserResponse getCurrentUser(String username);

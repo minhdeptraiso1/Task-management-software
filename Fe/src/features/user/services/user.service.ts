@@ -4,6 +4,11 @@ import type { CreateUserData, UpdateUserData, User, UserFilters, UserPage, UserR
 
 export const getMe = () => apiRequest<User>(endpoints.me)
 export const getUserRoles = () => apiRequest<UserRole[]>(endpoints.userRoles)
+export function searchProjectCandidateUsers(keyword: string, page = 0, size = 8) {
+  const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'username,asc', enabled: 'true' })
+  if (keyword) params.set('keyword', keyword)
+  return apiRequest<UserPage>(`${endpoints.userProjectCandidates}?${params}`)
+}
 export function searchUsers(filters: UserFilters, page = 0, size = 8) {
   const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'username,asc' })
   if (filters.keyword) params.set('keyword', filters.keyword)

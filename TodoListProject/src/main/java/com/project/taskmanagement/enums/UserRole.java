@@ -1,39 +1,33 @@
 package com.project.taskmanagement.enums;
 
+/**
+ * Vai trò cấp toàn hệ thống.
+ *
+ * Quyền thao tác trong từng dự án không dùng enum này,
+ * mà được xác định bởi ProjectMemberRole.
+ */
 public enum UserRole {
 
     /**
-     * Quản trị toàn bộ hệ thống.
+     * Quản trị toàn bộ hệ thống:
+     * tài khoản, audit log, thống kê và cấu hình.
+     *
+     * ADMIN không tạo hoặc điều hành dự án
+     * trong flow nghiệp vụ thông thường.
      */
     ADMIN,
 
     /**
-     * Quản lý dự án, thành viên và tiến độ dự án.
+     * Tài khoản quản lý:
+     * được tạo dự án và quản lý các dự án
+     * thuộc phạm vi của mình.
      */
-    PROJECT_MANAGER,
+    MANAGER,
 
     /**
-     * Điều phối quy trình Scrum và quản lý Sprint.
+     * Nhân viên:
+     * chỉ tham gia các dự án được thêm vào
+     * và thao tác theo ProjectMemberRole.
      */
-    SCRUM_MASTER,
-
-    /**
-     * Quản lý Product Backlog và ưu tiên yêu cầu.
-     */
-    PRODUCT_OWNER,
-
-    /**
-     * Thực hiện công việc phát triển trong dự án.
-     */
-    DEVELOPER,
-
-    /**
-     * Kiểm thử và xác nhận chất lượng công việc.
-     */
-    TESTER,
-
-    /**
-     * Chỉ được xem dữ liệu được cấp quyền.
-     */
-    VIEWER
+    EMPLOYEE
 }

@@ -101,6 +101,38 @@ public class UserServiceImpl implements UserService {
         return UserPageResponse.from(userPage);
     }
 
+    @Override
+    @Transactional
+    public UserPageResponse searchProjectCandidateUsers(
+            UserSearchRequest request,
+            Pageable pageable
+    ) {
+        String keyword =
+                request != null
+                        ? request.keyword()
+                        : null;
+
+        UserRole role =
+                request != null
+                        ? request.role()
+                        : null;
+
+        Specification<User> specification =
+                Specification.allOf(
+                        UserSpecification.search(keyword),
+                        UserSpecification.hasRole(role),
+                        UserSpecification.isEnabled(true),
+                        UserSpecification.roleIsNot(UserRole.ADMIN)
+                );
+
+        Page<UserResponse> userPage =
+                userRepository
+                        .findAll(specification, pageable)
+                        .map(userMapper::toResponse);
+
+        return UserPageResponse.from(userPage);
+    }
+
 
     @Override
     @Transactional
@@ -148,7 +180,6 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = User.builder()
-                .id(UUID.randomUUID())
                 .username(username)
                 .email(email)
                 .password(

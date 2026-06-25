@@ -1,9 +1,8 @@
 package com.project.taskmanagement.entity;
 
-import com.project.taskmanagement.security.CurrentUser;
+import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PreRemove;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
@@ -18,27 +17,57 @@ import java.time.Instant;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-public abstract class BaseAuditEntity {
+public abstract class BaseAuditEntity
+        extends BaseIdEntity {
 
     @CreatedDate
-    Instant createdAt;
+    @Column(
+            name = "created_at",
+            updatable = false
+    )
+    protected Instant createdAt;
 
     @LastModifiedDate
-    Instant updatedAt;
+    @Column(name = "updated_at")
+    protected Instant updatedAt;
 
     @CreatedBy
-    String createdBy;
+    @Column(
+            name = "created_by",
+            updatable = false,
+            length = 100
+    )
+    protected String createdBy;
 
     @LastModifiedBy
-    String updatedBy;
+    @Column(
+            name = "updated_by",
+            length = 100
+    )
+    protected String updatedBy;
 
-    Instant deletedAt;
+    @Column(name = "deleted_at")
+    protected Instant deletedAt;
 
-    String deletedBy;
+    @Column(
+            name = "deleted_by",
+            length = 100
+    )
+    protected String deletedBy;
 
-    @PreRemove
-    public void preRemove() {
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public void markDeleted(
+            String deletedBy
+    ) {
         this.deletedAt = Instant.now();
-        this.deletedBy = CurrentUser.username();
+        this.deletedBy = deletedBy;
+    }
+
+    public void restore() {
+        this.deletedAt = null;
+        this.deletedBy = null;
     }
 }

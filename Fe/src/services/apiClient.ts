@@ -17,6 +17,7 @@ const tokenStore = {
 }
 
 async function parse<T>(response: Response): Promise<ApiResponse<T>> {
+  if (response.status === 204) return { success: true, data: undefined as T, error: null }
   const body = await response.json().catch(() => null) as ApiResponse<T> | null
   if (!response.ok || !body?.success) throw new Error(body?.error?.message || 'Không thể kết nối đến máy chủ')
   return body

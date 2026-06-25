@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleUserRound,
-  Funnel,
   LayoutDashboard,
   LogOut,
   Pencil,
@@ -16,7 +15,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react'
-import { Button, Input, Select } from '../../../components/ui'
+import { Button, Input, Select, ToolbarActions } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
 import { roleLabels, type User, type UserFilters, type UserPage, type UserRole } from '../models/user.model'
 import { AuditLogView } from './AuditLogView'
@@ -176,8 +175,7 @@ export function DashboardView({
                 onChange={e => onFiltersChange({ ...filters, role: e.target.value as UserFilters['role'] })}
                 options={roleOptions}
               />
-              <Button variant="secondary" leadingIcon={<Funnel size={17} />} onClick={onSearch} loading={loading}>Lọc</Button>
-              <Button leadingIcon={<Plus size={18} />} onClick={onCreate}>Thêm thành viên</Button>
+              <ToolbarActions loading={loading} createLabel="Thêm thành viên" createIcon={<Plus size={18} />} onFilter={onSearch} onCreate={onCreate} />
             </div>
           </div>
 

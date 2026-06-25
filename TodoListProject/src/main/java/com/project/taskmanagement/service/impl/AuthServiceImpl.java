@@ -96,7 +96,6 @@ public class AuthServiceImpl implements AuthService {
         }
 
         TokenSession session = TokenSession.builder()
-                .id(UUID.randomUUID())
                 .userId(user.getId())
                 .revoked(false)
                 .expiredAt(

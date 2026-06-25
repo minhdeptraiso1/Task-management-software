@@ -1,7 +1,7 @@
 package com.project.taskmanagement.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -23,15 +23,23 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AuditLog {
+public class AuditLog extends BaseIdEntity {
 
-    @Id
-    UUID id;
-
+    @Column(name = "user_id")
     UUID userId;
 
+    @Column(
+            name = "action",
+            nullable = false,
+            length = 255
+    )
     String action;
 
     @CreationTimestamp
+    @Column(
+            name = "created_at",
+            nullable = false,
+            updatable = false
+    )
     Instant createdAt;
 }

@@ -8,5 +8,9 @@ export const endpoints = {
   users: '/users',
   userSearch: '/users/search',
   userRoles: '/users/roles',
+  userProjectCandidates: '/users/project-candidates',
   auditLogs: '/audit-logs',
+  projects: '/projects',
+  notifications: '/notifications',
+  unreadNotifications: '/notifications/unread-count',
 } as const

@@ -1,7 +1,7 @@
 package com.project.taskmanagement.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,16 +22,31 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class TokenSession {
+public class TokenSession extends BaseIdEntity {
 
-    @Id
-    UUID id;
-
+    @Column(
+            name = "user_id",
+            nullable = false
+    )
     UUID userId;
 
+    @Column(
+            name = "refresh_token",
+            nullable = false,
+            columnDefinition = "TEXT"
+    )
     String refreshToken;
 
-    boolean revoked;
+    @Builder.Default
+    @Column(
+            name = "revoked",
+            nullable = false
+    )
+    boolean revoked = false;
 
+    @Column(
+            name = "expired_at",
+            nullable = false
+    )
     Instant expiredAt;
 }

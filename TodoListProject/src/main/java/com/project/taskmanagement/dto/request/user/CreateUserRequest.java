@@ -56,10 +56,9 @@ public record CreateUserRequest(
         @Schema(
                 description = """
                         Vai trò của người dùng:
-                        ADMIN, PROJECT_MANAGER, SCRUM_MASTER,
-                        PRODUCT_OWNER, DEVELOPER, TESTER, VIEWER
+                        ADMIN, MANAGER, EMPLOYEE
                         """,
-                example = "DEVELOPER"
+                example = "EMPLOYEE"
         )
         @NotNull(
                 message = "Vai trò không được để trống"

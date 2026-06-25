@@ -1,0 +1,21 @@
+package com.project.taskmanagement.dto.request.project;
+
+import com.project.taskmanagement.enums.ProjectStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+public record ProjectSearchRequest(
+
+        @Schema(
+                description = "Tìm theo mã hoặc tên dự án",
+                example = "TASK"
+        )
+        String keyword,
+
+        @Schema(
+                description = "Lọc theo trạng thái dự án",
+                example = "ACTIVE"
+        )
+        ProjectStatus status
+
+) {
+}

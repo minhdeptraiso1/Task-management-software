@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function UserFormModal({ open, user, roles, loading, onClose, onSave }: Props) {
-  const defaultRole = roles.includes('DEVELOPER') ? 'DEVELOPER' : roles[0]
+  const defaultRole = roles.includes('EMPLOYEE') ? 'EMPLOYEE' : roles[0]
   const [username, setUsername] = useState(user?.username ?? '')
   const [email, setEmail] = useState(user?.email ?? '')
   const [password, setPassword] = useState('')

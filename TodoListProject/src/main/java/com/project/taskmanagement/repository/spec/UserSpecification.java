@@ -85,5 +85,21 @@ public final class UserSpecification {
             );
         };
     }
+
+    public static Specification<User> roleIsNot(
+            UserRole role
+    ) {
+        return (root, query, criteriaBuilder) -> {
+
+            if (role == null) {
+                return criteriaBuilder.conjunction();
+            }
+
+            return criteriaBuilder.notEqual(
+                    root.get("role"),
+                    role
+            );
+        };
+    }
 }
 

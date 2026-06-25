@@ -137,6 +137,30 @@ public class UserController {
         );
     }
 
+    @Operation(
+            summary = "Tìm tài khoản có thể thêm vào dự án",
+            description = """
+                    API dành cho MANAGER để tìm thành viên có thể thêm vào project.
+                    Chỉ trả về tài khoản đang hoạt động và không bao gồm ADMIN.
+                    """
+    )
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/project-candidates")
+    public ApiResponseSever<UserPageResponse> searchProjectCandidateUsers(
+            @ParameterObject
+            UserSearchRequest request,
+
+            @ParameterObject
+            Pageable pageable
+    ) {
+        return ApiResponseSever.ok(
+                userService.searchProjectCandidateUsers(
+                        request,
+                        pageable
+                )
+        );
+    }
+
     // ===================== CREATE USER =====================
 
     @Operation(

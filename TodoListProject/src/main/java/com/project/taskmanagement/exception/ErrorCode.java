@@ -71,6 +71,11 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Mật khẩu mới không được trùng với mật khẩu hiện tại"
     ),
+    PROJECT_DATE_INVALID(
+            400012,
+            HttpStatus.BAD_REQUEST,
+            "Ngày kết thúc không được trước ngày bắt đầu"
+    ),
 
     // ============================================================
     // 401xxx - UNAUTHORIZED
@@ -142,6 +147,42 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "Tài khoản chưa được kích hoạt"
     ),
+    PROJECT_MEMBER_ROLE_NOT_ALLOWED(
+            403004,
+            HttpStatus.FORBIDDEN,
+            "Vai trò dự án không phù hợp với vai trò hệ thống"
+    ),
+    PROJECT_CREATE_FORBIDDEN(
+            403005,
+            HttpStatus.FORBIDDEN,
+            "Chỉ tài khoản quản lý mới được tạo dự án"
+    ),
+    PROJECT_ACCESS_DENIED(
+            403006,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền truy cập dự án này"
+    ),
+    PROJECT_MEMBER_MANAGE_DENIED(
+            403007,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền quản lý thành viên của dự án"
+    ),
+    PROJECT_UPDATE_DENIED(
+            403008,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền cập nhật dự án này"
+    ),
+
+    PROJECT_DELETE_DENIED(
+            403009,
+            HttpStatus.FORBIDDEN,
+            "Chỉ OWNER mới được xóa dự án"
+    ),
+    NOTIFICATION_ACCESS_DENIED(
+            403701,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền truy cập thông báo này"
+    ),
 
     // ============================================================
     // 404xxx - NOT FOUND
@@ -168,6 +209,21 @@ public enum ErrorCode {
             404004,
             HttpStatus.NOT_FOUND,
             "Không tìm thấy API yêu cầu"
+    ),
+    PROJECT_NOT_FOUND(
+            404005,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy dự án"
+    ),
+    PROJECT_MEMBER_NOT_FOUND(
+            404006,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy thành viên dự án"
+    ),
+    NOTIFICATION_NOT_FOUND(
+            404701,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy thông báo"
     ),
 
     // ============================================================
@@ -210,6 +266,44 @@ public enum ErrorCode {
             409005,
             HttpStatus.CONFLICT,
             "Dữ liệu liên kết không tồn tại hoặc không hợp lệ"
+    ),
+    PROJECT_CODE_ALREADY_EXISTS(
+            409006,
+            HttpStatus.CONFLICT,
+            "Mã dự án đã tồn tại"
+    ),
+    PROJECT_MEMBER_ALREADY_EXISTS(
+            409007,
+            HttpStatus.CONFLICT,
+            "Người dùng đã là thành viên của dự án"
+    ),
+    PROJECT_LAST_OWNER_CANNOT_BE_REMOVED(
+            409008,
+            HttpStatus.CONFLICT,
+            "Không thể xóa hoặc thay đổi vai trò của OWNER cuối cùng"
+    ),
+
+    PROJECT_MEMBER_CANNOT_REMOVE_SELF(
+            409009,
+            HttpStatus.CONFLICT,
+            "Bạn không thể tự xóa mình khỏi dự án"
+    ),
+    PROJECT_NOT_EDITABLE(
+            409202,
+            HttpStatus.CONFLICT,
+            "Dự án hiện tại không cho phép chỉnh sửa"
+    ),
+
+    PROJECT_STATUS_TRANSITION_INVALID(
+            409203,
+            HttpStatus.CONFLICT,
+            "Chuyển trạng thái dự án không hợp lệ"
+    ),
+
+    PROJECT_ALREADY_DELETED(
+            409204,
+            HttpStatus.CONFLICT,
+            "Dự án đã bị xóa"
     ),
 
     // ============================================================

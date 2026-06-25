@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../../../components/ui'
+import { ProjectWorkspaceController } from '../../project/controllers/ProjectWorkspaceController'
 import type { User } from '../models/user.model'
 import { getMe } from '../services/user.service'
-import { UserHomeView } from '../views/UserHomeView'
 import { DashboardController } from './DashboardController'
 
 export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
@@ -36,5 +36,5 @@ export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
 
   return user.role === 'ADMIN'
     ? <DashboardController me={user} onLogout={onLogout} />
-    : <UserHomeView user={user} onLogout={onLogout} />
+    : <ProjectWorkspaceController user={user} onLogout={onLogout} />
 }

@@ -186,4 +186,111 @@ public class ProjectAccessService {
 
         return membership;
     }
+
+    public ProjectMember requireBacklogManagementAccess(
+            UUID projectId,
+            User currentUser
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.BACKLOG_ACCESS_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean canManage =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.PRODUCT_OWNER;
+
+        if (!canManage) {
+            throw new BusinessException(
+                    ErrorCode.BACKLOG_ACCESS_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public ProjectMember requireSprintManagementAccess(
+            UUID projectId,
+            User currentUser
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_ACCESS_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean canManage =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER;
+
+        if (!canManage) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_ACCESS_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public ProjectMember requireSprintBacklogManagementAccess(
+            UUID projectId,
+            User currentUser
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_BACKLOG_ACCESS_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean canManage =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER
+                        || membership.getRole()
+                        == ProjectMemberRole.PRODUCT_OWNER;
+
+        if (!canManage) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_BACKLOG_ACCESS_DENIED
+            );
+        }
+
+        return membership;
+    }
 }

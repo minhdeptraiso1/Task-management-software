@@ -10,6 +10,10 @@ public final class CacheNames {
     public static final String USER_SEARCH = "user_search";
 
     public static final String PROJECT_DETAIL = "project_detail";
-
     public static final String PROJECT_SEARCH = "project_search";
+
+    public static final String SPRINT_DETAIL = "sprint_detail";
+    public static final String SPRINT_SEARCH = "sprint_search";
+    public static final String BACKLOG_ITEM_DETAIL = "backlog_item_detail";
+    public static final String BACKLOG_ITEM_SEARCH = "backlog_item_search";
 }

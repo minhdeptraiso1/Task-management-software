@@ -30,6 +30,8 @@ import {
   type ProjectStatus,
 } from '../models/project.model'
 import type { NotificationPage } from '../models/notification.model'
+import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint } from '../models/scrum.model'
+import { ScrumBoardView } from './ScrumBoardView'
 
 const statuses: ProjectStatus[] = ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'ARCHIVED']
 const memberRoles: ProjectMemberRole[] = ['OWNER', 'PROJECT_MANAGER', 'SCRUM_MASTER', 'PRODUCT_OWNER', 'DEVELOPER', 'TESTER', 'VIEWER']
@@ -41,10 +43,13 @@ interface Props {
   members: ProjectMember[]
   activities: ProjectActivityPage
   notifications: NotificationPage
+  backlogItems: BacklogItem[]
+  sprints: Sprint[]
+  sprintItems: Record<string, BacklogItem[]>
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'members' | 'activities' | 'notifications'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications'
   page: number
   activityPage: number
   loading: boolean
@@ -59,7 +64,7 @@ interface Props {
   onSelectProject: (project: Project) => void
   onCreateProject: (data: { code: string; name: string; description: string; startDate: string; endDate: string }) => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'members' | 'activities' | 'notifications') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -67,6 +72,15 @@ interface Props {
   onRemoveMember: (member: ProjectMember) => void
   onReadNotification: (id: string) => void
   onReadAllNotifications: () => void
+  onCreateBacklog: Parameters<typeof ScrumBoardView>[0]['onCreateBacklog']
+  onCreateSprint: Parameters<typeof ScrumBoardView>[0]['onCreateSprint']
+  onMoveToSprint: (itemId: string, sprintId: string) => void
+  onMoveToBacklog: (itemId: string, sprintId: string) => void
+  onBacklogStatusChange: (itemId: string, status: BacklogItemStatus) => void
+  onBacklogPriorityChange: (itemId: string, priority: BacklogPriority) => void
+  onStartSprint: (sprintId: string) => void
+  onCompleteSprint: (sprintId: string) => void
+  onCancelSprint: (sprintId: string) => void
 }
 
 function formatDate(value?: string | null) {
@@ -185,6 +199,9 @@ export function ProjectWorkspaceView({
   members,
   activities,
   notifications,
+  backlogItems,
+  sprints,
+  sprintItems,
   candidateUsers,
   unreadCount,
   filters,
@@ -211,6 +228,15 @@ export function ProjectWorkspaceView({
   onRemoveMember,
   onReadNotification,
   onReadAllNotifications,
+  onCreateBacklog,
+  onCreateSprint,
+  onMoveToSprint,
+  onMoveToBacklog,
+  onBacklogStatusChange,
+  onBacklogPriorityChange,
+  onStartSprint,
+  onCompleteSprint,
+  onCancelSprint,
 }: Props) {
   const [createOpen, setCreateOpen] = useState(false)
   const canCreateProject = user.role === 'MANAGER'
@@ -308,6 +334,7 @@ export function ProjectWorkspaceView({
 
           <div className="border-b border-line px-5 pt-4">
             <div className="flex flex-wrap gap-2">
+              <Button variant={activeTab === 'board' ? 'primary' : 'secondary'} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
               <Button variant={activeTab === 'members' ? 'primary' : 'secondary'} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
               <Button variant={activeTab === 'activities' ? 'primary' : 'secondary'} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
               <Button variant={activeTab === 'notifications' ? 'primary' : 'secondary'} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
@@ -315,6 +342,24 @@ export function ProjectWorkspaceView({
           </div>
 
           <div className={`p-5 ${detailLoading ? 'opacity-50' : ''}`}>
+            {activeTab === 'board' && <ScrumBoardView
+              backlogItems={backlogItems}
+              sprints={sprints}
+              sprintItems={sprintItems}
+              loading={detailLoading}
+              saving={saving}
+              canManage={canManageMembers}
+              onCreateBacklog={onCreateBacklog}
+              onCreateSprint={onCreateSprint}
+              onMoveToSprint={onMoveToSprint}
+              onMoveToBacklog={onMoveToBacklog}
+              onStatusChange={onBacklogStatusChange}
+              onPriorityChange={onBacklogPriorityChange}
+              onStartSprint={onStartSprint}
+              onCompleteSprint={onCompleteSprint}
+              onCancelSprint={onCancelSprint}
+            />}
+
             {activeTab === 'members' && <>
               {canManageMembers && <AddMemberForm candidates={candidateUsers} saving={saving} loading={candidateLoading} onSearch={onCandidateSearch} onAdd={onAddMember} />}
               <div className="mt-4 overflow-x-auto rounded-xl border border-line">

@@ -76,6 +76,26 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Ngày kết thúc không được trước ngày bắt đầu"
     ),
+    BACKLOG_ITEM_STORY_POINTS_INVALID(
+            400401,
+            HttpStatus.BAD_REQUEST,
+            "Story Point phải lớn hơn hoặc bằng 0"
+    ),
+    SPRINT_DATE_INVALID(
+            400501,
+            HttpStatus.BAD_REQUEST,
+            "Ngày kết thúc Sprint không được trước ngày bắt đầu"
+    ),
+    BACKLOG_POSITION_INVALID(
+            400402,
+            HttpStatus.BAD_REQUEST,
+            "Vị trí Backlog Item không hợp lệ"
+    ),
+    SPRINT_BACKLOG_ACCESS_DENIED(
+            403502,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền quản lý Backlog của Sprint"
+    ),
 
     // ============================================================
     // 401xxx - UNAUTHORIZED
@@ -183,7 +203,16 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "Bạn không có quyền truy cập thông báo này"
     ),
-
+    BACKLOG_ACCESS_DENIED(
+            403401,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền quản lý Product Backlog"
+    ),
+    SPRINT_ACCESS_DENIED(
+            403501,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền quản lý Sprint"
+    ),
     // ============================================================
     // 404xxx - NOT FOUND
     // ============================================================
@@ -225,7 +254,16 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "Không tìm thấy thông báo"
     ),
-
+    BACKLOG_ITEM_NOT_FOUND(
+            404401,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy Backlog Item"
+    ),
+    SPRINT_NOT_FOUND(
+            404501,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy Sprint"
+    ),
     // ============================================================
     // 405xxx - METHOD NOT ALLOWED
     // ============================================================
@@ -304,6 +342,102 @@ public enum ErrorCode {
             409204,
             HttpStatus.CONFLICT,
             "Dự án đã bị xóa"
+    ),
+    BACKLOG_ITEM_NOT_EDITABLE(
+            409401,
+            HttpStatus.CONFLICT,
+            "Backlog Item hiện tại không cho phép chỉnh sửa"
+    ),
+
+    BACKLOG_ITEM_STATUS_TRANSITION_INVALID(
+            409402,
+            HttpStatus.CONFLICT,
+            "Chuyển trạng thái Backlog Item không hợp lệ"
+    ),
+
+    BACKLOG_ITEM_ALREADY_IN_SPRINT(
+            409403,
+            HttpStatus.CONFLICT,
+            "Backlog Item đang nằm trong Sprint"
+    ),
+    SPRINT_NOT_EDITABLE(
+            409502,
+            HttpStatus.CONFLICT,
+            "Sprint hiện tại không cho phép chỉnh sửa"
+    ),
+
+    SPRINT_NOT_EMPTY(
+            409503,
+            HttpStatus.CONFLICT,
+            "Sprint đang chứa Backlog Item và không thể xóa"
+    ),
+    SPRINT_NAME_ALREADY_EXISTS(
+            409501,
+            HttpStatus.CONFLICT,
+            "Tên Sprint đã tồn tại trong dự án"
+    ),
+    BACKLOG_ITEM_NOT_READY(
+            409404,
+            HttpStatus.CONFLICT,
+            "Backlog Item phải ở trạng thái READY trước khi đưa vào Sprint"
+    ),
+
+    BACKLOG_ITEM_NOT_IN_SPRINT(
+            409405,
+            HttpStatus.CONFLICT,
+            "Backlog Item không thuộc Sprint này"
+    ),
+
+    BACKLOG_ITEM_SPRINT_MISMATCH(
+            409406,
+            HttpStatus.CONFLICT,
+            "Backlog Item và Sprint không thuộc cùng một Project"
+    ),
+    SPRINT_NOT_PLANNING(
+            409504,
+            HttpStatus.CONFLICT,
+            "Chỉ Sprint ở trạng thái PLANNING mới được thay đổi Backlog"
+    ),
+    SPRINT_ALREADY_ACTIVE(
+            409505,
+            HttpStatus.CONFLICT,
+            "Dự án đang có một Sprint hoạt động"
+    ),
+
+    SPRINT_EMPTY(
+            409506,
+            HttpStatus.CONFLICT,
+            "Sprint phải có ít nhất một Backlog Item trước khi bắt đầu"
+    ),
+
+    SPRINT_START_INVALID(
+            409507,
+            HttpStatus.CONFLICT,
+            "Chỉ Sprint ở trạng thái PLANNING mới được bắt đầu"
+    ),
+
+    SPRINT_COMPLETE_INVALID(
+            409508,
+            HttpStatus.CONFLICT,
+            "Chỉ Sprint ở trạng thái ACTIVE mới được hoàn thành"
+    ),
+
+    SPRINT_HAS_UNFINISHED_ITEMS(
+            409509,
+            HttpStatus.CONFLICT,
+            "Sprint vẫn còn Backlog Item chưa hoàn thành"
+    ),
+
+    SPRINT_CANCEL_INVALID(
+            409510,
+            HttpStatus.CONFLICT,
+            "Sprint hiện tại không thể hủy"
+    ),
+
+    BACKLOG_ITEM_DONE_INVALID(
+            409407,
+            HttpStatus.CONFLICT,
+            "Backlog Item chỉ được hoàn thành khi Sprint đang ACTIVE"
     ),
 
     // ============================================================

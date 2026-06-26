@@ -11,6 +11,7 @@ import type {
   ProjectStatus,
 } from '../models/project.model'
 import type { NotificationPage } from '../models/notification.model'
+import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogPriority, Sprint, SprintPage } from '../models/scrum.model'
 import {
   addProjectMember,
   createProject,
@@ -22,6 +23,19 @@ import {
   updateProjectMemberRole,
   updateProjectStatus,
 } from '../services/project.service'
+import {
+  addBacklogItemToSprint,
+  cancelSprint,
+  completeSprint,
+  createBacklogItem,
+  createSprint,
+  getBacklogItems,
+  getSprints,
+  removeBacklogItemFromSprint,
+  startSprint,
+  updateBacklogItemPriority,
+  updateBacklogItemStatus,
+} from '../services/scrum.service'
 import { getNotifications, getUnreadCount, markAllNotificationsRead, markNotificationRead } from '../services/notification.service'
 import { ProjectWorkspaceView } from '../views/ProjectWorkspaceView'
 import { searchProjectCandidateUsers } from '../../user/services/user.service'
@@ -31,6 +45,8 @@ const emptyProjectPage: ProjectPage = { content: [], totalElements: 0, totalPage
 const emptyActivityPage: ProjectActivityPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 10, numberOfElements: 0, first: true, last: true, empty: true }
 const emptyNotificationPage: NotificationPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 6, numberOfElements: 0, first: true, last: true, empty: true }
 const emptyCandidatePage: UserPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 8 }
+const emptyBacklogPage: BacklogItemPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 200, numberOfElements: 0, first: true, last: true, empty: true }
+const emptySprintPage: SprintPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 50, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: ProjectFilters = { keyword: '', status: '' }
 
 export function ProjectWorkspaceController({ user, onLogout }: { user: User; onLogout: () => void }) {
@@ -44,8 +60,11 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
   const [activityPage, setActivityPage] = useState(0)
   const [notifications, setNotifications] = useState(emptyNotificationPage)
   const [candidateUsers, setCandidateUsers] = useState(emptyCandidatePage)
+  const [backlogItems, setBacklogItems] = useState(emptyBacklogPage)
+  const [sprints, setSprints] = useState(emptySprintPage)
+  const [sprintItems, setSprintItems] = useState<Record<string, BacklogItem[]>>({})
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'members' | 'activities' | 'notifications'>('members')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications'>('board')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -93,6 +112,34 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
   useEffect(() => {
     if (selectedProject?.id) void Promise.resolve().then(() => loadProjectDetail(selectedProject.id))
   }, [selectedProject?.id, loadProjectDetail])
+
+  const loadScrumBoard = useCallback(async (projectId: string, options: { silent?: boolean } = {}) => {
+    if (!options.silent) setDetailLoading(true)
+    setError('')
+    try {
+      const [unscheduled, sprintPage] = await Promise.all([
+        getBacklogItems(projectId, { unscheduledOnly: true }),
+        getSprints(projectId),
+      ])
+      const itemEntries = await Promise.all(
+        sprintPage.content.map(async sprint => {
+          const items = await getBacklogItems(projectId, { sprintId: sprint.id })
+          return [sprint.id, items.content] as const
+        }),
+      )
+      setBacklogItems(unscheduled)
+      setSprints(sprintPage)
+      setSprintItems(Object.fromEntries(itemEntries))
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không tải được Sprint Board')
+    } finally {
+      if (!options.silent) setDetailLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (selectedProject?.id) void Promise.resolve().then(() => loadScrumBoard(selectedProject.id))
+  }, [selectedProject?.id, loadScrumBoard])
 
   const loadNotifications = useCallback(async () => {
     try {
@@ -208,6 +255,134 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
     await loadNotifications()
   }
 
+  const reloadBoard = async () => {
+    if (selectedProject) await loadScrumBoard(selectedProject.id, { silent: true })
+  }
+
+  const moveItemInBoard = (itemId: string, targetSprintId: string | null) => {
+    const movingItem =
+      backlogItems.content.find(item => item.id === itemId)
+      ?? Object.values(sprintItems).flat().find(item => item.id === itemId)
+
+    if (!movingItem) return
+
+    setBacklogItems(current => ({
+      ...current,
+      content: current.content.filter(item => item.id !== itemId),
+    }))
+
+    setSprintItems(current => {
+      const next: Record<string, BacklogItem[]> = {}
+
+      for (const [sprintId, items] of Object.entries(current)) {
+        next[sprintId] = items.filter(item => item.id !== itemId)
+      }
+
+      if (targetSprintId) {
+        next[targetSprintId] = [
+          { ...movingItem, sprintId: targetSprintId, status: 'IN_SPRINT' },
+          ...(next[targetSprintId] ?? []),
+        ]
+      }
+
+      return next
+    })
+
+    if (!targetSprintId) {
+      setBacklogItems(current => ({
+        ...current,
+        content: [{ ...movingItem, sprintId: null, status: 'READY' }, ...current.content],
+      }))
+    }
+  }
+
+  const handleCreateBacklog = async (data: Parameters<typeof createBacklogItem>[1]) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await createBacklogItem(selectedProject.id, data)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không tạo được backlog item')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCreateSprint = async (data: Parameters<typeof createSprint>[1]) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await createSprint(selectedProject.id, {
+        name: data.name,
+        goal: data.goal || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
+      })
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không tạo được sprint')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleMoveToSprint = async (itemId: string, sprintId: string, sourceSprintId?: string | null) => {
+    if (!selectedProject) return
+    moveItemInBoard(itemId, sprintId)
+    setSaving(true)
+    try {
+      if (sourceSprintId) await removeBacklogItemFromSprint(selectedProject.id, sourceSprintId, itemId)
+      await addBacklogItemToSprint(selectedProject.id, sprintId, itemId)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không kéo item vào sprint được')
+      await reloadBoard()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleMoveToBacklog = async (itemId: string, sprintId: string) => {
+    if (!selectedProject) return
+    moveItemInBoard(itemId, null)
+    setSaving(true)
+    try {
+      await removeBacklogItemFromSprint(selectedProject.id, sprintId, itemId)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không đưa item về backlog được')
+      await reloadBoard()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleBacklogStatus = async (itemId: string, status: BacklogItemStatus) => {
+    if (!selectedProject) return
+    await updateBacklogItemStatus(selectedProject.id, itemId, status)
+    await reloadBoard()
+  }
+
+  const handleBacklogPriority = async (itemId: string, priority: BacklogPriority) => {
+    if (!selectedProject) return
+    await updateBacklogItemPriority(selectedProject.id, itemId, priority)
+    await reloadBoard()
+  }
+
+  const handleSprintAction = async (action: (projectId: string, sprintId: string) => Promise<Sprint>, sprintId: string) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await action(selectedProject.id, sprintId)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không cập nhật được sprint')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return <>
     <ProjectWorkspaceView
       user={user}
@@ -216,6 +391,9 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       members={members}
       activities={activities}
       notifications={notifications}
+      backlogItems={backlogItems.content}
+      sprints={sprints.content}
+      sprintItems={sprintItems}
       candidateUsers={candidateUsers.content}
       unreadCount={unreadCount}
       filters={filters}
@@ -248,6 +426,15 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       onRemoveMember={setConfirmRemoveMember}
       onReadNotification={handleReadNotification}
       onReadAllNotifications={handleReadAll}
+      onCreateBacklog={handleCreateBacklog}
+      onCreateSprint={handleCreateSprint}
+      onMoveToSprint={handleMoveToSprint}
+      onMoveToBacklog={handleMoveToBacklog}
+      onBacklogStatusChange={handleBacklogStatus}
+      onBacklogPriorityChange={handleBacklogPriority}
+      onStartSprint={sprintId => handleSprintAction(startSprint, sprintId)}
+      onCompleteSprint={sprintId => handleSprintAction(completeSprint, sprintId)}
+      onCancelSprint={sprintId => handleSprintAction(cancelSprint, sprintId)}
     />
     <ConfirmDialog
       open={Boolean(confirmRemoveMember)}

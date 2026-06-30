@@ -1,0 +1,24 @@
+package com.project.taskmanagement.repository;
+
+import com.project.taskmanagement.entity.TaskImportError;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface TaskImportErrorRepository
+        extends JpaRepository<TaskImportError, UUID> {
+
+    List<TaskImportError>
+    findAllByImportBatchIdOrderByRowNumberAsc(
+            UUID importBatchId
+    );
+
+    long countByImportBatchId(
+            UUID importBatchId
+    );
+
+    void deleteAllByImportBatchId(
+            UUID importBatchId
+    );
+}

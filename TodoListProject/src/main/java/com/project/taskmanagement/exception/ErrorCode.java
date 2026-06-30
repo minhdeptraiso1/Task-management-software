@@ -96,6 +96,17 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "Bạn không có quyền quản lý Backlog của Sprint"
     ),
+    TASK_DATE_INVALID(
+            400601,
+            HttpStatus.BAD_REQUEST,
+            "Ngày kết thúc Task không được trước ngày bắt đầu"
+    ),
+
+    TASK_ESTIMATED_MINUTES_INVALID(
+            400602,
+            HttpStatus.BAD_REQUEST,
+            "Thời gian dự kiến phải lớn hơn hoặc bằng 0"
+    ),
 
     // ============================================================
     // 401xxx - UNAUTHORIZED
@@ -213,6 +224,17 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "Bạn không có quyền quản lý Sprint"
     ),
+    TASK_ACCESS_DENIED(
+            403601,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền quản lý Task"
+    ),
+
+    TASK_ASSIGN_ACCESS_DENIED(
+            403602,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền phân công Task"
+    ),
     // ============================================================
     // 404xxx - NOT FOUND
     // ============================================================
@@ -263,6 +285,11 @@ public enum ErrorCode {
             404501,
             HttpStatus.NOT_FOUND,
             "Không tìm thấy Sprint"
+    ),
+    TASK_NOT_FOUND(
+            404601,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy Task"
     ),
     // ============================================================
     // 405xxx - METHOD NOT ALLOWED
@@ -439,6 +466,35 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "Backlog Item chỉ được hoàn thành khi Sprint đang ACTIVE"
     ),
+    TASK_ASSIGNEE_NOT_PROJECT_MEMBER(
+            409601,
+            HttpStatus.CONFLICT,
+            "Người được phân công không thuộc Project"
+    ),
+
+    TASK_ASSIGNEE_DISABLED(
+            409602,
+            HttpStatus.CONFLICT,
+            "Tài khoản được phân công đã bị vô hiệu hóa"
+    ),
+
+    TASK_BACKLOG_ITEM_MISMATCH(
+            409603,
+            HttpStatus.CONFLICT,
+            "Backlog Item không thuộc Project"
+    ),
+
+    TASK_NOT_EDITABLE(
+            409604,
+            HttpStatus.CONFLICT,
+            "Task hiện tại không cho phép chỉnh sửa"
+    ),
+
+    TASK_ALREADY_UNASSIGNED(
+            409605,
+            HttpStatus.CONFLICT,
+            "Task hiện chưa được phân công"
+    ),
 
     // ============================================================
     // 415xxx - UNSUPPORTED MEDIA TYPE
@@ -462,6 +518,184 @@ public enum ErrorCode {
             429002,
             HttpStatus.TOO_MANY_REQUESTS,
             "Bạn đăng nhập sai quá nhiều lần, vui lòng thử lại sau"
+    ),
+    // ============================================================
+    // Lỗi tổng hợp sắp xếp sau
+    // ============================================================
+    TASK_STATUS_TRANSITION_INVALID(
+            409606,
+            HttpStatus.CONFLICT,
+            "Chuyển trạng thái Task không hợp lệ"
+    ),
+
+    TASK_STATUS_UPDATE_DENIED(
+            403603,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền cập nhật trạng thái Task"
+    ),
+
+    TASK_POSITION_INVALID(
+            400603,
+            HttpStatus.BAD_REQUEST,
+            "Vị trí Task không hợp lệ"
+    ),
+
+    TASK_NOT_IN_ACTIVE_SPRINT(
+            409607,
+            HttpStatus.CONFLICT,
+            "Task phải thuộc Sprint đang hoạt động"
+    ),
+
+    KANBAN_SPRINT_NOT_FOUND(
+            404602,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy Sprint của bảng Kanban"
+    ),
+    TASK_EXCEL_TEMPLATE_GENERATION_FAILED(
+            500601,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Không thể tạo file Excel mẫu nhập Task"
+    ),
+
+    TASK_EXCEL_TEMPLATE_NO_BACKLOG_ITEMS(
+            409608,
+            HttpStatus.CONFLICT,
+            "Sprint chưa có Backlog Item để tạo file Excel mẫu"
+    ),
+    TASK_IMPORT_FILE_REQUIRED(
+            400610,
+            HttpStatus.BAD_REQUEST,
+            "Vui lòng chọn file Excel"
+    ),
+
+    TASK_IMPORT_FILE_TYPE_INVALID(
+            400611,
+            HttpStatus.BAD_REQUEST,
+            "Chỉ hỗ trợ file Excel định dạng .xlsx"
+    ),
+
+    TASK_IMPORT_FILE_TOO_LARGE(
+            400612,
+            HttpStatus.BAD_REQUEST,
+            "File Excel không được vượt quá 5 MB"
+    ),
+
+    TASK_IMPORT_SHEET_NOT_FOUND(
+            400613,
+            HttpStatus.BAD_REQUEST,
+            "Không tìm thấy sheet TASK_IMPORT"
+    ),
+
+    TASK_IMPORT_HEADER_INVALID(
+            400614,
+            HttpStatus.BAD_REQUEST,
+            "Cấu trúc cột trong file Excel không hợp lệ"
+    ),
+
+    TASK_IMPORT_TOO_MANY_ROWS(
+            400615,
+            HttpStatus.BAD_REQUEST,
+            "File Excel không được vượt quá 1000 dòng dữ liệu"
+    ),
+
+    TASK_IMPORT_NO_DATA(
+            400616,
+            HttpStatus.BAD_REQUEST,
+            "File Excel không có Task để import"
+    ),
+
+    TASK_IMPORT_VALIDATION_FAILED(
+            422601,
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "File Excel chứa dữ liệu không hợp lệ"
+    ),
+
+    TASK_IMPORT_PROCESSING_FAILED(
+            500602,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Không thể xử lý file Excel nhập Task"
+    ),
+    TASK_COMMENT_NOT_FOUND(
+            404701,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy bình luận Task"
+    ),
+
+    TASK_COMMENT_ACCESS_DENIED(
+            403701,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền thực hiện thao tác với bình luận này"
+    ),
+
+    TASK_COMMENT_PARENT_NOT_FOUND(
+            404702,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy bình luận cha"
+    ),
+
+    TASK_COMMENT_PARENT_MISMATCH(
+            409701,
+            HttpStatus.CONFLICT,
+            "Bình luận cha không thuộc Task hiện tại"
+    ),
+
+    TASK_COMMENT_CONTENT_INVALID(
+            400701,
+            HttpStatus.BAD_REQUEST,
+            "Nội dung bình luận không hợp lệ"
+    ),
+
+    TASK_COMMENT_REPLY_DEPTH_INVALID(
+            409702,
+            HttpStatus.CONFLICT,
+            "Hệ thống chỉ hỗ trợ reply một cấp"
+    ),
+    TASK_TIME_LOG_NOT_FOUND(
+            404801,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy bản ghi thời gian"
+    ),
+
+    TASK_TIME_LOG_ACCESS_DENIED(
+            403801,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền thao tác với bản ghi thời gian này"
+    ),
+
+    TASK_TIME_LOG_CREATE_DENIED(
+            403802,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền ghi thời gian cho Task này"
+    ),
+
+    TASK_TIME_LOG_MINUTES_INVALID(
+            400801,
+            HttpStatus.BAD_REQUEST,
+            "Số phút làm việc phải lớn hơn 0"
+    ),
+
+    TASK_TIME_LOG_DATE_INVALID(
+            400802,
+            HttpStatus.BAD_REQUEST,
+            "Ngày làm việc không hợp lệ"
+    ),
+
+    TASK_TIME_LOG_TASK_CANCELLED(
+            409801,
+            HttpStatus.CONFLICT,
+            "Không thể ghi thời gian cho Task đã bị hủy"
+    ),
+
+    TASK_TIME_LOG_FUTURE_DATE_INVALID(
+            400803,
+            HttpStatus.BAD_REQUEST,
+            "Không thể ghi thời gian cho ngày trong tương lai"
+    ),
+
+    TASK_TIME_LOG_DAILY_LIMIT_EXCEEDED(
+            409802,
+            HttpStatus.CONFLICT,
+            "Tổng thời gian trong ngày không được vượt quá 24 giờ"
     ),
 
     // ============================================================
@@ -514,6 +748,7 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Lỗi xử lý WebSocket"
     );
+
 
     private final int code;
     private final HttpStatus status;

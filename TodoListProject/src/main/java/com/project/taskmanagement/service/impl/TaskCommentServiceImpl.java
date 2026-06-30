@@ -1,0 +1,682 @@
+package com.project.taskmanagement.service.impl;
+
+import com.project.taskmanagement.dto.request.taskcomment.CreateTaskCommentRequest;
+import com.project.taskmanagement.dto.request.taskcomment.UpdateTaskCommentRequest;
+import com.project.taskmanagement.dto.response.taskcomment.TaskCommentPageResponse;
+import com.project.taskmanagement.dto.response.taskcomment.TaskCommentReplyResponse;
+import com.project.taskmanagement.dto.response.taskcomment.TaskCommentResponse;
+import com.project.taskmanagement.entity.Project;
+import com.project.taskmanagement.entity.Task;
+import com.project.taskmanagement.entity.TaskComment;
+import com.project.taskmanagement.entity.User;
+import com.project.taskmanagement.enums.ActivityEntityType;
+import com.project.taskmanagement.enums.NotificationType;
+import com.project.taskmanagement.enums.ProjectActivityAction;
+import com.project.taskmanagement.exception.BusinessException;
+import com.project.taskmanagement.exception.ErrorCode;
+import com.project.taskmanagement.repository.TaskCommentRepository;
+import com.project.taskmanagement.repository.TaskRepository;
+import com.project.taskmanagement.repository.UserRepository;
+import com.project.taskmanagement.service.NotificationService;
+import com.project.taskmanagement.service.ProjectActivityService;
+import com.project.taskmanagement.service.TaskCommentService;
+import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.model.NotificationCommand;
+import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.validation.TaskCommentValidator;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(
+        level = AccessLevel.PRIVATE,
+        makeFinal = true
+)
+public class TaskCommentServiceImpl
+        implements TaskCommentService {
+
+    TaskRepository taskRepository;
+    TaskCommentRepository taskCommentRepository;
+    UserRepository userRepository;
+
+    CurrentUserService currentUserService;
+    ProjectAccessService projectAccessService;
+
+    ProjectActivityService projectActivityService;
+    NotificationService notificationService;
+
+    // ===================== CREATE =====================
+
+    @Override
+    @Transactional
+    public TaskCommentResponse create(
+            UUID projectId,
+            UUID taskId,
+            CreateTaskCommentRequest request
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(projectId);
+
+        projectAccessService
+                .requireViewAccess(
+                        project,
+                        currentUser
+                );
+
+        Task task =
+                getTaskOrThrow(
+                        projectId,
+                        taskId
+                );
+
+        String content =
+                TaskCommentValidator
+                        .normalizeContent(
+                                request.content()
+                        );
+
+        TaskComment parentComment = null;
+
+        if (request.parentCommentId()
+                != null) {
+
+            parentComment =
+                    taskCommentRepository
+                            .findById(
+                                    request.parentCommentId()
+                            )
+                            .orElseThrow(() ->
+                                    new BusinessException(
+                                            ErrorCode
+                                                    .TASK_COMMENT_PARENT_NOT_FOUND
+                                    )
+                            );
+
+            if (!parentComment.getTaskId()
+                    .equals(taskId)) {
+
+                throw new BusinessException(
+                        ErrorCode
+                                .TASK_COMMENT_PARENT_MISMATCH
+                );
+            }
+
+            TaskCommentValidator
+                    .validateParentDepth(
+                            parentComment
+                    );
+        }
+
+        TaskComment comment =
+                TaskComment.builder()
+                        .taskId(taskId)
+                        .userId(
+                                currentUser.getId()
+                        )
+                        .parentCommentId(
+                                parentComment != null
+                                        ? parentComment.getId()
+                                        : null
+                        )
+                        .content(content)
+                        .editedAt(null)
+                        .build();
+
+        TaskComment savedComment =
+                taskCommentRepository.save(
+                        comment
+                );
+
+        Map<String, Object> newValue =
+                new LinkedHashMap<>();
+
+        newValue.put(
+                "taskId",
+                taskId
+        );
+
+        newValue.put(
+                "parentCommentId",
+                savedComment
+                        .getParentCommentId()
+        );
+
+        newValue.put(
+                "content",
+                savedComment.getContent()
+        );
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.COMMENT,
+                        savedComment.getId(),
+                        ProjectActivityAction
+                                .COMMENT_CREATED,
+                        currentUser.getId(),
+                        null,
+                        newValue
+                )
+        );
+
+        sendCommentNotification(
+                projectId,
+                task,
+                savedComment,
+                parentComment,
+                currentUser
+        );
+
+        return toCommentResponse(
+                projectId,
+                savedComment,
+                currentUser
+        );
+    }
+
+    // ===================== GET COMMENTS =====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public TaskCommentPageResponse getComments(
+            UUID projectId,
+            UUID taskId,
+            Pageable pageable
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(projectId);
+
+        projectAccessService
+                .requireViewAccess(
+                        project,
+                        currentUser
+                );
+
+        getTaskOrThrow(
+                projectId,
+                taskId
+        );
+
+        Page<TaskComment> page =
+                taskCommentRepository
+                        .findAllByTaskIdAndParentCommentIdIsNullOrderByCreatedAtDesc(
+                                taskId,
+                                pageable
+                        );
+
+        List<TaskCommentResponse> responses =
+                page.getContent()
+                        .stream()
+                        .map(comment ->
+                                toCommentResponse(
+                                        projectId,
+                                        comment,
+                                        currentUser
+                                )
+                        )
+                        .toList();
+
+        return new TaskCommentPageResponse(
+                responses,
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize(),
+                page.getNumberOfElements(),
+                page.isFirst(),
+                page.isLast(),
+                page.isEmpty()
+        );
+    }
+
+    // ===================== UPDATE =====================
+
+    @Override
+    @Transactional
+    public TaskCommentResponse update(
+            UUID projectId,
+            UUID taskId,
+            UUID commentId,
+            UpdateTaskCommentRequest request
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(projectId);
+
+        projectAccessService
+                .requireViewAccess(
+                        project,
+                        currentUser
+                );
+
+        getTaskOrThrow(
+                projectId,
+                taskId
+        );
+
+        TaskComment comment =
+                getCommentOrThrow(
+                        taskId,
+                        commentId
+                );
+
+        if (!comment.getUserId()
+                .equals(currentUser.getId())) {
+
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_COMMENT_ACCESS_DENIED
+            );
+        }
+
+        String oldContent =
+                comment.getContent();
+
+        String newContent =
+                TaskCommentValidator
+                        .normalizeContent(
+                                request.content()
+                        );
+
+        if (oldContent.equals(newContent)) {
+            return toCommentResponse(
+                    projectId,
+                    comment,
+                    currentUser
+            );
+        }
+
+        comment.setContent(
+                newContent
+        );
+
+        comment.setEditedAt(
+                Instant.now()
+        );
+
+        TaskComment savedComment =
+                taskCommentRepository.save(
+                        comment
+                );
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.COMMENT,
+                        savedComment.getId(),
+                        ProjectActivityAction
+                                .COMMENT_UPDATED,
+                        currentUser.getId(),
+                        Map.of(
+                                "content",
+                                oldContent
+                        ),
+                        Map.of(
+                                "content",
+                                newContent
+                        )
+                )
+        );
+
+        /*
+         * Không gửi notification khi chỉ sửa nội dung,
+         * tránh spam thành viên.
+         */
+
+        return toCommentResponse(
+                projectId,
+                savedComment,
+                currentUser
+        );
+    }
+
+    // ===================== DELETE =====================
+
+    @Override
+    @Transactional
+    public void delete(
+            UUID projectId,
+            UUID taskId,
+            UUID commentId
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(projectId);
+
+        projectAccessService
+                .requireViewAccess(
+                        project,
+                        currentUser
+                );
+
+        getTaskOrThrow(
+                projectId,
+                taskId
+        );
+
+        TaskComment comment =
+                getCommentOrThrow(
+                        taskId,
+                        commentId
+                );
+
+        boolean isOwner =
+                comment.getUserId()
+                        .equals(
+                                currentUser.getId()
+                        );
+
+        boolean canModerate =
+                projectAccessService
+                        .canModerateTaskComments(
+                                projectId,
+                                currentUser
+                        );
+
+        if (!isOwner && !canModerate) {
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_COMMENT_ACCESS_DENIED
+            );
+        }
+
+        Map<String, Object> oldValue =
+                new LinkedHashMap<>();
+
+        oldValue.put(
+                "taskId",
+                taskId
+        );
+
+        oldValue.put(
+                "userId",
+                comment.getUserId()
+        );
+
+        oldValue.put(
+                "parentCommentId",
+                comment.getParentCommentId()
+        );
+
+        oldValue.put(
+                "content",
+                comment.getContent()
+        );
+
+        comment.markDeleted(
+                currentUser.getUsername()
+        );
+
+        taskCommentRepository.save(
+                comment
+        );
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.COMMENT,
+                        commentId,
+                        ProjectActivityAction
+                                .COMMENT_DELETED,
+                        currentUser.getId(),
+                        oldValue,
+                        null
+                )
+        );
+    }
+
+    // ===================== RESPONSE =====================
+
+    private TaskCommentResponse toCommentResponse(
+            UUID projectId,
+            TaskComment comment,
+            User currentUser
+    ) {
+        User author =
+                userRepository
+                        .findById(
+                                comment.getUserId()
+                        )
+                        .orElse(null);
+
+        boolean canEdit =
+                comment.getUserId()
+                        .equals(
+                                currentUser.getId()
+                        );
+
+        boolean canDelete =
+                canEdit
+                        || projectAccessService
+                        .canModerateTaskComments(
+                                projectId,
+                                currentUser
+                        );
+
+        List<TaskCommentReplyResponse> replies =
+                taskCommentRepository
+                        .findAllByParentCommentIdOrderByCreatedAtAsc(
+                                comment.getId()
+                        )
+                        .stream()
+                        .map(reply ->
+                                toReplyResponse(
+                                        projectId,
+                                        reply,
+                                        currentUser
+                                )
+                        )
+                        .toList();
+
+        return new TaskCommentResponse(
+                comment.getId(),
+                comment.getTaskId(),
+                comment.getUserId(),
+                author != null
+                        ? author.getUsername()
+                        : null,
+                author != null
+                        ? author.getEmail()
+                        : null,
+                comment.getContent(),
+                comment.getEditedAt(),
+                comment.getCreatedAt(),
+                comment.getUpdatedAt(),
+                canEdit,
+                canDelete,
+                replies.size(),
+                replies
+        );
+    }
+
+    private TaskCommentReplyResponse toReplyResponse(
+            UUID projectId,
+            TaskComment reply,
+            User currentUser
+    ) {
+        User author =
+                userRepository
+                        .findById(
+                                reply.getUserId()
+                        )
+                        .orElse(null);
+
+        boolean canEdit =
+                reply.getUserId()
+                        .equals(
+                                currentUser.getId()
+                        );
+
+        boolean canDelete =
+                canEdit
+                        || projectAccessService
+                        .canModerateTaskComments(
+                                projectId,
+                                currentUser
+                        );
+
+        return new TaskCommentReplyResponse(
+                reply.getId(),
+                reply.getTaskId(),
+                reply.getUserId(),
+                author != null
+                        ? author.getUsername()
+                        : null,
+                author != null
+                        ? author.getEmail()
+                        : null,
+                reply.getParentCommentId(),
+                reply.getContent(),
+                reply.getEditedAt(),
+                reply.getCreatedAt(),
+                reply.getUpdatedAt(),
+                canEdit,
+                canDelete
+        );
+    }
+
+    // ===================== NOTIFICATION =====================
+
+    private void sendCommentNotification(
+            UUID projectId,
+            Task task,
+            TaskComment newComment,
+            TaskComment parentComment,
+            User actor
+    ) {
+        Set<UUID> recipients =
+                new LinkedHashSet<>();
+
+        /*
+         * Người được giao Task nhận notification.
+         */
+        if (task.getAssigneeUserId()
+                != null) {
+
+            recipients.add(
+                    task.getAssigneeUserId()
+            );
+        }
+
+        /*
+         * Nếu là reply, người viết comment cha
+         * cũng nhận notification.
+         */
+        if (parentComment != null) {
+            recipients.add(
+                    parentComment.getUserId()
+            );
+        }
+
+        /*
+         * Reporter có thể cần theo dõi Task.
+         */
+        if (task.getReporterUserId()
+                != null) {
+
+            recipients.add(
+                    task.getReporterUserId()
+            );
+        }
+
+        recipients.remove(
+                actor.getId()
+        );
+
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        String title =
+                parentComment == null
+                        ? "Task có bình luận mới"
+                        : "Có phản hồi bình luận Task";
+
+        String content =
+                actor.getUsername()
+                        + (
+                        parentComment == null
+                                ? " đã bình luận trong Task "
+                                : " đã phản hồi trong Task "
+                )
+                        + task.getTitle();
+
+        notificationService.create(
+                new NotificationCommand(
+                        NotificationType.TASK_COMMENTED,
+                        title,
+                        content,
+                        actor.getId(),
+                        projectId,
+                        ActivityEntityType.COMMENT,
+                        newComment.getId(),
+                        new ArrayList<>(
+                                recipients
+                        )
+                )
+        );
+    }
+
+    // ===================== HELPER =====================
+
+    private Task getTaskOrThrow(
+            UUID projectId,
+            UUID taskId
+    ) {
+        return taskRepository
+                .findByIdAndProjectId(
+                        taskId,
+                        projectId
+                )
+                .orElseThrow(() ->
+                        new BusinessException(
+                                ErrorCode.TASK_NOT_FOUND
+                        )
+                );
+    }
+
+    private TaskComment getCommentOrThrow(
+            UUID taskId,
+            UUID commentId
+    ) {
+        return taskCommentRepository
+                .findByIdAndTaskId(
+                        commentId,
+                        taskId
+                )
+                .orElseThrow(() ->
+                        new BusinessException(
+                                ErrorCode
+                                        .TASK_COMMENT_NOT_FOUND
+                        )
+                );
+    }
+}

@@ -2,6 +2,7 @@ package com.project.taskmanagement.service.access;
 
 import com.project.taskmanagement.entity.Project;
 import com.project.taskmanagement.entity.ProjectMember;
+import com.project.taskmanagement.entity.Task;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.ProjectMemberRole;
 import com.project.taskmanagement.enums.UserRole;
@@ -292,5 +293,208 @@ public class ProjectAccessService {
         }
 
         return membership;
+    }
+
+    public ProjectMember requireTaskManagementAccess(
+            UUID projectId,
+            User currentUser
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.TASK_ACCESS_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean canManage =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER
+                        || membership.getRole()
+                        == ProjectMemberRole.PRODUCT_OWNER;
+
+        if (!canManage) {
+            throw new BusinessException(
+                    ErrorCode.TASK_ACCESS_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public ProjectMember requireTaskAssignmentAccess(
+            UUID projectId,
+            User currentUser
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.TASK_ASSIGN_ACCESS_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean canAssign =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER;
+
+        if (!canAssign) {
+            throw new BusinessException(
+                    ErrorCode.TASK_ASSIGN_ACCESS_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public ProjectMember requireTaskStatusUpdateAccess(
+            UUID projectId,
+            User currentUser,
+            Task task
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(
+                    ErrorCode.TASK_STATUS_UPDATE_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean isManager =
+                membership.getRole() == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER;
+
+        boolean isAssignedUser =
+                task.getAssigneeUserId() != null
+                        && task.getAssigneeUserId()
+                        .equals(currentUser.getId());
+
+        if (!isManager && !isAssignedUser) {
+            throw new BusinessException(
+                    ErrorCode.TASK_STATUS_UPDATE_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public boolean canModerateTaskComments(
+            UUID projectId,
+            User currentUser
+    ) {
+        if (currentUser.getRole()
+                == UserRole.ADMIN) {
+            return false;
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        return membership.getRole()
+                == ProjectMemberRole.OWNER
+                || membership.getRole()
+                == ProjectMemberRole.PROJECT_MANAGER
+                || membership.getRole()
+                == ProjectMemberRole.SCRUM_MASTER;
+    }
+
+    public ProjectMember requireTaskTimeLogCreateAccess(
+            UUID projectId,
+            User currentUser,
+            Task task
+    ) {
+        getProjectOrThrow(projectId);
+
+        if (currentUser.getRole()
+                == UserRole.ADMIN) {
+
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_TIME_LOG_CREATE_DENIED
+            );
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        boolean isManager =
+                membership.getRole()
+                        == ProjectMemberRole.OWNER
+                        || membership.getRole()
+                        == ProjectMemberRole.PROJECT_MANAGER
+                        || membership.getRole()
+                        == ProjectMemberRole.SCRUM_MASTER;
+
+        boolean isAssignedUser =
+                task.getAssigneeUserId() != null
+                        && task.getAssigneeUserId()
+                        .equals(currentUser.getId());
+
+        if (!isManager && !isAssignedUser) {
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_TIME_LOG_CREATE_DENIED
+            );
+        }
+
+        return membership;
+    }
+
+    public boolean canModerateTaskTimeLogs(
+            UUID projectId,
+            User currentUser
+    ) {
+        if (currentUser.getRole()
+                == UserRole.ADMIN) {
+            return false;
+        }
+
+        ProjectMember membership =
+                getMembershipOrThrow(
+                        projectId,
+                        currentUser.getId()
+                );
+
+        return membership.getRole()
+                == ProjectMemberRole.OWNER
+                || membership.getRole()
+                == ProjectMemberRole.PROJECT_MANAGER
+                || membership.getRole()
+                == ProjectMemberRole.SCRUM_MASTER;
     }
 }

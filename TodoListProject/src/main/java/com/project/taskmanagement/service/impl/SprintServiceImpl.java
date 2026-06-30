@@ -20,6 +20,7 @@ import com.project.taskmanagement.repository.spec.SprintSpecification;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.SprintService;
+import com.project.taskmanagement.service.TaskSprintSyncService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
@@ -39,10 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +62,7 @@ public class SprintServiceImpl
     BacklogItemMapper backlogItemMapper;
     NotificationService notificationService;
     ProjectMemberRepository projectMemberRepository;
+    TaskSprintSyncService taskSprintSyncService;
 
     // ===================== CREATE =====================
 
@@ -689,6 +688,14 @@ public class SprintServiceImpl
                         backlogItem
                 );
 
+        taskSprintSyncService
+                .attachBacklogItemTasksToSprint(
+                        projectId,
+                        savedItem.getId(),
+                        sprintId,
+                        currentUser.getId()
+                );
+
         Map<String, Object> oldValue =
                 new LinkedHashMap<>();
 
@@ -873,6 +880,14 @@ public class SprintServiceImpl
         BacklogItem savedItem =
                 backlogItemRepository.save(
                         backlogItem
+                );
+
+        taskSprintSyncService
+                .detachBacklogItemTasksFromSprint(
+                        projectId,
+                        savedItem.getId(),
+                        sprintId,
+                        currentUser.getId()
                 );
 
         Map<String, Object> oldValue =
@@ -1290,11 +1305,14 @@ public class SprintServiceImpl
                         ? 1L
                         : currentMaxBacklogPosition + 1L;
 
+        List<BacklogItem> itemsToReturn =
+                new ArrayList<>();
+
         for (BacklogItem item : sprintItems) {
 
             /*
-             * Item DONE được giữ trong Sprint để lưu lại
-             * kết quả đã hoàn thành.
+             * Backlog Item DONE giữ lại trong Sprint
+             * để lưu lịch sử hoàn thành.
              */
             if (item.getStatus()
                     == BacklogItemStatus.DONE) {
@@ -1308,16 +1326,24 @@ public class SprintServiceImpl
             );
 
             item.setPosition(
-                    nextBacklogPosition
+                    nextBacklogPosition++
             );
 
-            nextBacklogPosition++;
+            itemsToReturn.add(item);
         }
 
-        backlogItemRepository.saveAll(
-                sprintItems
-        );
+        if (!itemsToReturn.isEmpty()) {
+            backlogItemRepository.saveAll(
+                    itemsToReturn
+            );
+        }
 
+        taskSprintSyncService
+                .handleSprintCancellation(
+                        projectId,
+                        sprintId,
+                        currentUser.getId()
+                );
         sprint.setStatus(
                 SprintStatus.CANCELLED
         );
@@ -1335,14 +1361,7 @@ public class SprintServiceImpl
                 );
 
         long returnedItemCount =
-                sprintItems
-                        .stream()
-                        .filter(item ->
-                                item.getStatus()
-                                        == BacklogItemStatus.READY
-                                        && item.getSprintId() == null
-                        )
-                        .count();
+                itemsToReturn.size();
 
         newValue.put(
                 "returnedItemCount",

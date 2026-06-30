@@ -180,6 +180,6 @@ public interface BacklogItemRepository
             @Param("newPosition")
             Long newPosition
     );
-    
+
 
 }

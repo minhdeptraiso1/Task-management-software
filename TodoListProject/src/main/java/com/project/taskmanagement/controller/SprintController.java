@@ -5,9 +5,15 @@ import com.project.taskmanagement.dto.request.sprint.SprintSearchRequest;
 import com.project.taskmanagement.dto.request.sprint.UpdateSprintRequest;
 import com.project.taskmanagement.dto.response.backlog.BacklogItemResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
+import com.project.taskmanagement.dto.response.kanban.KanbanBoardResponse;
 import com.project.taskmanagement.dto.response.sprint.SprintPageResponse;
 import com.project.taskmanagement.dto.response.sprint.SprintResponse;
+import com.project.taskmanagement.dto.response.taskimport.TaskImportResponse;
 import com.project.taskmanagement.service.SprintService;
+import com.project.taskmanagement.service.TaskExcelImportService;
+import com.project.taskmanagement.service.TaskExcelTemplateService;
+import com.project.taskmanagement.service.TaskService;
+import com.project.taskmanagement.service.model.GeneratedExcelFile;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -15,10 +21,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +40,9 @@ import java.util.UUID;
 public class SprintController {
 
     SprintService sprintService;
+    TaskService taskService;
+    TaskExcelTemplateService taskExcelTemplateService;
+    TaskExcelImportService taskExcelImportService;
 
     @Operation(
             summary = "Tạo Sprint"
@@ -279,6 +289,118 @@ public class SprintController {
                 sprintService.cancel(
                         projectId,
                         sprintId
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Lấy bảng Kanban của Sprint"
+    )
+    @GetMapping("/{sprintId}/kanban")
+    public ApiResponseSever<KanbanBoardResponse>
+    getKanbanBoard(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID sprintId
+    ) {
+        return ApiResponseSever.ok(
+                taskService.getKanbanBoard(
+                        projectId,
+                        sprintId
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Tải file Excel mẫu nhập Task",
+            description = """
+                    File Excel được sinh từ Sprint.
+                    File chứa danh sách Backlog Item
+                    và thành viên của Project.
+                    """
+    )
+    @GetMapping(
+            path = "/{sprintId}/tasks/excel-template",
+            produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    public ResponseEntity<byte[]> downloadTaskExcelTemplate(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID sprintId
+    ) {
+        GeneratedExcelFile generatedFile =
+                taskExcelTemplateService
+                        .generateTemplate(
+                                projectId,
+                                sprintId
+                        );
+
+        ContentDisposition contentDisposition =
+                ContentDisposition
+                        .attachment()
+                        .filename(
+                                generatedFile.fileName(),
+                                StandardCharsets.UTF_8
+                        )
+                        .build();
+
+        return ResponseEntity
+                .ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        contentDisposition.toString()
+                )
+                .header(
+                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        HttpHeaders.CONTENT_DISPOSITION
+                )
+                .contentType(
+                        MediaType.parseMediaType(
+                                generatedFile.contentType()
+                        )
+                )
+                .contentLength(
+                        generatedFile.content().length
+                )
+                .body(
+                        generatedFile.content()
+                );
+    }
+
+    @Operation(
+            summary = "Import Task từ file Excel",
+            description = """
+                    Đọc file Excel mẫu được sinh từ Sprint.
+                    
+                    Toàn bộ file được validate trước.
+                    Nếu có bất kỳ dòng lỗi nào thì không Task nào
+                    được tạo.
+                    """
+    )
+    @PostMapping(
+            path = "/{sprintId}/tasks/import",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ApiResponseSever<TaskImportResponse>
+    importTasksFromExcel(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID sprintId,
+
+            @RequestPart("file")
+            MultipartFile file
+    ) {
+        return ApiResponseSever.ok(
+                taskExcelImportService.importTasks(
+                        projectId,
+                        sprintId,
+                        file
                 )
         );
     }

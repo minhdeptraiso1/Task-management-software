@@ -22,7 +22,7 @@ export function ToolbarActions({
   onCreate,
 }: ToolbarActionsProps) {
   return <div className="flex flex-wrap items-center gap-3">
-    <Button variant="secondary" leadingIcon={<Funnel size={17} />} loading={loading} onClick={onFilter}>
+    <Button variant="outline-indigo" leadingIcon={<Funnel size={17} />} loading={loading} onClick={onFilter}>
       {filterLabel}
     </Button>
     {canCreate && onCreate && (

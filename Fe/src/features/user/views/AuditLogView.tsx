@@ -1,6 +1,7 @@
 import { Activity, ChevronLeft, ChevronRight, Clock3, RefreshCw, ShieldCheck, UserRound } from 'lucide-react'
 import { Button } from '../../../components/ui'
 import { auditActionLabels, type AuditLogPage } from '../models/audit-log.model'
+import { formatDateTime } from '../../../utils/format'
 
 interface AuditLogViewProps {
   logs: AuditLogPage
@@ -10,13 +11,6 @@ interface AuditLogViewProps {
   page: number
   onPageChange: (page: number) => void
   onRefresh: () => void
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  }).format(new Date(value))
 }
 
 export function AuditLogView({ logs, loading, realtimeStatus, error, page, onPageChange, onRefresh }: AuditLogViewProps) {
@@ -81,7 +75,7 @@ export function AuditLogView({ logs, loading, realtimeStatus, error, page, onPag
               <td className="px-5 py-4">
                 <span className="inline-flex items-center gap-2 text-muted">
                   <Clock3 size={15} />
-                  {formatDate(log.createdAt)}
+                  {formatDateTime(log.createdAt)}
                 </span>
               </td>
               <td className="px-5 py-4 font-mono text-xs text-muted">{log.id.slice(0, 8)}</td>

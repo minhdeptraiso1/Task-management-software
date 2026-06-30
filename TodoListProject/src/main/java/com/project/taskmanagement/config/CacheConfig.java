@@ -50,7 +50,7 @@ public class CacheConfig {
                 // Đổi namespace để cache cũ dùng serializer không tương thích
                 // không còn được đọc sau khi triển khai phiên bản này.
                 .computePrefixWith(cacheName ->
-                        "task-management:v3:" + cacheName + "::"
+                        "task-management:v4:" + cacheName + "::"
                 )
                 .entryTtl(cacheProperties.getDefaultTtl())
                 .disableCachingNullValues()

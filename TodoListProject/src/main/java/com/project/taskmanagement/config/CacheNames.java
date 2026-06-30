@@ -16,4 +16,16 @@ public final class CacheNames {
     public static final String SPRINT_SEARCH = "sprint_search";
     public static final String BACKLOG_ITEM_DETAIL = "backlog_item_detail";
     public static final String BACKLOG_ITEM_SEARCH = "backlog_item_search";
+
+    public static final String TASK_DETAIL = "task_detail";
+
+    public static final String TASK_SEARCH = "task_search";
+
+    public static final String SPRINT_KANBAN = "sprint_kanban";
+
+    public static final String SPRINT_TASK_STATISTICS = "sprint_task_statistics";
+
+    public static final String SPRINT_BURNDOWN = "sprint_burndown";
+
+    public static final String TASK_TIME_SUMMARY = "task_time_summary";
 }

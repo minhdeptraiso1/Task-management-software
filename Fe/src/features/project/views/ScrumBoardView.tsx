@@ -1,22 +1,78 @@
-import { useState, type DragEvent, type FormEvent } from 'react'
-import { CalendarDays, GripVertical, ListPlus, Play, Plus, RotateCcw, Target, Trophy } from 'lucide-react'
-import { Button, Input, Modal, Select } from '../../../components/ui'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, RotateCcw, Save, Settings, Target, Trash2, Trophy, UserRound, X, BarChart3 } from 'lucide-react'
+import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
+import { SprintStatisticsView } from '../components/SprintStatisticsView'
+import { BacklogCard, priorityClass, typeClass, statusClass } from '../components/BacklogCard'
+
+function UserStoryHorizontalCard({
+  item,
+  isActive,
+  taskCount,
+  onClick
+}: {
+  item: BacklogItem
+  isActive: boolean
+  taskCount: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={`h-[120px] w-[280px] shrink-0 rounded-xl border p-3 text-left transition hover:border-brand flex flex-col justify-between ${isActive ? 'border-brand bg-brand-soft shadow-sm' : 'border-line bg-white hover:bg-slate-50'}`}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between gap-3 w-full min-h-0">
+        <p className="line-clamp-2 font-semibold text-ink leading-snug">{item.title}</p>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${isActive ? 'bg-brand/20 text-brand-dark' : 'bg-slate-100 text-slate-500'}`}>{taskCount}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5 shrink-0">
+        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${typeClass(item.type)}`}>{backlogTypeLabels[item.type]}</span>
+        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${priorityClass(item.priority)}`}>{backlogPriorityLabels[item.priority]}</span>
+        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${statusClass(item.status)}`}>{backlogStatusLabels[item.status]}</span>
+        {item.storyPoints !== null && item.storyPoints > 0 && (
+          <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 ring-1 ring-amber-500/20">{item.storyPoints} pt</span>
+        )}
+      </div>
+    </button>
+  )
+}
 import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint } from '../models/scrum.model'
 import { backlogPriorityLabels, backlogStatusLabels, backlogTypeLabels, sprintStatusLabels } from '../models/scrum.model'
+import type { KanbanBoard, KanbanTask, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
+import { taskPriorityLabels, taskStatusLabels, taskTypeLabels } from '../models/task.model'
+import type { ProjectMember } from '../models/project.model'
 
 const itemTypes: BacklogItemType[] = ['USER_STORY', 'FEATURE', 'TECHNICAL', 'EPIC']
 const priorities: BacklogPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const statuses: BacklogItemStatus[] = ['DRAFT', 'READY', 'IN_SPRINT', 'DONE', 'CANCELLED']
+const taskTypes: TaskType[] = ['DEVELOPMENT', 'TESTING', 'DESIGN', 'DOCUMENTATION', 'RESEARCH', 'DEVOPS', 'OTHER']
+const taskPriorities: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+type AskConfirm = (title: string, description: string, confirmLabel: string, onConfirm: () => void) => void
 
 interface ScrumBoardViewProps {
   backlogItems: BacklogItem[]
   sprints: Sprint[]
   sprintItems: Record<string, BacklogItem[]>
+  kanbanBoards: Record<string, KanbanBoard>
+  selectedSprintId: string | null
+  sprintStatistics: SprintTaskStatistics | null
+  sprintBurndown: SprintBurndown | null
+  selectedTask: Task | null
+  taskComments: TaskCommentPage
+  taskTimeLogs: TaskTimeLogPage
+  taskTimeSummary: TaskTimeSummary | null
+  taskImportResult: TaskImportResult | null
+  members: ProjectMember[]
   loading: boolean
+  taskDetailLoading: boolean
   saving: boolean
   canManage: boolean
   onCreateBacklog: (data: { title: string; description: string; type: BacklogItemType; priority: BacklogPriority; storyPoints: number }) => void
   onCreateSprint: (data: { name: string; goal: string; startDate: string; endDate: string }) => void
+  onUpdateBacklog: (itemId: string, data: { title?: string; description?: string; type?: BacklogItemType; priority?: BacklogPriority; storyPoints?: number }) => void
+  onDeleteBacklog: (itemId: string) => void
+  onUpdateSprint: (sprintId: string, data: { name?: string; goal?: string; startDate?: string; endDate?: string }) => void
+  onDeleteSprint: (sprintId: string) => void
   onMoveToSprint: (itemId: string, sprintId: string, sourceSprintId?: string | null) => void
   onMoveToBacklog: (itemId: string, sprintId: string) => void
   onStatusChange: (itemId: string, status: BacklogItemStatus) => void
@@ -24,13 +80,56 @@ interface ScrumBoardViewProps {
   onStartSprint: (sprintId: string) => void
   onCompleteSprint: (sprintId: string) => void
   onCancelSprint: (sprintId: string) => void
+  onSelectSprint: (sprintId: string) => void
+  onCreateTask: (data: { backlogItemId: string; title: string; description?: string; type?: TaskType; priority?: TaskPriority; assigneeUserId?: string; estimatedMinutes?: number; startDate?: string; dueDate?: string }) => void
+  onUpdateTask: (taskId: string, data: { title?: string; description?: string; type?: TaskType; priority?: TaskPriority; estimatedMinutes?: number; startDate?: string; dueDate?: string }) => void
+  onDeleteTask: (taskId: string) => void
+  onTaskStatusChange: (taskId: string, status: TaskStatus, position?: number) => void
+  onAssignTask: (taskId: string, assigneeUserId: string) => void
+  onOpenTask: (taskId: string) => void
+  onCloseTask: () => void
+  onCreateTaskComment: (taskId: string, content: string, parentCommentId?: string) => void
+  onUpdateTaskComment: (taskId: string, commentId: string, content: string) => void
+  onDeleteTaskComment: (taskId: string, commentId: string) => void
+  onCreateTaskTimeLog: (taskId: string, data: { workDate: string; minutes: number; description?: string }) => void
+  onUpdateTaskTimeLog: (taskId: string, timeLogId: string, data: { workDate?: string; minutes?: number; description?: string }) => void
+  onDeleteTaskTimeLog: (taskId: string, timeLogId: string) => void
+  onDownloadTaskTemplate: (sprintId: string) => void
+  onImportTasks: (sprintId: string, file: File) => void
+  onClearTaskImportResult: () => void
+  onRefreshStatistics?: (sprintId: string) => void
 }
 
-function priorityClass(priority: BacklogPriority) {
-  if (priority === 'URGENT') return 'bg-[#fff0ed] text-danger'
-  if (priority === 'HIGH') return 'bg-[#fef3e2] text-brand-dark'
-  if (priority === 'MEDIUM') return 'bg-[#eff6ff] text-info'
-  return 'bg-panel text-muted'
+function taskPriorityClass(priority: TaskPriority) {
+  if (priority === 'URGENT') return 'bg-red-50 text-red-600 ring-1 ring-red-500/20'
+  if (priority === 'HIGH') return 'bg-orange-50 text-orange-600 ring-1 ring-orange-500/20'
+  if (priority === 'MEDIUM') return 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20'
+  return 'bg-slate-50 text-slate-600 ring-1 ring-slate-500/20'
+}
+
+function taskPriorityIndicatorClass(priority: TaskPriority) {
+  if (priority === 'URGENT') return 'bg-red-500'
+  if (priority === 'HIGH') return 'bg-orange-500'
+  if (priority === 'MEDIUM') return 'bg-blue-500'
+  return 'bg-slate-400'
+}
+
+function formatMinutes(minutes?: number | null) {
+  if (!minutes) return '0h'
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return `${hours ? `${hours}h` : ''}${rest ? ` ${rest}m` : ''}`.trim()
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function formatDisplayDate(dateStr: string | null | undefined) {
+  if (!dateStr) return '...'
+  const parts = dateStr.split('-')
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+  return dateStr
 }
 
 function createDragPreview(title: string) {
@@ -52,6 +151,7 @@ function createDragPreview(title: string) {
   return preview
 }
 
+
 function CreateBacklogModal({ open, saving, onClose, onSave }: { open: boolean; saving: boolean; onClose: () => void; onSave: ScrumBoardViewProps['onCreateBacklog'] }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -66,7 +166,7 @@ function CreateBacklogModal({ open, saving, onClose, onSave }: { open: boolean; 
     setDescription('')
   }
 
-  return <Modal open={open} onClose={onClose} title="Tạo backlog item" description="Backlog mới sẽ nằm trong Product Backlog và có thể kéo vào Sprint.">
+  return <Modal open={open} onClose={onClose} title="Tạo backlog item" description="Backlog mới sẽ nằm trong Product Backlog và có thể kéo vào Sprint." showClose={false}>
     <form className="space-y-4" onSubmit={submit}>
       <Input label="Tiêu đề" value={title} onChange={event => setTitle(event.target.value)} required placeholder="Người dùng đăng nhập bằng email" />
       <div>
@@ -96,7 +196,7 @@ function CreateSprintModal({ open, saving, onClose, onSave }: { open: boolean; s
     setGoal('')
   }
 
-  return <Modal open={open} onClose={onClose} title="Tạo Sprint" description="Sprint mới ở trạng thái Lên kế hoạch và có thể nhận backlog item.">
+  return <Modal open={open} onClose={onClose} title="Tạo Sprint" description="Sprint mới ở trạng thái Lên kế hoạch và có thể nhận backlog item." showClose={false}>
     <form className="space-y-4" onSubmit={submit}>
       <Input label="Tên Sprint" value={name} onChange={event => setName(event.target.value)} required placeholder="Sprint 1" />
       <Input label="Mục tiêu" value={goal} onChange={event => setGoal(event.target.value)} placeholder="Hoàn thiện login và quản lý tài khoản" />
@@ -109,64 +209,589 @@ function CreateSprintModal({ open, saving, onClose, onSave }: { open: boolean; s
   </Modal>
 }
 
-function BacklogCard({
-  item,
-  canManage,
-  dragging,
-  onDragStart,
-  onDragEnd,
-  onStatusChange,
-  onPriorityChange,
+
+function CreateTaskModal({
+  open,
+  saving,
+  backlogItems,
+  members,
+  onClose,
+  onSave,
 }: {
-  item: BacklogItem
-  canManage: boolean
-  dragging: boolean
-  onDragStart: (event: DragEvent<HTMLElement>, item: BacklogItem) => void
-  onDragEnd: () => void
-  onStatusChange: ScrumBoardViewProps['onStatusChange']
-  onPriorityChange: ScrumBoardViewProps['onPriorityChange']
+  open: boolean
+  saving: boolean
+  backlogItems: BacklogItem[]
+  members: ProjectMember[]
+  onClose: () => void
+  onSave: ScrumBoardViewProps['onCreateTask']
 }) {
-  return <article
-    className={`group rounded-xl border border-line bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md ${dragging ? 'opacity-45 ring-2 ring-brand/20' : ''}`}
+  const [backlogItemId, setBacklogItemId] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [type, setType] = useState<TaskType>('DEVELOPMENT')
+  const [priority, setPriority] = useState<TaskPriority>('MEDIUM')
+  const [assigneeUserId, setAssigneeUserId] = useState('')
+  const [estimatedMinutes, setEstimatedMinutes] = useState(60)
+  const [startDate, setStartDate] = useState('')
+  const [dueDate, setDueDate] = useState('')
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    onSave({
+      backlogItemId,
+      title,
+      description: description || undefined,
+      type,
+      priority,
+      assigneeUserId: assigneeUserId || undefined,
+      estimatedMinutes,
+      startDate: startDate || undefined,
+      dueDate: dueDate || undefined,
+    })
+    setTitle('')
+    setDescription('')
+  }
+
+  return <Modal open={open} onClose={onClose} title="Tạo Task" description="Task sẽ nằm trong Sprint theo Backlog Item đã chọn." showClose={false}>
+    <form className="space-y-4" onSubmit={submit}>
+      <Select label="Backlog Item" required value={backlogItemId} onChange={event => setBacklogItemId(event.target.value)} options={[{ label: 'Chọn backlog item trong sprint', value: '' }, ...backlogItems.map(item => ({ label: item.title, value: item.id }))]} />
+      <Input label="Tiêu đề Task" required value={title} onChange={event => setTitle(event.target.value)} placeholder="Xây dựng API đăng nhập" />
+      <div>
+        <label className="mb-2 block text-sm font-medium text-[#3f3f46]">Mô tả</label>
+        <textarea className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={description} onChange={event => setDescription(event.target.value)} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Select label="Loại" value={type} onChange={event => setType(event.target.value as TaskType)} options={taskTypes.map(item => ({ label: taskTypeLabels[item], value: item }))} />
+        <Select label="Ưu tiên" value={priority} onChange={event => setPriority(event.target.value as TaskPriority)} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
+        <Input label="Ước tính phút" type="number" min={0} value={estimatedMinutes} onChange={event => setEstimatedMinutes(Number(event.target.value))} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Select label="Người phụ trách" value={assigneeUserId} onChange={event => setAssigneeUserId(event.target.value)} options={[{ label: 'Chưa phân công', value: '' }, ...members.map(member => ({ label: `${member.username} · ${member.projectRole}`, value: member.userId }))]} />
+        <Input label="Ngày bắt đầu" type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
+        <Input label="Deadline" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} />
+      </div>
+      <div className="flex justify-end gap-3"><Button type="button" variant="secondary" onClick={onClose}>Hủy</Button><Button type="submit" loading={saving} leadingIcon={<Plus size={17} />}>Tạo Task</Button></div>
+    </form>
+  </Modal>
+}
+
+function TaskDetailModal({
+  task,
+  comments,
+  timeLogs,
+  timeSummary,
+  members,
+  loading,
+  saving,
+  canManage,
+  onClose,
+  onUpdateTask,
+  onDeleteTask,
+  onAssignTask,
+  onCreateComment,
+  onUpdateComment,
+  onDeleteComment,
+  onCreateTimeLog,
+  onUpdateTimeLog,
+  onDeleteTimeLog,
+  onAskConfirm,
+}: {
+  task: Task | null
+  comments: TaskCommentPage
+  timeLogs: TaskTimeLogPage
+  timeSummary: TaskTimeSummary | null
+  members: ProjectMember[]
+  loading: boolean
+  saving: boolean
+  canManage: boolean
+  onClose: () => void
+  onUpdateTask: ScrumBoardViewProps['onUpdateTask']
+  onDeleteTask: ScrumBoardViewProps['onDeleteTask']
+  onAssignTask: ScrumBoardViewProps['onAssignTask']
+  onCreateComment: ScrumBoardViewProps['onCreateTaskComment']
+  onUpdateComment: ScrumBoardViewProps['onUpdateTaskComment']
+  onDeleteComment: ScrumBoardViewProps['onDeleteTaskComment']
+  onCreateTimeLog: ScrumBoardViewProps['onCreateTaskTimeLog']
+  onUpdateTimeLog: ScrumBoardViewProps['onUpdateTaskTimeLog']
+  onDeleteTimeLog: ScrumBoardViewProps['onDeleteTaskTimeLog']
+  onAskConfirm: AskConfirm
+}) {
+  const [editingTask, setEditingTask] = useState(false)
+  const [comment, setComment] = useState('')
+  const [workDate, setWorkDate] = useState(today())
+  const [minutes, setMinutes] = useState(60)
+  const [logDescription, setLogDescription] = useState('')
+  const [textAction, setTextAction] = useState<{ title: string; value: string; onSave: (value: string) => void } | null>(null)
+  const [timeEdit, setTimeEdit] = useState<{ id: string; minutes: number; description: string } | null>(null)
+  const [editTitle, setEditTitle] = useState(task?.title ?? '')
+  const [editDescription, setEditDescription] = useState(task?.description ?? '')
+  const [editType, setEditType] = useState<TaskType>(task?.type ?? 'DEVELOPMENT')
+  const [editPriority, setEditPriority] = useState<TaskPriority>(task?.priority ?? 'MEDIUM')
+  const [editEstimatedMinutes, setEditEstimatedMinutes] = useState(task?.estimatedMinutes ?? 0)
+  const [editStartDate, setEditStartDate] = useState(task?.startDate ?? '')
+  const [editDueDate, setEditDueDate] = useState(task?.dueDate ?? '')
+
+  if (!task) return null
+
+  return <Modal
+    open={Boolean(task)}
+    onClose={onClose}
+    title={task.title}
+    description={`${taskTypeLabels[task.type]} · ${taskStatusLabels[task.status]}`}
+    actions={canManage ? <ActionMenu>
+      <ActionItem onClick={() => setEditingTask(value => !value)}><Pencil size={15} /> {editingTask ? 'Đóng sửa' : 'Sửa đầy đủ'}</ActionItem>
+      <ActionItem danger onClick={() => onAskConfirm('Xóa Task?', `Task "${task.title}" sẽ bị xóa mềm khỏi Sprint.`, 'Xóa Task', () => onDeleteTask(task.id))}><Trash2 size={15} /> Xóa Task</ActionItem>
+    </ActionMenu> : undefined}
   >
-    <div className="flex items-start gap-2">
-      <button
-        type="button"
-        draggable={canManage}
-        aria-label={`Kéo backlog item ${item.title}`}
-        disabled={!canManage}
-        onDragStart={event => onDragStart(event, item)}
-        onDragEnd={onDragEnd}
-        className="mt-0.5 shrink-0 rounded-md p-1 text-muted opacity-60 transition hover:bg-panel hover:text-brand disabled:cursor-not-allowed disabled:opacity-30 enabled:cursor-grab enabled:active:cursor-grabbing"
-      >
-        <GripVertical size={18} />
-      </button>
-      <div className="min-w-0 flex-1">
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-panel px-2 py-0.5 text-[11px] font-semibold text-muted">{backlogTypeLabels[item.type]}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${priorityClass(item.priority)}`}>{backlogPriorityLabels[item.priority]}</span>
-          {item.storyPoints !== null && <span className="rounded-full bg-[#fef3e2] px-2 py-0.5 text-[11px] font-semibold text-brand-dark">{item.storyPoints} pt</span>}
+    <div className={`space-y-5 ${loading ? 'opacity-50' : ''}`}>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Ước tính</p><p className="font-bold">{formatMinutes(task.estimatedMinutes)}</p></div>
+        <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Đã log</p><p className="font-bold">{formatMinutes(task.spentMinutes)}</p></div>
+        <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Tiến độ time</p><p className="font-bold">{Math.round(timeSummary?.progressPercentage ?? 0)}%</p></div>
+      </div>
+
+      {canManage && <section className="rounded-xl border border-line bg-canvas p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-bold">Nội dung Task</h3>
         </div>
-        <h4 className="font-semibold leading-5 text-ink">{item.title}</h4>
-        {item.description && <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">{item.description}</p>}
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Select aria-label="Trạng thái item" value={item.status} onChange={event => onStatusChange(item.id, event.target.value as BacklogItemStatus)} disabled={!canManage} options={statuses.map(status => ({ label: backlogStatusLabels[status], value: status }))} />
-          <Select aria-label="Ưu tiên item" value={item.priority} onChange={event => onPriorityChange(item.id, event.target.value as BacklogPriority)} disabled={!canManage} options={priorities.map(priority => ({ label: backlogPriorityLabels[priority], value: priority }))} />
+        {editingTask && <div className="space-y-3">
+          <Input label="Tiêu đề" value={editTitle} onChange={event => setEditTitle(event.target.value)} />
+          <textarea aria-label="Mô tả task" className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={editDescription} onChange={event => setEditDescription(event.target.value)} />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Select label="Loại" value={editType} onChange={event => setEditType(event.target.value as TaskType)} options={taskTypes.map(item => ({ label: taskTypeLabels[item], value: item }))} />
+            <Select label="Ưu tiên" value={editPriority} onChange={event => setEditPriority(event.target.value as TaskPriority)} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
+            <Input label="Ước tính phút" type="number" min={0} value={editEstimatedMinutes} onChange={event => setEditEstimatedMinutes(Number(event.target.value))} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input label="Ngày bắt đầu" type="date" value={editStartDate} onChange={event => setEditStartDate(event.target.value)} />
+            <Input label="Deadline" type="date" value={editDueDate} onChange={event => setEditDueDate(event.target.value)} />
+          </div>
+          <div className="flex justify-end">
+            <Button loading={saving} leadingIcon={<Save size={16} />} onClick={() => {
+              onUpdateTask(task.id, { title: editTitle, description: editDescription, type: editType, priority: editPriority, estimatedMinutes: editEstimatedMinutes, startDate: editStartDate || undefined, dueDate: editDueDate || undefined })
+              setEditingTask(false)
+            }}>Lưu Task</Button>
+          </div>
+        </div>}
+      </section>}
+
+      {canManage && <div className="grid gap-3 sm:grid-cols-[1fr_160px_160px]">
+        <Select aria-label="Phân công" value={task.assigneeUserId ?? ''} onChange={event => onAssignTask(task.id, event.target.value)} options={[{ label: 'Chưa phân công', value: '' }, ...members.map(member => ({ label: `${member.username} · ${member.projectRole}`, value: member.userId }))]} />
+        <Select aria-label="Ưu tiên" value={task.priority} onChange={event => onUpdateTask(task.id, { priority: event.target.value as TaskPriority })} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
+        <Input aria-label="Ước tính phút" type="number" min={0} value={task.estimatedMinutes ?? 0} onChange={event => onUpdateTask(task.id, { estimatedMinutes: Number(event.target.value) })} />
+      </div>}
+
+      <section>
+        <h3 className="mb-3 flex items-center gap-2 font-bold"><MessageSquare size={17} /> Bình luận</h3>
+        <form className="mb-3 flex gap-2" onSubmit={event => { event.preventDefault(); if (comment.trim()) { onCreateComment(task.id, comment); setComment('') } }}>
+          <Input aria-label="Nhập bình luận" value={comment} onChange={event => setComment(event.target.value)} placeholder="Trao đổi về task..." />
+          <Button type="submit" loading={saving}>Gửi</Button>
+        </form>
+        <div className="space-y-2">
+          {comments.content.map(item => <article key={item.id} className="rounded-xl border border-line p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="text-sm font-semibold">{item.username}</p><p className="mt-1 text-sm text-muted">{item.content}</p></div>
+              <ActionMenu>
+                {item.canEdit && <ActionItem onClick={() => setTextAction({ title: 'Sửa bình luận', value: item.content, onSave: value => onUpdateComment(task.id, item.id, value) })}><Pencil size={15} /> Sửa bình luận</ActionItem>}
+                <ActionItem onClick={() => setTextAction({ title: 'Reply bình luận', value: '', onSave: value => onCreateComment(task.id, value, item.id) })}><MessageSquare size={15} /> Trả lời</ActionItem>
+                {item.canDelete && <ActionItem danger onClick={() => onAskConfirm('Xóa bình luận?', 'Bình luận này sẽ bị xóa khỏi Task.', 'Xóa bình luận', () => onDeleteComment(task.id, item.id))}><Trash2 size={15} /> Xóa bình luận</ActionItem>}
+              </ActionMenu>
+            </div>
+            {item.replies?.length > 0 && <div className="mt-3 space-y-2 border-l-2 border-line pl-3">
+              {item.replies.map(reply => <div key={reply.id} className="rounded-lg bg-canvas p-2">
+                <p className="text-xs font-semibold">{reply.username}</p>
+                <p className="mt-1 text-xs text-muted">{reply.content}</p>
+              </div>)}
+            </div>}
+          </article>)}
+          {!comments.content.length && <p className="rounded-xl bg-canvas p-4 text-center text-sm text-muted">Chưa có bình luận.</p>}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-3 flex items-center gap-2 font-bold"><Clock3 size={17} /> Time log</h3>
+        <form className="mb-3 grid gap-2 sm:grid-cols-[150px_120px_1fr_auto]" onSubmit={event => { event.preventDefault(); onCreateTimeLog(task.id, { workDate, minutes, description: logDescription || undefined }); setLogDescription('') }}>
+          <Input aria-label="Ngày làm" type="date" value={workDate} onChange={event => setWorkDate(event.target.value)} required />
+          <Input aria-label="Số phút" type="number" min={1} max={1440} value={minutes} onChange={event => setMinutes(Number(event.target.value))} required />
+          <Input aria-label="Mô tả time log" value={logDescription} onChange={event => setLogDescription(event.target.value)} placeholder="Đã làm gì?" />
+          <Button type="submit" loading={saving}>Ghi</Button>
+        </form>
+        <div className="space-y-2">
+          {timeLogs.content.map(item => <article key={item.id} className="flex items-start justify-between gap-3 rounded-xl border border-line p-3">
+            <div><p className="text-sm font-semibold">{item.username} · {item.workDate}</p><p className="mt-1 text-sm text-muted">{item.description || 'Không có mô tả'}</p></div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-[#fef3e2] px-2.5 py-1 text-xs font-bold text-brand-dark">{formatMinutes(item.minutes)}</span>
+              {(item.canEdit || item.canDelete) && <ActionMenu>
+                {item.canEdit && <ActionItem onClick={() => setTimeEdit({ id: item.id, minutes: item.minutes, description: item.description ?? '' })}><Pencil size={15} /> Sửa time log</ActionItem>}
+                {item.canDelete && <ActionItem danger onClick={() => onAskConfirm('Xóa time log', 'Bản ghi thời gian này sẽ bị xóa khỏi Task.', 'Xóa time log', () => onDeleteTimeLog(task.id, item.id))}><Trash2 size={15} /> Xóa time log</ActionItem>}
+              </ActionMenu>}
+            </div>
+          </article>)}
+          {!timeLogs.content.length && <p className="rounded-xl bg-canvas p-4 text-center text-sm text-muted">Chưa có time log.</p>}
+        </div>
+      </section>
+      <Modal open={Boolean(textAction)} title={textAction?.title ?? ''} onClose={() => setTextAction(null)} showClose={false}>
+        <form className="space-y-4" onSubmit={event => {
+          event.preventDefault()
+          const value = textAction?.value.trim()
+          if (textAction && value) textAction.onSave(value)
+          setTextAction(null)
+        }}>
+          <textarea className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={textAction?.value ?? ''} onChange={event => setTextAction(current => current ? { ...current, value: event.target.value } : current)} autoFocus />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setTextAction(null)}>Hủy</Button>
+            <Button type="submit" loading={saving}>Lưu</Button>
+          </div>
+        </form>
+      </Modal>
+      <Modal open={Boolean(timeEdit)} title="Sửa time log" onClose={() => setTimeEdit(null)} showClose={false}>
+        <form className="space-y-4" onSubmit={event => {
+          event.preventDefault()
+          if (timeEdit) onUpdateTimeLog(task.id, timeEdit.id, { minutes: timeEdit.minutes, description: timeEdit.description })
+          setTimeEdit(null)
+        }}>
+          <Input label="Số phút" type="number" min={1} max={1440} value={timeEdit?.minutes ?? 0} onChange={event => setTimeEdit(current => current ? { ...current, minutes: Number(event.target.value) } : current)} />
+          <Input label="Mô tả" value={timeEdit?.description ?? ''} onChange={event => setTimeEdit(current => current ? { ...current, description: event.target.value } : current)} />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setTimeEdit(null)}>Hủy</Button>
+            <Button type="submit" loading={saving}>Lưu</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  </Modal>
+}
+
+function TaskCard({ task, canDrag, onDragStart, onDragEnd, onOpen }: { task: KanbanTask; canDrag: boolean; onDragStart: (event: DragEvent<HTMLElement>, task: KanbanTask) => void; onDragEnd: () => void; onOpen: (taskId: string) => void }) {
+  return (
+    <article 
+      draggable={canDrag}
+      onDragStart={event => {
+        // Only drag if not clicking a button/interactive element inside
+        if (canDrag) onDragStart(event, task);
+      }}
+      onDragEnd={onDragEnd}
+      onClick={() => onOpen(task.id)}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-brand/40 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+    >
+      {/* Left accent bar for priority */}
+      <div className={`absolute bottom-0 left-0 top-0 w-1 transition-colors ${taskPriorityIndicatorClass(task.priority)} opacity-80 group-hover:opacity-100`} />
+
+      <div className="flex flex-col p-3.5 pl-4">
+        {/* Top bar: Type & Status */}
+        <div className="mb-2.5 flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 border border-slate-200/60">
+              {taskTypeLabels[task.type]}
+            </span>
+            {task.overdue && (
+              <span className="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600 border border-red-100">
+                Quá hạn
+              </span>
+            )}
+          </div>
+          
+          {/* Subtle drag indicator that appears on hover */}
+          {canDrag && (
+            <div className="text-slate-300 transition-colors group-hover:text-slate-400">
+              <GripVertical size={14} />
+            </div>
+          )}
+        </div>
+
+        {/* Title */}
+        <h4 className="mb-1.5 text-sm font-semibold leading-snug text-slate-800 transition-colors group-hover:text-brand">
+          {task.title}
+        </h4>
+
+        {/* Parent Backlog Item */}
+        <div className="mb-4 flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="h-1 w-1 shrink-0 rounded-full bg-slate-300" />
+          <p className="line-clamp-1">{task.backlogItemTitle}</p>
+        </div>
+
+        {/* Bottom bar: Priority & Meta (Time / Assignee) */}
+        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+          <span className={`rounded-md px-2 py-1 text-[10px] font-bold tracking-wide ${taskPriorityClass(task.priority)}`}>
+            {taskPriorityLabels[task.priority]}
+          </span>
+
+          <div className="flex items-center gap-2.5 text-[11px] font-medium text-slate-500">
+            <div className="flex items-center gap-1" title="Thời gian log / Ước tính">
+              <Clock3 size={12} className="text-slate-400" />
+              <span>{formatMinutes(task.spentMinutes)}<span className="mx-0.5 text-slate-300">/</span>{formatMinutes(task.estimatedMinutes)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100" title="Người phụ trách">
+              <UserRound size={12} className="text-slate-400" />
+              <span className="max-w-[70px] truncate">{task.assigneeUsername || 'Chưa giao'}</span>
+            </div>
+          </div>
         </div>
       </div>
+    </article>
+  )
+}
+
+const getStatusColors = (status: TaskStatus) => {
+  switch (status) {
+    case 'TODO': return { headerBg: 'bg-slate-50', badgeBg: 'bg-slate-500', borderColor: 'border-slate-200', activeBorder: 'border-slate-400', ringColor: 'ring-slate-400/20', bodyBg: 'bg-white' }
+    case 'IN_PROGRESS': return { headerBg: 'bg-blue-50/70', badgeBg: 'bg-blue-500', borderColor: 'border-blue-200', activeBorder: 'border-blue-500', ringColor: 'ring-blue-500/20', bodyBg: 'bg-white' }
+    case 'IN_REVIEW': return { headerBg: 'bg-purple-50/70', badgeBg: 'bg-purple-500', borderColor: 'border-purple-200', activeBorder: 'border-purple-500', ringColor: 'ring-purple-500/20', bodyBg: 'bg-white' }
+    case 'DONE': return { headerBg: 'bg-emerald-50/70', badgeBg: 'bg-emerald-500', borderColor: 'border-emerald-200', activeBorder: 'border-emerald-500', ringColor: 'ring-emerald-500/20', bodyBg: 'bg-white' }
+    case 'BLOCKED': return { headerBg: 'bg-amber-50/70', badgeBg: 'bg-amber-500', borderColor: 'border-amber-200', activeBorder: 'border-amber-500', ringColor: 'ring-amber-500/20', bodyBg: 'bg-white' }
+    case 'CANCELLED': return { headerBg: 'bg-rose-50/70', badgeBg: 'bg-rose-500', borderColor: 'border-rose-200', activeBorder: 'border-rose-500', ringColor: 'ring-rose-500/20', bodyBg: 'bg-white' }
+    default: return { headerBg: 'bg-white', badgeBg: 'bg-brand', borderColor: 'border-brand-line', activeBorder: 'border-brand', ringColor: 'ring-brand/20', bodyBg: 'bg-white' }
+  }
+}
+
+function SprintTaskKanban({
+  sprints,
+  selectedSprintId,
+  board,
+  userStories,
+  statistics,
+  burndown,
+  importResult,
+  canManage,
+  onSelectSprint,
+  onTaskStatusChange,
+  onOpenTask,
+  onCreateTaskClick,
+  onDownloadTemplate,
+  onImportTasks,
+  onClearImportResult,
+  onBack,
+  onOpenStatistics,
+}: {
+  sprints: Sprint[]
+  selectedSprintId: string | null
+  board: KanbanBoard | undefined
+  userStories: BacklogItem[]
+  statistics: SprintTaskStatistics | null
+  burndown: SprintBurndown | null
+  importResult: TaskImportResult | null
+  canManage: boolean
+  onSelectSprint: (sprintId: string) => void
+  onTaskStatusChange: ScrumBoardViewProps['onTaskStatusChange']
+  onOpenTask: ScrumBoardViewProps['onOpenTask']
+  onCreateTaskClick: () => void
+  onDownloadTemplate: ScrumBoardViewProps['onDownloadTaskTemplate']
+  onImportTasks: ScrumBoardViewProps['onImportTasks']
+  onClearImportResult: ScrumBoardViewProps['onClearTaskImportResult']
+  onBack: () => void
+  onOpenStatistics: () => void
+}) {
+  const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
+  const [selectedBacklogItemId, setSelectedBacklogItemId] = useState<string>('')
+  const [isTemplateAnim, setIsTemplateAnim] = useState(false)
+  const [isImportAnim, setIsImportAnim] = useState(false)
+
+  useEffect(() => {
+    if (userStories.length > 0) {
+      if (!selectedBacklogItemId || !userStories.some(u => u.id === selectedBacklogItemId)) {
+        setSelectedBacklogItemId(userStories[0].id)
+      }
+    } else {
+      setSelectedBacklogItemId('')
+    }
+  }, [userStories, selectedBacklogItemId])
+
+  const handleDownloadTemplate = () => {
+    if (!selectedSprintId) return
+    setIsTemplateAnim(true)
+    setTimeout(() => setIsTemplateAnim(false), 300)
+    onDownloadTemplate(selectedSprintId)
+  }
+
+  const handleImportClick = () => {
+    setIsImportAnim(true)
+    setTimeout(() => setIsImportAnim(false), 300)
+  }
+
+  const handleDragStart = (event: DragEvent<HTMLElement>, task: KanbanTask) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, status: task.status }))
+    const preview = createDragPreview(task.title)
+    event.dataTransfer.setDragImage(preview, 16, 16)
+    window.requestAnimationFrame(() => preview.remove())
+  }
+
+  const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (selectedSprintId && file) onImportTasks(selectedSprintId, file)
+    event.target.value = ''
+  }
+  const canMoveTask = canManage && board?.sprintStatus === 'ACTIVE'
+  const allTasks = board?.columns.flatMap(column => column.tasks) ?? []
+  const selectedBacklogItemExists = userStories.some(item => item.id === selectedBacklogItemId)
+  const activeBacklogItemId = selectedBacklogItemExists ? selectedBacklogItemId : (userStories[0]?.id ?? '')
+  const columnOrder: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE', 'CANCELLED']
+  const visibleBoard = board
+    ? {
+        ...board,
+        columns: columnOrder
+          .map(status => {
+            const existingColumn = board.columns.find(c => c.status === status)
+            const tasks = existingColumn 
+              ? (activeBacklogItemId ? existingColumn.tasks.filter(task => task.backlogItemId === activeBacklogItemId) : [])
+              : []
+
+            return {
+              status,
+              title: taskStatusLabels[status] || status,
+              tasks,
+              taskCount: tasks.length,
+            }
+          })
+      }
+    : undefined
+
+  const localTotalTasks = board?.columns.reduce((sum, col) => sum + col.tasks.length, 0) ?? 0
+  const localCompletedTasks = board?.columns.find(col => col.status === 'DONE')?.tasks.length ?? 0
+  const localCompletionRate = localTotalTasks > 0 ? (localCompletedTasks / localTotalTasks) * 100 : 0
+  const localSpentMinutes = board?.columns.reduce((sum, col) => sum + col.tasks.reduce((tSum, t) => tSum + (t.spentMinutes ?? 0), 0), 0) ?? 0
+
+  return <section className="space-y-4 rounded-2xl border border-brand-line bg-gradient-to-br from-brand-soft via-brand-cream to-white p-4 shadow-[0_18px_45px_rgba(247,148,29,0.08)]">
+    <div className="flex flex-col gap-3 rounded-xl border border-brand-line/80 bg-white/90 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-start gap-3">
+        <Button variant="secondary" size="sm" leadingIcon={<ChevronLeft size={16} />} onClick={onBack}>Sprint Board</Button>
+        <div>
+          <h3 className="text-lg font-bold">Kanban Task</h3>
+          <p className="mt-1 text-sm text-muted">Kéo task giữa các cột để cập nhật trạng thái trong Sprint.</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Select aria-label="Chọn Sprint Kanban" value={selectedSprintId ?? ''} onChange={event => onSelectSprint(event.target.value)} options={sprints.map(sprint => ({ label: `${sprint.name} · ${sprintStatusLabels[sprint.status]}`, value: sprint.id }))} />
+        {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
+        {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="solid-blue" onClick={onOpenStatistics}>Thống kê</Button>}
+        {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
+        {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
+          <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
+          <input className="hidden" type="file" accept=".xlsx,.xls" onChange={handleImport} />
+        </Button>}
+      </div>
     </div>
-  </article>
+
+    {importResult && <div className="fixed inset-0 z-[100] grid place-items-center bg-brand-black/55 p-4 animate-enter">
+      <div className={`max-h-[85vh] w-[min(720px,calc(100vw-2rem))] overflow-hidden flex flex-col rounded-2xl border shadow-2xl ${importResult.failedRows > 0 ? 'border-danger/30 bg-[#fff0ed]' : 'border-success/30 bg-[#ecfdf3]'}`}>
+        <div className="flex shrink-0 items-start justify-between gap-3 p-5 border-b border-black/5">
+          <div>
+            <p className={`text-[20px] font-bold ${importResult.failedRows > 0 ? 'text-danger' : 'text-success'}`}>
+              {importResult.failedRows > 0 ? 'Import Task chưa thành công' : 'Import Task thành công'}
+            </p>
+            <p className="mt-1 text-sm opacity-80">
+              Trạng thái: {importResult.status} · Tổng {importResult.totalRows} dòng · Thành công {importResult.successRows} · Lỗi {importResult.failedRows}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" iconOnly leadingIcon={<X size={18} />} aria-label="Đóng kết quả import" onClick={onClearImportResult} />
+        </div>
+        
+        {importResult.errors.length > 0 && <div className="min-h-0 flex-1 overflow-auto p-5">
+          <div className="overflow-hidden rounded-xl border border-danger/20 bg-white">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-[#fff7f5] text-xs font-bold uppercase tracking-wider text-danger">
+                <tr><th className="px-4 py-3">Dòng</th><th className="px-4 py-3">Cột</th><th className="px-4 py-3">Giá trị</th><th className="px-4 py-3">Lỗi</th></tr>
+              </thead>
+              <tbody>
+                {importResult.errors.map((error, index) => <tr key={`${error.rowNumber}-${error.fieldName ?? index}`} className="border-t border-line">
+                  <td className="px-4 py-3 font-semibold">{error.rowNumber}</td>
+                  <td className="px-4 py-3">{error.fieldName || '-'}</td>
+                  <td className="px-4 py-3">{error.rawValue || '-'}</td>
+                  <td className="px-4 py-3 text-danger">{error.message}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        </div>}
+      </div>
+    </div>}
+
+    <div className="grid gap-3 md:grid-cols-4">
+      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Tổng Task</p><p className="mt-1 text-2xl font-bold text-brand-black">{localTotalTasks}</p></div>
+      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Hoàn thành</p><p className="mt-1 text-2xl font-bold text-success">{Math.round(localCompletionRate)}%</p></div>
+      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Đã log</p><p className="mt-1 text-2xl font-bold text-brand-dark">{formatMinutes(localSpentMinutes)}</p></div>
+      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Burndown điểm</p><p className="mt-1 text-2xl font-bold text-brand-black">{burndown?.points.length ?? 0}</p></div>
+    </div>
+
+    {!visibleBoard ? <p className="rounded-xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">Chưa có Kanban cho Sprint này.</p> : <div className="space-y-4">
+      {/* Horizontal User Story Filter */}
+      <div className="flex items-center gap-3 overflow-x-auto rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm scrollbar-thin">
+        <div className="shrink-0 font-bold text-ink mr-2">User Story:</div>
+        {userStories.length > 0 ? (
+          userStories.map(item => {
+            const taskCount = allTasks.filter(task => task.backlogItemId === item.id).length
+            return (
+              <UserStoryHorizontalCard
+                key={item.id}
+                item={item}
+                isActive={activeBacklogItemId === item.id}
+                taskCount={taskCount}
+                onClick={() => setSelectedBacklogItemId(item.id)}
+              />
+            )
+          })
+        ) : (
+          <p className="text-sm text-muted italic">Chưa có User Story trong Sprint này.</p>
+        )}
+      </div>
+
+      {/* Kanban Columns */}
+      <div className="grid min-w-0 gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-start pb-4">
+          {visibleBoard.columns.map(column => {
+            const originalColumn = board?.columns.find(item => item.status === column.status)
+            const colors = getStatusColors(column.status)
+
+            return <div
+              key={column.status}
+              onDragOver={event => { if (canMoveTask) { event.preventDefault(); setDragOver(column.status) } }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={event => {
+                event.preventDefault()
+                setDragOver(null)
+                const payload = JSON.parse(event.dataTransfer.getData('application/json')) as { taskId: string; status: TaskStatus }
+                if (canMoveTask && payload.status !== column.status) onTaskStatusChange(payload.taskId, column.status, (originalColumn?.tasks.length ?? column.tasks.length) + 1)
+              }}
+              className={`flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${dragOver === column.status ? `${colors.activeBorder} ring-2 ${colors.ringColor}` : colors.borderColor}`}
+            >
+              <div className={`flex h-14 shrink-0 items-center justify-between gap-2 border-b px-3 py-2 ${colors.borderColor} ${colors.headerBg}`}>
+                <p className="font-bold text-ink">{column.title || taskStatusLabels[column.status]}</p>
+                <span className={`grid size-8 place-items-center rounded-lg text-sm font-bold text-white shadow-sm ${colors.badgeBg}`}>{column.taskCount}</span>
+              </div>
+              <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto p-3 ${colors.bodyBg}`}>
+                {column.tasks.map(task => <TaskCard key={task.id} task={task} canDrag={canMoveTask} onDragStart={handleDragStart} onDragEnd={() => setDragOver(null)} onOpen={onOpenTask} />)}
+                {!column.tasks.length && <p className="rounded-xl border border-dashed border-line p-5 text-center text-sm text-muted">Thả task vào đây.</p>}
+              </div>
+            </div>
+          })}
+      </div>
+    </div>}
+  </section>
 }
 
 export function ScrumBoardView({
   backlogItems,
   sprints,
   sprintItems,
+  kanbanBoards,
+  selectedSprintId,
+  sprintStatistics,
+  sprintBurndown,
+  selectedTask,
+  taskComments,
+  taskTimeLogs,
+  taskTimeSummary,
+  taskImportResult,
+  members,
   loading,
+  taskDetailLoading,
   saving,
   canManage,
   onCreateBacklog,
   onCreateSprint,
+  onUpdateBacklog,
+  onDeleteBacklog,
+  onUpdateSprint,
+  onDeleteSprint,
   onMoveToSprint,
   onMoveToBacklog,
   onStatusChange,
@@ -174,11 +799,34 @@ export function ScrumBoardView({
   onStartSprint,
   onCompleteSprint,
   onCancelSprint,
+  onSelectSprint,
+  onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
+  onTaskStatusChange,
+  onAssignTask,
+  onOpenTask,
+  onCloseTask,
+  onCreateTaskComment,
+  onUpdateTaskComment,
+  onDeleteTaskComment,
+  onCreateTaskTimeLog,
+  onUpdateTaskTimeLog,
+  onDeleteTaskTimeLog,
+  onDownloadTaskTemplate,
+  onImportTasks,
+  onClearTaskImportResult,
+  onRefreshStatistics,
 }: ScrumBoardViewProps) {
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [sprintOpen, setSprintOpen] = useState(false)
+  const [taskOpen, setTaskOpen] = useState(false)
+  const [statisticsOpen, setStatisticsOpen] = useState(false)
+  const [sprintEdit, setSprintEdit] = useState<Sprint | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [taskBoardOpen, setTaskBoardOpen] = useState(false)
 
   const getPayload = (event: DragEvent) => JSON.parse(event.dataTransfer.getData('application/json')) as { itemId: string; sprintId: string | null }
   const handleCardDragStart = (event: DragEvent<HTMLElement>, item: BacklogItem) => {
@@ -194,9 +842,46 @@ export function ScrumBoardView({
     setDraggingId(null)
     setDragOver(null)
   }
+  const selectedSprintBacklogItems = selectedSprintId ? (sprintItems[selectedSprintId] ?? []) : []
+  const askConfirm = (title: string, description: string, confirmLabel: string, onConfirm: () => void) =>
+    setConfirmAction({ title, description, confirmLabel, onConfirm })
+  const openTaskBoard = (sprintId: string) => {
+    onSelectSprint(sprintId)
+    setTaskBoardOpen(true)
+  }
 
   return <section className="space-y-4">
-    <div className="flex flex-col gap-3 rounded-xl border border-line bg-canvas p-4 sm:flex-row sm:items-center sm:justify-between">
+    {taskBoardOpen ? (
+      statisticsOpen ? (
+        <SprintStatisticsView
+          statistics={sprintStatistics}
+          burndown={sprintBurndown}
+          onBack={() => setStatisticsOpen(false)}
+          onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
+        />
+      ) : (
+        <SprintTaskKanban
+          sprints={sprints}
+      selectedSprintId={selectedSprintId}
+      board={selectedSprintId ? kanbanBoards[selectedSprintId] : undefined}
+      userStories={selectedSprintBacklogItems}
+      statistics={sprintStatistics}
+      burndown={sprintBurndown}
+      importResult={taskImportResult}
+      canManage={canManage}
+      onSelectSprint={onSelectSprint}
+      onTaskStatusChange={onTaskStatusChange}
+      onOpenTask={onOpenTask}
+      onCreateTaskClick={() => setTaskOpen(true)}
+      onDownloadTemplate={onDownloadTaskTemplate}
+      onImportTasks={onImportTasks}
+        onClearImportResult={onClearTaskImportResult}
+        onBack={() => setTaskBoardOpen(false)}
+        onOpenStatistics={() => setStatisticsOpen(true)}
+      />
+      )
+    ) : <>
+    <div className="flex flex-col gap-3 rounded-xl border border-brand-line/70 bg-brand-cream p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h3 className="font-bold">Sprint Board</h3>
         <p className="mt-1 text-sm text-muted">Kéo backlog item vào Sprint để lập kế hoạch; kéo về Product Backlog để gỡ khỏi Sprint.</p>
@@ -218,14 +903,13 @@ export function ScrumBoardView({
           const payload = getPayload(event)
           if (payload.sprintId) onMoveToBacklog(payload.itemId, payload.sprintId)
         }}
-        className={`min-h-[560px] w-[340px] shrink-0 rounded-2xl border bg-[#f8fafc] p-3 transition ${dragOver === 'backlog' ? 'border-brand ring-2 ring-brand/20' : 'border-line'}`}
+        className={`min-h-[560px] w-[340px] shrink-0 rounded-2xl border bg-gradient-to-b from-white to-[#f8fafc] p-3 transition ${dragOver === 'backlog' ? 'border-brand ring-2 ring-brand/20' : 'border-line'}`}
       >
         <div className="mb-3 flex items-center justify-between">
           <div><p className="font-bold">Product Backlog</p><p className="text-xs text-muted">{backlogItems.length} item chưa vào sprint</p></div>
-          <RotateCcw size={18} className="text-brand" />
         </div>
         <div className="space-y-3">
-          {backlogItems.map(item => <BacklogCard key={item.id} item={item} canManage={canManage} dragging={draggingId === item.id} onDragStart={handleCardDragStart} onDragEnd={handleCardDragEnd} onStatusChange={onStatusChange} onPriorityChange={onPriorityChange} />)}
+          {backlogItems.map(item => <BacklogCard key={item.id} item={item} canManage={canManage} dragging={draggingId === item.id} onDragStart={handleCardDragStart} onDragEnd={handleCardDragEnd} onUpdate={onUpdateBacklog} onDelete={onDeleteBacklog} onStatusChange={onStatusChange} onPriorityChange={onPriorityChange} onAskConfirm={askConfirm} />)}
           {!backlogItems.length && <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">Thả item từ Sprint về đây.</p>}
         </div>
       </div>
@@ -242,29 +926,102 @@ export function ScrumBoardView({
             const payload = getPayload(event)
             if (payload.sprintId !== sprint.id) onMoveToSprint(payload.itemId, sprint.id, payload.sprintId)
           }}
-          className={`min-h-[560px] w-[360px] shrink-0 rounded-2xl border bg-white p-3 transition ${dragOver === sprint.id ? 'border-brand ring-2 ring-brand/20' : 'border-line'}`}
+          className={`min-h-[560px] w-[360px] shrink-0 rounded-2xl border bg-white p-3 transition hover:border-brand hover:shadow-lg ${dragOver === sprint.id ? 'border-brand ring-2 ring-brand/20' : 'border-brand-line/80'}`}
         >
-          <div className="mb-3 rounded-xl bg-brand-black p-4 text-white">
-            <div className="flex items-start justify-between gap-3">
-              <div><p className="font-bold">{sprint.name}</p><p className="mt-1 text-xs text-white/55">{sprint.goal || 'Chưa có mục tiêu sprint'}</p></div>
-              <span className="rounded-full bg-brand/15 px-2.5 py-1 text-xs font-semibold text-accent">{sprintStatusLabels[sprint.status]}</span>
+          <div className="mb-4 relative rounded-2xl bg-[#1e1e1e] p-5 text-white shadow-xl">
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-bold text-white">{sprint.name}</p>
+                <p className="mt-1.5 text-sm text-white/70">{sprint.goal || 'Chưa có mục tiêu sprint'}</p>
+              </div>
+              <span className="shrink-0 rounded-full border border-brand/50 bg-[#ff7849]/20 px-3 py-1 text-xs font-semibold text-brand shadow-sm">{sprintStatusLabels[sprint.status]}</span>
             </div>
-            <div className="mt-3 flex items-center gap-2 text-xs text-white/55"><CalendarDays size={14} />{sprint.startDate || '...'} → {sprint.endDate || '...'}</div>
-            {canManage && <div className="mt-3 flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" leadingIcon={<Play size={14} />} disabled={sprint.status !== 'PLANNING'} onClick={() => onStartSprint(sprint.id)}>Start</Button>
-              <Button size="sm" variant="secondary" leadingIcon={<Trophy size={14} />} disabled={sprint.status !== 'ACTIVE'} onClick={() => onCompleteSprint(sprint.id)}>Done</Button>
-              <Button size="sm" variant="ghost" className="!text-white/70 hover:!bg-white/10" disabled={sprint.status === 'COMPLETED' || sprint.status === 'CANCELLED'} onClick={() => onCancelSprint(sprint.id)}>Hủy</Button>
-            </div>}
+            <div className="relative mt-4 flex items-center gap-2 text-sm font-medium text-white/80">
+              <CalendarDays size={16} className="text-brand" />
+              {formatDisplayDate(sprint.startDate)} <span className="text-white/50">→</span> {formatDisplayDate(sprint.endDate)}
+            </div>
+            <div className="relative mt-5 flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="primary" leadingIcon={<FolderKanban size={15} />} onClick={() => openTaskBoard(sprint.id)}>Mở Kanban</Button>
+              {canManage && <>
+                {sprint.status === 'PLANNING' && <Button size="sm" variant="solid-green" leadingIcon={<Play size={15} />} onClick={() => onStartSprint(sprint.id)}>Start</Button>}
+                {sprint.status === 'ACTIVE' && <Button size="sm" variant="solid-blue" leadingIcon={<Trophy size={15} />} onClick={() => onCompleteSprint(sprint.id)}>Done</Button>}
+                {sprint.status !== 'COMPLETED' && sprint.status !== 'CANCELLED' && <Button size="sm" variant="solid-red" onClick={() => askConfirm('Hủy Sprint?', `Bạn có chắc chắn muốn hủy Sprint "${sprint.name}" không? Các công việc trong Sprint này sẽ bị gián đoạn.`, 'Xác nhận hủy', () => onCancelSprint(sprint.id))}>Hủy</Button>}
+                {sprint.status !== 'CANCELLED' && (
+                  <ActionMenu tone="dark">
+                    <ActionItem onClick={() => setSprintEdit(sprint)}><Pencil size={15} /> Sửa</ActionItem>
+                    <ActionItem danger onClick={() => askConfirm('Xóa Sprint?', `Sprint "${sprint.name}" sẽ bị xóa mềm.`, 'Xóa Sprint', () => onDeleteSprint(sprint.id))}><Trash2 size={15} /> Xóa</ActionItem>
+                  </ActionMenu>
+                )}
+              </>}
+            </div>
           </div>
           <div className="space-y-3">
-            {(sprintItems[sprint.id] ?? []).map(item => <BacklogCard key={item.id} item={item} canManage={canManage} dragging={draggingId === item.id} onDragStart={handleCardDragStart} onDragEnd={handleCardDragEnd} onStatusChange={onStatusChange} onPriorityChange={onPriorityChange} />)}
+            {(sprintItems[sprint.id] ?? []).map(item => <BacklogCard key={item.id} item={item} canManage={canManage} dragging={draggingId === item.id} onDragStart={handleCardDragStart} onDragEnd={handleCardDragEnd} onUpdate={onUpdateBacklog} onDelete={onDeleteBacklog} onStatusChange={onStatusChange} onPriorityChange={onPriorityChange} onAskConfirm={askConfirm} />)}
             {!(sprintItems[sprint.id] ?? []).length && <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">Kéo backlog item vào Sprint này.</p>}
           </div>
         </div>
       ))}
     </div>
+    </>}
 
     <CreateBacklogModal open={backlogOpen} saving={saving} onClose={() => setBacklogOpen(false)} onSave={data => { onCreateBacklog(data); setBacklogOpen(false) }} />
     <CreateSprintModal open={sprintOpen} saving={saving} onClose={() => setSprintOpen(false)} onSave={data => { onCreateSprint(data); setSprintOpen(false) }} />
+    <Modal open={Boolean(sprintEdit)} title="Sửa Sprint" description="Chỉ Sprint đang lên kế hoạch mới được chỉnh sửa." onClose={() => setSprintEdit(null)} showClose={false}>
+      <form className="space-y-4" onSubmit={event => {
+        event.preventDefault()
+        if (sprintEdit) onUpdateSprint(sprintEdit.id, { name: sprintEdit.name, goal: sprintEdit.goal ?? '', startDate: sprintEdit.startDate ?? undefined, endDate: sprintEdit.endDate ?? undefined })
+        setSprintEdit(null)
+      }}>
+        <Input label="Tên Sprint" value={sprintEdit?.name ?? ''} onChange={event => setSprintEdit(current => current ? { ...current, name: event.target.value } : current)} />
+        <Input label="Mục tiêu" value={sprintEdit?.goal ?? ''} onChange={event => setSprintEdit(current => current ? { ...current, goal: event.target.value } : current)} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Ngày bắt đầu" type="date" value={sprintEdit?.startDate ?? ''} onChange={event => setSprintEdit(current => current ? { ...current, startDate: event.target.value } : current)} />
+          <Input label="Ngày kết thúc" type="date" value={sprintEdit?.endDate ?? ''} onChange={event => setSprintEdit(current => current ? { ...current, endDate: event.target.value } : current)} />
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => setSprintEdit(null)}>Hủy</Button>
+          <Button type="submit" loading={saving}>Lưu Sprint</Button>
+        </div>
+      </form>
+    </Modal>
+    <CreateTaskModal open={taskOpen} saving={saving} backlogItems={selectedSprintBacklogItems} members={members} onClose={() => setTaskOpen(false)} onSave={data => { onCreateTask(data); setTaskOpen(false) }} />
+    <TaskDetailModal
+      task={selectedTask}
+      comments={taskComments}
+      timeLogs={taskTimeLogs}
+      timeSummary={taskTimeSummary}
+      members={members}
+      loading={taskDetailLoading}
+      saving={saving}
+      canManage={canManage}
+      onClose={onCloseTask}
+      onUpdateTask={onUpdateTask}
+      onDeleteTask={onDeleteTask}
+      onAssignTask={onAssignTask}
+      onCreateComment={onCreateTaskComment}
+      onUpdateComment={onUpdateTaskComment}
+      onDeleteComment={onDeleteTaskComment}
+      onCreateTimeLog={onCreateTaskTimeLog}
+      onUpdateTimeLog={onUpdateTaskTimeLog}
+      onDeleteTimeLog={onDeleteTaskTimeLog}
+      onAskConfirm={askConfirm}
+    />
+    <ConfirmDialog
+      open={Boolean(confirmAction)}
+      title={confirmAction?.title ?? ''}
+      description={confirmAction?.description ?? ''}
+      confirmLabel={confirmAction?.confirmLabel}
+      loading={saving}
+      onCancel={() => setConfirmAction(null)}
+      onConfirm={() => {
+        confirmAction?.onConfirm()
+        setConfirmAction(null)
+      }}
+    />
   </section>
 }
+
+
+
+
+

@@ -27,7 +27,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
 
-
     // Configuration Processor
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
@@ -57,7 +56,6 @@ dependencies {
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
 
-
     // ==== OPENAPI ====
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 
@@ -83,6 +81,8 @@ dependencies {
 
     // ==== TEST DATABASE (H2) ====
     testImplementation 'com.h2database:h2'
+    // ====EXCEL====
+    implementation 'org.apache.poi:poi-ooxml:5.4.1'
 
 }
 

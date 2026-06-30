@@ -1,11 +1,22 @@
 package com.project.taskmanagement.enums;
 
 public enum ActivityEntityType {
+
     PROJECT,
+
     PROJECT_MEMBER,
+
     SPRINT,
+
     BACKLOG_ITEM,
+
     TASK,
+
     BUG,
-    COMMENT
+
+    COMMENT,
+
+    TIME_LOG,
+
+    TASK_IMPORT
 }

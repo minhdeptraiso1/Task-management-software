@@ -1,10 +1,8 @@
 package com.project.taskmanagement.controller;
 
-import com.project.taskmanagement.dto.request.project.CreateProjectRequest;
-import com.project.taskmanagement.dto.request.project.ProjectSearchRequest;
-import com.project.taskmanagement.dto.request.project.UpdateProjectRequest;
-import com.project.taskmanagement.dto.request.project.UpdateProjectStatusRequest;
+import com.project.taskmanagement.dto.request.project.*;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
+import com.project.taskmanagement.dto.response.project.ProjectActivityDetailResponse;
 import com.project.taskmanagement.dto.response.project.ProjectActivityPageResponse;
 import com.project.taskmanagement.dto.response.project.ProjectPageResponse;
 import com.project.taskmanagement.dto.response.project.ProjectResponse;
@@ -221,13 +219,41 @@ public class ProjectController {
             UUID projectId,
 
             @ParameterObject
+            ProjectActivitySearchRequest request,
+
+            @ParameterObject
             Pageable pageable
     ) {
         return ApiResponseSever.ok(
                 projectActivityService
                         .getActivities(
                                 projectId,
+                                request,
                                 pageable
+                        )
+        );
+    }
+
+    @Operation(
+            summary = "Xem chi tiết lịch sử hoạt động"
+    )
+    @GetMapping(
+            "/{projectId}/activities/{activityId}"
+    )
+    public ApiResponseSever<
+            ProjectActivityDetailResponse
+            > getProjectActivityById(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID activityId
+    ) {
+        return ApiResponseSever.ok(
+                projectActivityService
+                        .getActivityById(
+                                projectId,
+                                activityId
                         )
         );
     }

@@ -20,9 +20,15 @@ public record ProjectActivityResponse(
 
         UUID performedByUserId,
 
+        String performedByUsername,
+
+        String performedByEmail,
+
         String oldValueJson,
 
         String newValueJson,
+
+        String displayMessage,
 
         Instant createdAt
 

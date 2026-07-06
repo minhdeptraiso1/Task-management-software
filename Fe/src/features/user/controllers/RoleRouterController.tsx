@@ -4,10 +4,12 @@ import { ProjectWorkspaceController } from '../../project/controllers/ProjectWor
 import type { User } from '../models/user.model'
 import { getMe } from '../services/user.service'
 import { DashboardController } from './DashboardController'
+import { ProfileSettingsView } from '../views/ProfileSettingsView'
 
 export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState('')
+  const [currentView, setCurrentView] = useState<'main' | 'settings'>('main')
 
   useEffect(() => {
     getMe()
@@ -34,7 +36,11 @@ export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
     </div>
   }
 
+  if (currentView === 'settings') {
+    return <ProfileSettingsView user={user} onBack={() => setCurrentView('main')} onSuccessLogoutAll={onLogout} />
+  }
+
   return user.role === 'ADMIN'
-    ? <DashboardController me={user} onLogout={onLogout} />
-    : <ProjectWorkspaceController user={user} onLogout={onLogout} />
+    ? <DashboardController me={user} onLogout={onLogout} onOpenSettings={() => setCurrentView('settings')} />
+    : <ProjectWorkspaceController user={user} onLogout={onLogout} onOpenSettings={() => setCurrentView('settings')} />
 }

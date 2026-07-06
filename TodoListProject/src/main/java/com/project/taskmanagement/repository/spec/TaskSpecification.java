@@ -6,6 +6,8 @@ import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.enums.TaskType;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -158,4 +160,119 @@ public final class TaskSpecification {
             );
         };
     }
+
+    public static Specification<Task> statusNotIn(
+            Collection<TaskStatus> statuses
+    ) {
+        return (root, query, cb) -> {
+
+            if (statuses == null
+                    || statuses.isEmpty()) {
+
+                return cb.conjunction();
+            }
+
+            return cb.not(
+                    root.get("status")
+                            .in(statuses)
+            );
+        };
+    }
+
+    public static Specification<Task> dueDateBefore(
+            LocalDate date
+    ) {
+        return (root, query, cb) -> {
+
+            if (date == null) {
+                return cb.conjunction();
+            }
+
+            return cb.lessThan(
+                    root.get("dueDate"),
+                    date
+            );
+        };
+    }
+
+    public static Specification<Task> dueDateBetween(
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+        return (root, query, cb) -> {
+
+            if (fromDate == null
+                    || toDate == null) {
+
+                return cb.conjunction();
+            }
+
+            return cb.between(
+                    root.get("dueDate"),
+                    fromDate,
+                    toDate
+            );
+        };
+    }
+
+    public static Specification<Task> overdueOnly(
+            Boolean overdueOnly,
+            LocalDate today
+    ) {
+        return (root, query, cb) -> {
+
+            if (!Boolean.TRUE.equals(overdueOnly)) {
+                return cb.conjunction();
+            }
+
+            return cb.and(
+                    cb.isNotNull(
+                            root.get("dueDate")
+                    ),
+                    cb.lessThan(
+                            root.get("dueDate"),
+                            today
+                    ),
+                    cb.not(
+                            root.get("status")
+                                    .in(
+                                            TaskStatus.DONE,
+                                            TaskStatus.CANCELLED
+                                    )
+                    )
+            );
+        };
+    }
+
+    public static Specification<Task> dueSoonOnly(
+            Boolean dueSoonOnly,
+            LocalDate today,
+            LocalDate dueSoonEndDate
+    ) {
+        return (root, query, cb) -> {
+
+            if (!Boolean.TRUE.equals(dueSoonOnly)) {
+                return cb.conjunction();
+            }
+
+            return cb.and(
+                    cb.isNotNull(
+                            root.get("dueDate")
+                    ),
+                    cb.between(
+                            root.get("dueDate"),
+                            today,
+                            dueSoonEndDate
+                    ),
+                    cb.not(
+                            root.get("status")
+                                    .in(
+                                            TaskStatus.DONE,
+                                            TaskStatus.CANCELLED
+                                    )
+                    )
+            );
+        };
+    }
+
 }

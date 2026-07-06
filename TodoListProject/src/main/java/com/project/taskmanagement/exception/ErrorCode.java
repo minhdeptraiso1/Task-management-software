@@ -107,7 +107,29 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Thời gian dự kiến phải lớn hơn hoặc bằng 0"
     ),
+    REPORT_DATE_RANGE_INVALID(
+            400951,
+            HttpStatus.BAD_REQUEST,
+            "Khoảng thời gian báo cáo không hợp lệ"
+    ),
 
+    REPORT_DATE_RANGE_TOO_LARGE(
+            400952,
+            HttpStatus.BAD_REQUEST,
+            "Khoảng thời gian báo cáo không được vượt quá 366 ngày"
+    ),
+
+    REPORT_USER_NOT_PROJECT_MEMBER(
+            400953,
+            HttpStatus.BAD_REQUEST,
+            "Người dùng không phải thành viên dự án"
+    ),
+
+    REPORT_TASK_NOT_IN_PROJECT(
+            400954,
+            HttpStatus.BAD_REQUEST,
+            "Task không thuộc dự án"
+    ),
     // ============================================================
     // 401xxx - UNAUTHORIZED
     // ============================================================
@@ -290,6 +312,11 @@ public enum ErrorCode {
             404601,
             HttpStatus.NOT_FOUND,
             "Không tìm thấy Task"
+    ),
+    PROJECT_ACTIVITY_NOT_FOUND(
+            404902,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy lịch sử hoạt động dự án"
     ),
     // ============================================================
     // 405xxx - METHOD NOT ALLOWED
@@ -696,6 +723,11 @@ public enum ErrorCode {
             409802,
             HttpStatus.CONFLICT,
             "Tổng thời gian trong ngày không được vượt quá 24 giờ"
+    ),
+    DASHBOARD_TASK_FILTER_INVALID(
+            400901,
+            HttpStatus.BAD_REQUEST,
+            "Không thể lọc đồng thời Task quá hạn và Task sắp đến hạn"
     ),
 
     // ============================================================

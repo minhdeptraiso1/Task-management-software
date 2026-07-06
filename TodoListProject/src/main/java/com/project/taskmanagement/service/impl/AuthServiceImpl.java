@@ -2,7 +2,6 @@ package com.project.taskmanagement.service.impl;
 
 import com.project.taskmanagement.dto.request.auth.ChangePasswordRequest;
 import com.project.taskmanagement.dto.request.auth.LoginRequest;
-import io.jsonwebtoken.ExpiredJwtException;
 import com.project.taskmanagement.dto.response.auth.AuthResponse;
 import com.project.taskmanagement.entity.TokenSession;
 import com.project.taskmanagement.entity.User;
@@ -25,7 +24,6 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import org.springframework.transaction.annotation.Transactional;
@@ -302,6 +300,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(
                 passwordEncoder.encode(request.newPassword())
         );
+        user.setLogoutAllAt(Instant.now());
 
         userRepository.save(user);
 
@@ -337,6 +336,14 @@ public class AuthServiceImpl implements AuthService {
 
         // Thu hồi toàn bộ refresh token của user.
         tokenSessionRepository.revokeAllByUserId(userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new BusinessException(ErrorCode.USER_NOT_FOUND)
+                );
+
+        user.setLogoutAllAt(Instant.now());
+        userRepository.save(user);
 
         // Đưa access token hiện tại vào blacklist
         // đúng bằng thời gian sống còn lại của token.

@@ -8,9 +8,11 @@ public final class CacheNames {
     public static final String USER_DETAIL = "user_detail";
     public static final String USER_CURRENT = "user_current";
     public static final String USER_SEARCH = "user_search";
+    public static final String USER_PROJECT_CANDIDATE_SEARCH = "user_project_candidate_search";
 
     public static final String PROJECT_DETAIL = "project_detail";
     public static final String PROJECT_SEARCH = "project_search";
+    public static final String PROJECT_MEMBER_LIST = "project_member_list";
 
     public static final String SPRINT_DETAIL = "sprint_detail";
     public static final String SPRINT_SEARCH = "sprint_search";
@@ -28,4 +30,23 @@ public final class CacheNames {
     public static final String SPRINT_BURNDOWN = "sprint_burndown";
 
     public static final String TASK_TIME_SUMMARY = "task_time_summary";
+
+    public static final String TASK_TIME_LOG_LIST = "task_time_log_list";
+
+    public static final String TASK_COMMENT_LIST = "task_comment_list";
+
+    public static final String MY_DASHBOARD = "my_dashboard";
+    public static final String MY_TASK_SEARCH = "my_task_search";
+    public static final String MY_TIME_SUMMARY = "my_time_summary";
+
+    public static final String PROJECT_DASHBOARD = "project_dashboard";
+    public static final String PROJECT_DASHBOARD_WORKLOAD = "project_dashboard_workload";
+    public static final String PROJECT_DASHBOARD_RECENT_ACTIVITY = "project_dashboard_recent_activity";
+
+    public static final String PROJECT_ACTIVITY_SEARCH = "project_activity_search";
+    public static final String PROJECT_ACTIVITY_DETAIL = "project_activity_detail";
+
+    public static final String PROJECT_REPORT_SPRINT = "project_report_sprint";
+    public static final String PROJECT_REPORT_MEMBER = "project_report_member";
+    public static final String PROJECT_REPORT_TIME = "project_report_time";
 }

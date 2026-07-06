@@ -4,6 +4,7 @@ import type {
   AddProjectMemberData,
   CreateProjectData,
   Project,
+  ProjectActivityDetailResponse,
   ProjectActivityPage,
   ProjectFilters,
   ProjectMember,
@@ -12,6 +13,15 @@ import type {
   ProjectStatus,
   UpdateProjectData,
 } from '../models/project.model'
+
+export interface ProjectActivityFilters {
+  keyword?: string
+  performedByUserId?: string
+  action?: string
+  entityType?: string
+  fromDate?: string
+  toDate?: string
+}
 
 export function searchProjects(filters: ProjectFilters, page = 0, size = 9) {
   const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'updatedAt,desc' })
@@ -47,7 +57,16 @@ export const updateProjectMemberRole = (projectId: string, memberId: string, rol
 export const removeProjectMember = (projectId: string, memberId: string) =>
   apiRequest<void>(`${endpoints.projects}/${projectId}/members/${memberId}`, { method: 'DELETE' })
 
-export function getProjectActivities(projectId: string, page = 0, size = 10) {
-  const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'createdAt,desc' })
-  return apiRequest<ProjectActivityPage>(`${endpoints.projects}/${projectId}/activities?${params}`)
+export function getProjectActivities(projectId: string, page = 0, size = 10, filters: ProjectActivityFilters = {}) {
+  let url = `${endpoints.projects}/${projectId}/activities?page=${page}&size=${size}&sort=createdAt,desc`
+  if (filters.keyword) url += `&keyword=${encodeURIComponent(filters.keyword)}`
+  if (filters.performedByUserId) url += `&performedByUserId=${encodeURIComponent(filters.performedByUserId)}`
+  if (filters.action) url += `&action=${encodeURIComponent(filters.action)}`
+  if (filters.entityType) url += `&entityType=${encodeURIComponent(filters.entityType)}`
+  if (filters.fromDate) url += `&fromDate=${encodeURIComponent(filters.fromDate)}`
+  if (filters.toDate) url += `&toDate=${encodeURIComponent(filters.toDate)}`
+  return apiRequest<ProjectActivityPage>(url)
 }
+
+export const getProjectActivityById = (projectId: string, activityId: string) =>
+  apiRequest<ProjectActivityDetailResponse>(`${endpoints.projects}/${projectId}/activities/${activityId}`)

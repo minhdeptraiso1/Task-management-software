@@ -1,5 +1,6 @@
 package com.project.taskmanagement.service;
 
+import com.project.taskmanagement.dto.request.notification.NotificationSearchRequest;
 import com.project.taskmanagement.dto.response.notification.NotificationPageResponse;
 import com.project.taskmanagement.dto.response.notification.NotificationResponse;
 import com.project.taskmanagement.dto.response.notification.UnreadNotificationCountResponse;
@@ -10,6 +11,7 @@ import java.util.UUID;
 public interface NotificationQueryService {
 
     NotificationPageResponse getMyNotifications(
+            NotificationSearchRequest request,
             Pageable pageable
     );
 
@@ -20,4 +22,8 @@ public interface NotificationQueryService {
     );
 
     void markAllAsRead();
+
+    void delete(
+            UUID notificationId
+    );
 }

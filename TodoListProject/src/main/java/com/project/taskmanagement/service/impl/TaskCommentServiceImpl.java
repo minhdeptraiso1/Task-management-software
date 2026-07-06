@@ -1,5 +1,6 @@
 package com.project.taskmanagement.service.impl;
 
+import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.request.taskcomment.CreateTaskCommentRequest;
 import com.project.taskmanagement.dto.request.taskcomment.UpdateTaskCommentRequest;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentPageResponse;
@@ -28,6 +29,9 @@ import com.project.taskmanagement.service.validation.TaskCommentValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -59,6 +63,9 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+    })
     public TaskCommentResponse create(
             UUID projectId,
             UUID taskId,
@@ -193,6 +200,15 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.TASK_COMMENT_LIST,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #taskId" +
+                    " + '|page=' + #pageable.pageNumber" +
+                    " + '|size=' + #pageable.pageSize" +
+                    " + '|sort=' + #pageable.sort.toString()"
+    )
     public TaskCommentPageResponse getComments(
             UUID projectId,
             UUID taskId,
@@ -253,6 +269,9 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+    })
     public TaskCommentResponse update(
             UUID projectId,
             UUID taskId,
@@ -358,6 +377,9 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+    })
     public void delete(
             UUID projectId,
             UUID taskId,

@@ -271,5 +271,131 @@ public interface TaskRepository
             TaskStatus status
     );
 
+    long countByAssigneeUserId(
+            UUID assigneeUserId
+    );
+
+    @Query("""
+            SELECT t.status,
+                   COUNT(t)
+            FROM Task t
+            WHERE t.assigneeUserId = :assigneeUserId
+            GROUP BY t.status
+            """)
+    List<Object[]> countGroupedByStatusAndAssignee(
+            @Param("assigneeUserId")
+            UUID assigneeUserId
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.assigneeUserId = :assigneeUserId
+              AND t.dueDate < :today
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countOverdueByAssignee(
+            @Param("assigneeUserId")
+            UUID assigneeUserId,
+
+            @Param("today")
+            java.time.LocalDate today,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.assigneeUserId = :assigneeUserId
+              AND t.dueDate BETWEEN :fromDate AND :toDate
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countDueSoonByAssignee(
+            @Param("assigneeUserId")
+            UUID assigneeUserId,
+
+            @Param("fromDate")
+            java.time.LocalDate fromDate,
+
+            @Param("toDate")
+            java.time.LocalDate toDate,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    List<Task> findAllByProjectId(
+            UUID projectId
+    );
+
+    long countByProjectId(
+            UUID projectId
+    );
+
+    @Query("""
+            SELECT t.status,
+                   COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+            GROUP BY t.status
+            """)
+    List<Object[]> countGroupedByStatusAndProjectId(
+            @Param("projectId")
+            UUID projectId
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.dueDate < :today
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countOverdueByProjectId(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("today")
+            java.time.LocalDate today,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(t.estimatedMinutes), 0)
+            FROM Task t
+            WHERE t.projectId = :projectId
+            """)
+    Long sumEstimatedMinutesByProjectId(
+            @Param("projectId")
+            UUID projectId
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(t.estimatedMinutes), 0)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND (
+                    :taskId IS NULL
+                    OR t.id = :taskId
+              )
+              AND (
+                    :userId IS NULL
+                    OR t.assigneeUserId = :userId
+              )
+            """)
+    Long sumEstimatedMinutesForReport(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("userId")
+            UUID userId,
+
+            @Param("taskId")
+            UUID taskId
+    );
 
 }

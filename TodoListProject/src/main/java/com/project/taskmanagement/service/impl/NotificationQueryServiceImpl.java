@@ -1,5 +1,7 @@
 package com.project.taskmanagement.service.impl;
 
+import com.project.taskmanagement.config.CacheNames;
+import com.project.taskmanagement.dto.request.notification.NotificationSearchRequest;
 import com.project.taskmanagement.dto.response.notification.NotificationPageResponse;
 import com.project.taskmanagement.dto.response.notification.NotificationResponse;
 import com.project.taskmanagement.dto.response.notification.UnreadNotificationCountResponse;
@@ -11,11 +13,14 @@ import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.NotificationRecipientRepository;
 import com.project.taskmanagement.repository.NotificationRepository;
 import com.project.taskmanagement.repository.projection.NotificationView;
+import com.project.taskmanagement.security.CurrentUser;
 import com.project.taskmanagement.service.NotificationQueryService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.notification.NotificationTargetUrlResolver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,26 +39,41 @@ public class NotificationQueryServiceImpl
         implements NotificationQueryService {
 
     NotificationRepository notificationRepository;
+
     NotificationRecipientRepository
             notificationRecipientRepository;
 
     CurrentUserService currentUserService;
+
+    NotificationTargetUrlResolver
+            notificationTargetUrlResolver;
 
     // ===================== LIST =====================
 
     @Override
     @Transactional(readOnly = true)
     public NotificationPageResponse getMyNotifications(
+            NotificationSearchRequest request,
             Pageable pageable
     ) {
         User currentUser =
                 currentUserService
                         .getActiveCurrentUser();
 
+        NotificationSearchRequest safeRequest =
+                request == null
+                        ? new NotificationSearchRequest(
+                        null,
+                        null
+                )
+                        : request;
+
         Page<NotificationResponse> responsePage =
                 notificationRecipientRepository
-                        .findNotificationViewsByUserId(
+                        .searchNotificationViews(
                                 currentUser.getId(),
+                                safeRequest.type(),
+                                safeRequest.unread(),
                                 pageable
                         )
                         .map(this::toResponse);
@@ -74,7 +94,7 @@ public class NotificationQueryServiceImpl
 
         long unreadCount =
                 notificationRecipientRepository
-                        .countByUserIdAndReadAtIsNull(
+                        .countUnreadByUserId(
                                 currentUser.getId()
                         );
 
@@ -87,6 +107,7 @@ public class NotificationQueryServiceImpl
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public NotificationResponse markAsRead(
             UUID notificationId
     ) {
@@ -95,16 +116,10 @@ public class NotificationQueryServiceImpl
                         .getActiveCurrentUser();
 
         NotificationRecipient recipient =
-                notificationRecipientRepository
-                        .findByNotificationIdAndUserId(
-                                notificationId,
-                                currentUser.getId()
-                        )
-                        .orElseThrow(() ->
-                                new BusinessException(
-                                        ErrorCode.NOTIFICATION_NOT_FOUND
-                                )
-                        );
+                getOwnedRecipientOrThrow(
+                        notificationId,
+                        currentUser.getId()
+                );
 
         if (recipient.getReadAt() == null) {
             recipient.setReadAt(
@@ -121,23 +136,14 @@ public class NotificationQueryServiceImpl
                         .findById(notificationId)
                         .orElseThrow(() ->
                                 new BusinessException(
-                                        ErrorCode.NOTIFICATION_NOT_FOUND
+                                        ErrorCode
+                                                .NOTIFICATION_NOT_FOUND
                                 )
                         );
 
-        return new NotificationResponse(
-                notification.getId(),
-                notification.getType(),
-                notification.getTitle(),
-                notification.getContent(),
-                notification.getActorUserId(),
-                notification.getProjectId(),
-                notification.getEntityType(),
-                notification.getEntityId(),
-                notification.getCreatedAt(),
-                recipient.getDeliveredAt(),
-                recipient.getReadAt(),
-                recipient.getReadAt() != null
+        return toResponse(
+                notification,
+                recipient
         );
     }
 
@@ -145,6 +151,7 @@ public class NotificationQueryServiceImpl
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public void markAllAsRead() {
         User currentUser =
                 currentUserService
@@ -157,11 +164,66 @@ public class NotificationQueryServiceImpl
                 );
     }
 
+    // ===================== DELETE =====================
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
+    public void delete(
+            UUID notificationId
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        NotificationRecipient recipient =
+                getOwnedRecipientOrThrow(
+                        notificationId,
+                        currentUser.getId()
+                );
+
+        recipient.markDeleted(
+                CurrentUser.username()
+        );
+
+        notificationRecipientRepository.save(
+                recipient
+        );
+    }
+
+    // ===================== HELPER =====================
+
+    private NotificationRecipient
+    getOwnedRecipientOrThrow(
+            UUID notificationId,
+            UUID userId
+    ) {
+        return notificationRecipientRepository
+                .findByNotificationIdAndUserId(
+                        notificationId,
+                        userId
+                )
+                .orElseThrow(() ->
+                        new BusinessException(
+                                ErrorCode
+                                        .NOTIFICATION_NOT_FOUND
+                        )
+                );
+    }
+
     // ===================== MAPPER =====================
 
     private NotificationResponse toResponse(
             NotificationView view
     ) {
+        String targetUrl =
+                notificationTargetUrlResolver
+                        .resolve(
+                                view.getProjectId(),
+                                view.getEntityType(),
+                                view.getEntityId()
+                        );
+
         return new NotificationResponse(
                 view.getId(),
                 view.getType(),
@@ -171,10 +233,40 @@ public class NotificationQueryServiceImpl
                 view.getProjectId(),
                 view.getEntityType(),
                 view.getEntityId(),
+                targetUrl,
                 view.getCreatedAt(),
                 view.getDeliveredAt(),
                 view.getReadAt(),
                 view.getReadAt() != null
+        );
+    }
+
+    private NotificationResponse toResponse(
+            Notification notification,
+            NotificationRecipient recipient
+    ) {
+        String targetUrl =
+                notificationTargetUrlResolver
+                        .resolve(
+                                notification.getProjectId(),
+                                notification.getEntityType(),
+                                notification.getEntityId()
+                        );
+
+        return new NotificationResponse(
+                notification.getId(),
+                notification.getType(),
+                notification.getTitle(),
+                notification.getContent(),
+                notification.getActorUserId(),
+                notification.getProjectId(),
+                notification.getEntityType(),
+                notification.getEntityId(),
+                targetUrl,
+                notification.getCreatedAt(),
+                recipient.getDeliveredAt(),
+                recipient.getReadAt(),
+                recipient.getReadAt() != null
         );
     }
 }

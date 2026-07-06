@@ -87,6 +87,42 @@ public class TaskServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_BURNDOWN,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public TaskResponse create(
@@ -412,6 +448,42 @@ public class TaskServiceImpl
             @CacheEvict(
                     value = CacheNames.TASK_TIME_SUMMARY,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public TaskResponse update(
@@ -554,6 +626,42 @@ public class TaskServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_TASK_STATISTICS,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public TaskResponse assign(
@@ -658,6 +766,42 @@ public class TaskServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })
@@ -767,6 +911,42 @@ public class TaskServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.TASK_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })
@@ -976,6 +1156,42 @@ public class TaskServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })

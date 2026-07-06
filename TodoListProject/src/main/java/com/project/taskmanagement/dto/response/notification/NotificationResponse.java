@@ -24,6 +24,8 @@ public record NotificationResponse(
 
         UUID entityId,
 
+        String targetUrl,
+
         Instant createdAt,
 
         Instant deliveredAt,

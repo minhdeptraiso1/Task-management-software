@@ -7,7 +7,10 @@ import {
   CheckCheck,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Filter,
   FolderKanban,
+  LayoutDashboard,
   LogOut,
   Pencil,
   Plus,
@@ -15,8 +18,10 @@ import {
   Search,
   Settings,
   Trash2,
+  User as UserIcon,
   UserPlus,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, ToolbarActions } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
@@ -37,7 +42,12 @@ import { formatDate } from '../../../utils/format'
 import type { NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint } from '../models/scrum.model'
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
+import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
+import { PersonalDashboardController } from '../../dashboard/controllers/PersonalDashboardController'
+import { ProjectDashboardTab } from './ProjectDashboardTab'
+import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
+import { searchProjects } from '../services/project.service'
 
 const statuses: ProjectStatus[] = ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'ARCHIVED']
 const memberRoles: ProjectMemberRole[] = ['OWNER', 'PROJECT_MANAGER', 'SCRUM_MASTER', 'PRODUCT_OWNER', 'DEVELOPER', 'TESTER', 'VIEWER']
@@ -64,32 +74,38 @@ interface Props {
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports'
   page: number
   activityPage: number
+  activityFilters: ProjectActivityFilters
+  onActivityFiltersChange: (filters: ProjectActivityFilters) => void
+  onActivitySearch: (filters: ProjectActivityFilters) => void
   loading: boolean
   detailLoading: boolean
   taskDetailLoading: boolean
   candidateLoading: boolean
   saving: boolean
-  error: string
+  errors: { id: string; message: string }[]
+  onDismissError: (id: string) => void
   onLogout: () => void
   onFiltersChange: (filters: ProjectFilters) => void
-  onSearch: () => void
+  onSearch: (forceFilters?: ProjectFilters) => void
   onPageChange: (page: number) => void
   onSelectProject: (project: Project) => void
   onCreateProject: (data: { code: string; name: string; description: string; startDate: string; endDate: string }) => void
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
   onRoleChange: (memberId: string, role: ProjectMemberRole) => void
   onRemoveMember: (member: ProjectMember) => void
   onReadNotification: (id: string) => void
+  onDeleteNotification: (id: string) => void
   onReadAllNotifications: () => void
+  onOpenSettings: () => void
   onCreateBacklog: Parameters<typeof ScrumBoardView>[0]['onCreateBacklog']
   onCreateSprint: Parameters<typeof ScrumBoardView>[0]['onCreateSprint']
   onUpdateBacklog: Parameters<typeof ScrumBoardView>[0]['onUpdateBacklog']
@@ -128,7 +144,6 @@ function statusClass(status: ProjectStatus) {
   if (status === 'CANCELLED') return 'bg-[#fff0ed] text-danger'
   if (status === 'COMPLETED') return 'bg-[#eff6ff] text-info'
   if (status === 'ARCHIVED') return 'bg-panel text-muted'
-  return 'bg-[#fef3e2] text-brand-dark'
 }
 
 function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; saving: boolean; onClose: () => void; onSave: Props['onCreateProject'] }) {
@@ -282,6 +297,9 @@ export function ProjectWorkspaceView({
   activeTab,
   page,
   activityPage,
+  activityFilters,
+  onActivityFiltersChange,
+  onActivitySearch,
   loading,
   detailLoading,
   taskDetailLoading,
@@ -305,7 +323,9 @@ export function ProjectWorkspaceView({
   onRoleChange,
   onRemoveMember,
   onReadNotification,
+  onDeleteNotification,
   onReadAllNotifications,
+  onOpenSettings,
   onCreateBacklog,
   onCreateSprint,
   onUpdateBacklog,
@@ -342,8 +362,83 @@ export function ProjectWorkspaceView({
   const [projectEditOpen, setProjectEditOpen] = useState(false)
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
+  const [isActivityFilterVisible, setIsActivityFilterVisible] = useState(false)
+  
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [suggestionProjects, setSuggestionProjects] = useState<Project[]>([])
+  const [focusedIndex, setFocusedIndex] = useState(-1)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setFocusedIndex(-1)
+  }, [filters.keyword, showSuggestions])
+
+  useEffect(() => {
+    setIsActivityFilterVisible(false)
+  }, [selectedProject?.id])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('recentProjectSearches')
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved))
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const keyword = filters.keyword?.trim() || ''
+    if (!keyword) {
+      setSuggestionProjects([])
+      return
+    }
+    
+    const timeoutId = setTimeout(() => {
+      searchProjects({ keyword, status: '' }, 0, 5)
+        .then(res => setSuggestionProjects(res.content))
+        .catch(() => setSuggestionProjects([]))
+    }, 300)
+    
+    return () => clearTimeout(timeoutId)
+  }, [filters.keyword])
+
+  const handleSearch = (overrideKeyword?: string | React.MouseEvent | React.KeyboardEvent | React.FormEvent) => {
+    const keywordStr = typeof overrideKeyword === 'string' ? overrideKeyword : (filters.keyword?.trim() || '')
+    if (keywordStr) {
+      const newRecent = [keywordStr, ...recentSearches.filter(s => s !== keywordStr)].slice(0, 5)
+      setRecentSearches(newRecent)
+      localStorage.setItem('recentProjectSearches', JSON.stringify(newRecent))
+    }
+    setShowSuggestions(false)
+    if (typeof overrideKeyword === 'string') {
+      onFiltersChange({ ...filters, keyword: overrideKeyword })
+      onSearch({ ...filters, keyword: overrideKeyword })
+    } else {
+      onSearch()
+    }
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const canCreateProject = user.role === 'MANAGER'
   const canManageMembers = selectedProject?.currentUserRole === 'OWNER' || selectedProject?.currentUserRole === 'PROJECT_MANAGER'
+
+  const keywordStr = filters.keyword?.trim() || ''
+  const dropdownOptions = keywordStr
+    ? suggestionProjects.map(p => ({ type: 'project' as const, label: p.name, value: p.name, code: p.code, id: p.id }))
+    : recentSearches.map(term => ({ type: 'recent' as const, label: term, value: term, code: '', id: term }))
 
   return <div className="min-h-screen bg-canvas">
     {errors.length > 0 && <div className="fixed right-5 top-5 z-50 flex max-w-md flex-col gap-2">
@@ -361,22 +456,23 @@ export function ProjectWorkspaceView({
         <span className="text-sm text-white/55">PROJECT</span>
       </div>
       <div className="flex items-center gap-3">
-        <div className="hidden text-right sm:block">
-          <p className="text-sm font-semibold">{user.username}</p>
-          <p className="text-xs text-white/45">{user.role}</p>
-        </div>
-        <span className="grid size-9 place-items-center rounded-full bg-brand font-bold">{user.username.slice(0, 2).toUpperCase()}</span>
-        <Button className="!text-white" variant="ghost" size="sm" leadingIcon={<LogOut size={18} />} onClick={onLogout}>Đăng xuất</Button>
+        <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-white/10 transition" onClick={onOpenSettings}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand font-bold text-white uppercase text-sm">
+            {user.username.charAt(0)}
+          </div>
+          <span className="hidden text-sm font-medium md:block pl-1 pr-2">{user.username}</span>
+        </button>
+        <div className="h-6 w-px bg-white/20 mx-1" />
+        <Button className="!text-white/80 hover:!text-white hover:bg-white/10" variant="ghost" size="sm" leadingIcon={<LogOut size={17} />} onClick={onLogout}>Đăng xuất</Button>
       </div>
     </header>
 
-    <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'xl:grid-cols-[76px_1fr]' : 'xl:grid-cols-[380px_1fr]'}`}>
-      <aside className={`rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
-        <div className="border-b border-line p-5">
+    <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 items-start ${sidebarCollapsed ? 'xl:grid-cols-[76px_1fr]' : 'xl:grid-cols-[380px_1fr]'}`}>
+      <aside className={`sticky top-5 flex h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
+        <div className="shrink-0 border-b border-line p-5">
           <div className="flex items-center justify-between gap-3">
             {!sidebarCollapsed && <div>
-              <p className="text-sm font-semibold text-brand">Phase 2</p>
-              <h1 className="mt-1 text-xl font-bold">Dự án của tôi</h1>
+              <h1 className="text-xl font-bold">Dự án của tôi</h1>
             </div>}
             <Button
               variant="secondary"
@@ -388,15 +484,97 @@ export function ProjectWorkspaceView({
             />
           </div>
           {!sidebarCollapsed && <div className="mt-4 grid gap-3">
-            <Input aria-label="Tìm dự án" placeholder="Tìm mã hoặc tên..." leadingIcon={<Search size={17} />} value={filters.keyword} onChange={event => onFiltersChange({ ...filters, keyword: event.target.value })} onKeyDown={event => event.key === 'Enter' && onSearch()} />
+            <div className="relative" ref={searchContainerRef}>
+              <Input 
+                aria-label="Tìm dự án" 
+                placeholder="Tìm mã hoặc tên..." 
+                leadingIcon={<Search size={17} />} 
+                value={filters.keyword} 
+                onChange={event => {
+                  onFiltersChange({ ...filters, keyword: event.target.value })
+                  setShowSuggestions(true)
+                }} 
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={event => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault()
+                    if (showSuggestions) {
+                      setFocusedIndex(prev => (prev < dropdownOptions.length - 1 ? prev + 1 : prev))
+                    } else {
+                      setShowSuggestions(true)
+                    }
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    if (showSuggestions) {
+                      setFocusedIndex(prev => (prev > 0 ? prev - 1 : -1))
+                    }
+                  } else if (event.key === 'Enter') {
+                    event.preventDefault()
+                    if (showSuggestions && focusedIndex >= 0 && focusedIndex < dropdownOptions.length) {
+                      handleSearch(dropdownOptions[focusedIndex].value)
+                    } else {
+                      handleSearch()
+                    }
+                  }
+                }} 
+              />
+              
+              {showSuggestions && dropdownOptions.length > 0 && (
+                <div className="absolute top-full left-0 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-line bg-white py-2 shadow-lg z-50">
+                  {keywordStr ? (
+                    <>
+                      {dropdownOptions.map((option, idx) => (
+                          <button 
+                            key={option.id}
+                            type="button"
+                            className={`w-full px-4 py-2 text-left text-sm flex flex-col gap-0.5 ${focusedIndex === idx ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+                            onClick={() => handleSearch(option.value)}
+                            onMouseEnter={() => setFocusedIndex(idx)}
+                          >
+                            <div className="flex items-center gap-2 font-medium text-ink">
+                              <Search size={13} className="text-muted flex-shrink-0" />
+                              <span className="truncate">{option.label}</span>
+                            </div>
+                            <div className="pl-5 text-xs text-muted truncate">{option.code}</div>
+                          </button>
+                        ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-4 py-1 text-xs font-semibold text-muted uppercase">Tìm kiếm gần đây</div>
+                      {dropdownOptions.map((option, idx) => (
+                        <button 
+                          key={option.id}
+                          type="button"
+                          className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 ${focusedIndex === idx ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+                          onClick={() => handleSearch(option.value)}
+                          onMouseEnter={() => setFocusedIndex(idx)}
+                        >
+                          <Clock size={14} className="text-muted" />
+                          {option.label}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <Select aria-label="Trạng thái" value={filters.status} onChange={event => onFiltersChange({ ...filters, status: event.target.value as ProjectFilters['status'] })} options={[{ label: 'Mọi trạng thái', value: '' }, ...statuses.map(status => ({ label: projectStatusLabels[status], value: status }))]} />
-              <ToolbarActions loading={loading} canCreate={canCreateProject} createLabel="Tạo dự án" createIcon={<Plus size={18} />} onFilter={onSearch} onCreate={() => setCreateOpen(true)} />
+              <ToolbarActions loading={loading} canCreate={canCreateProject} createLabel="Tạo dự án" createIcon={<Plus size={18} />} onFilter={handleSearch} onCreate={() => setCreateOpen(true)} />
             </div>
           </div>}
         </div>
 
-        {sidebarCollapsed ? <div className={`max-h-[calc(100vh-160px)] space-y-2 overflow-y-auto p-2 ${loading ? 'opacity-50' : ''}`}>
+        {sidebarCollapsed ? <div className={`flex-1 space-y-2 overflow-y-auto p-2 ${loading ? 'opacity-50' : ''}`}>
+          <button
+            type="button"
+            title="Trang chủ"
+            className={`grid size-12 place-items-center rounded-xl border transition hover:border-brand ${!selectedProject ? 'border-brand bg-[#fff7ed] text-brand' : 'border-line bg-white text-muted'}`}
+            onClick={() => onSelectProject(null as any)}
+          >
+            <LayoutDashboard size={20} />
+          </button>
           {projects.content.map(project => (
             <button
               key={project.id}
@@ -409,7 +587,12 @@ export function ProjectWorkspaceView({
             </button>
           ))}
         </div> : <>
-        <div className={`max-h-[calc(100vh-300px)] overflow-y-auto p-3 ${loading ? 'opacity-50' : ''}`}>
+        <div className={`flex-1 overflow-y-auto p-3 ${loading ? 'opacity-50' : ''}`}>
+          <button type="button" className={`mb-3 w-full rounded-xl border p-4 text-left transition hover:border-brand ${!selectedProject ? 'border-brand bg-[#fff7ed] text-brand' : 'border-line bg-white'}`} onClick={() => onSelectProject(null as any)}>
+            <div className="flex items-center gap-3 font-semibold">
+              <LayoutDashboard size={20} /> Trang tổng quan
+            </div>
+          </button>
           {projects.content.map(project => (
             <button key={project.id} type="button" className={`mb-3 w-full rounded-xl border p-4 text-left transition hover:border-brand ${selectedProject?.id === project.id ? 'border-brand bg-[#fff7ed]' : 'border-line bg-white'}`} onClick={() => onSelectProject(project)}>
               <div className="flex items-start justify-between gap-3">
@@ -437,10 +620,10 @@ export function ProjectWorkspaceView({
         </>}
       </aside>
 
-      <section className="min-w-0 rounded-xl border border-line bg-white">
-        {!selectedProject ? <div className="grid min-h-[520px] place-items-center p-8 text-center text-muted">
-          <div><FolderKanban className="mx-auto text-brand" size={42} /><p className="mt-1 font-semibold text-ink">Chọn một dự án để xem chi tiết</p></div>
-        </div> : <>
+      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white overflow-y-auto">
+        {!selectedProject ? (
+          <PersonalDashboardController me={user} />
+        ) : <>
           <div className="border-b border-line p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -477,6 +660,7 @@ export function ProjectWorkspaceView({
 
           <div className="border-b border-line px-5 py-4">
             <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
               <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
               <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
               <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
@@ -485,6 +669,7 @@ export function ProjectWorkspaceView({
           </div>
 
           <div className={`p-5 ${detailLoading ? 'opacity-50' : ''}`}>
+            {activeTab === 'dashboard' && <ProjectDashboardTab projectId={selectedProject.id} sprints={sprints} />}
             {activeTab === 'board' && <ScrumBoardView
               backlogItems={backlogItems}
               sprints={sprints}
@@ -554,26 +739,134 @@ export function ProjectWorkspaceView({
             </>}
 
             {activeTab === 'activities' && <div className="space-y-3">
-              {activities.content.map(activity => <article key={activity.id} className="rounded-xl border border-line p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div><p className="font-semibold">{projectActivityLabels[activity.action] ?? activity.action}</p><p className="mt-1 text-xs text-muted">{entityTypeLabels[activity.entityType] ?? activity.entityType} · {formatDate(activity.createdAt)}</p></div>
-                  <CheckCircle2 className="text-success" size={18} />
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-lg">Lịch sử hoạt động</h3>
+                <Button 
+                  variant={isActivityFilterVisible ? 'danger' : 'primary'} 
+                  leadingIcon={isActivityFilterVisible ? <X size={16} /> : <Filter size={16} />}
+                  onClick={() => setIsActivityFilterVisible(!isActivityFilterVisible)}
+                >
+                  {isActivityFilterVisible ? 'Đóng' : 'Lọc'}
+                </Button>
+              </div>
+
+              {isActivityFilterVisible && (
+                <div className="p-4 bg-panel border border-line rounded-xl mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    <Select
+                      aria-label="Thành viên"
+                      value={activityFilters.performedByUserId ?? ''}
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, performedByUserId: e.target.value })}
+                      options={[
+                        { label: 'Tất cả thành viên', value: '' },
+                        ...members.map(m => ({ label: m.username, value: m.userId }))
+                      ]}
+                      className="w-full"
+                    />
+                    <Select
+                      aria-label="Đối tượng"
+                      value={activityFilters.entityType ?? ''}
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, entityType: e.target.value })}
+                      options={[
+                        { label: 'Tất cả đối tượng', value: '' },
+                        ...Object.entries(entityTypeLabels).map(([key, label]) => ({ label, value: key }))
+                      ]}
+                      className="w-full"
+                    />
+                    <Select
+                      aria-label="Hành động"
+                      value={activityFilters.action ?? ''}
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, action: e.target.value })}
+                      options={[
+                        { label: 'Tất cả hành động', value: '' },
+                        ...Object.entries(projectActivityLabels).map(([key, label]) => ({ label, value: key }))
+                      ]}
+                      className="w-full"
+                    />
+                    <Input
+                      type="date"
+                      aria-label="Từ ngày"
+                      value={activityFilters.fromDate ? activityFilters.fromDate.split('T')[0] : ''}
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, fromDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                      className="w-full"
+                    />
+                    <Input
+                      type="date"
+                      aria-label="Đến ngày"
+                      value={activityFilters.toDate ? activityFilters.toDate.split('T')[0] : ''}
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, toDate: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : '' })}
+                      className="w-full"
+                    />
+                    <Input 
+                      placeholder="Tìm kiếm từ khóa..." 
+                      leadingIcon={<Search size={16} />} 
+                      value={activityFilters.keyword ?? ''} 
+                      onChange={e => onActivityFiltersChange({ ...activityFilters, keyword: e.target.value })} 
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          onActivitySearch(activityFilters)
+                        }
+                      }} 
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <Button variant="outline-blue" loading={loading} leadingIcon={<Filter size={16} />} onClick={() => onActivitySearch(activityFilters)}>
+                      Lọc
+                    </Button>
+                  </div>
                 </div>
-              </article>)}
-              {!activities.content.length && <p className="py-10 text-center text-sm text-muted">Chưa có hoạt động.</p>}
-              <footer className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" disabled={activityPage === 0} leadingIcon={<ChevronLeft size={16} />} onClick={() => onActivityPageChange(activityPage - 1)}>Trước</Button>
-                <Button variant="secondary" size="sm" disabled={activityPage + 1 >= activities.totalPages} trailingIcon={<ChevronRight size={16} />} onClick={() => onActivityPageChange(activityPage + 1)}>Sau</Button>
-              </footer>
+              )}
+              
+              {activities.content.map(activity => (
+                <button
+                  key={activity.id}
+                  type="button"
+                  className="w-full rounded-xl border border-line bg-white p-4 text-left transition hover:border-brand"
+                  onClick={() => setSelectedActivityId(activity.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-600">
+                      <Activity size={16} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-ink">{projectActivityLabels[activity.action] ?? activity.action}</p>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-muted">
+                        <span className="flex items-center gap-1"><UserIcon size={12} /> {activity.performedByUsername}</span>
+                        <span>{formatDate(activity.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              {!activities.content.length && <p className="py-10 text-center text-sm text-muted">Chưa có hoạt động nào.</p>}
+              {activities.totalPages > 1 && (
+                <footer className="flex items-center justify-between border-t border-line pt-4 text-sm text-muted">
+                  <span>Trang {activityPage + 1} / {activities.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" disabled={activityPage === 0} onClick={() => onActivityPageChange(activityPage - 1)}>Trước</Button>
+                    <Button variant="secondary" size="sm" disabled={activityPage + 1 >= activities.totalPages} onClick={() => onActivityPageChange(activityPage + 1)}>Sau</Button>
+                  </div>
+                </footer>
+              )}
             </div>}
 
             {activeTab === 'notifications' && <div className="space-y-3">
               <div className="flex justify-end"><Button variant="outline-teal" size="sm" leadingIcon={<CheckCheck size={16} />} onClick={onReadAllNotifications}>Đánh dấu tất cả đã đọc</Button></div>
-              {notifications.content.map(item => <button key={item.id} type="button" className={`w-full rounded-xl border p-4 text-left ${item.read ? 'border-line bg-white' : 'border-brand bg-[#fff7ed]'}`} onClick={() => onReadNotification(item.id)}>
-                <p className="font-semibold">{item.title}</p>
-                <p className="mt-1 text-sm text-muted">{item.content}</p>
-                <p className="mt-2 text-xs text-muted">{formatDate(item.createdAt)}</p>
-              </button>)}
+              {notifications.content.map(item => (
+                <div key={item.id} className={`flex items-start gap-4 rounded-xl border p-4 transition ${item.read ? 'border-line bg-white' : 'border-brand bg-[#fff7ed]'}`}>
+                  <button type="button" className="flex-1 text-left" onClick={() => onReadNotification(item.id)}>
+                    <div className="flex items-center gap-2 font-semibold">
+                      {item.title}
+                      {!item.read && <span className="size-2 rounded-full bg-brand" />}
+                    </div>
+                    <p className="mt-1 text-sm text-muted">{item.content}</p>
+                    <p className="mt-2 text-xs text-muted">{formatDate(item.createdAt)}</p>
+                  </button>
+                  <Button variant="secondary" size="sm" iconOnly aria-label="Xóa thông báo" leadingIcon={<Trash2 size={16} className="text-rose-500" />} onClick={() => onDeleteNotification(item.id)} />
+                </div>
+              ))}
               {!notifications.content.length && <p className="py-10 text-center text-sm text-muted">Chưa có thông báo.</p>}
             </div>}
           </div>
@@ -584,6 +877,15 @@ export function ProjectWorkspaceView({
     <ProjectCreateModal open={createOpen} saving={saving} onClose={() => setCreateOpen(false)} onSave={data => { onCreateProject(data); setCreateOpen(false) }} />
     <ProjectEditModal open={projectEditOpen} project={selectedProject} saving={saving} onClose={() => setProjectEditOpen(false)} onSave={data => { onUpdateProject(data); setProjectEditOpen(false) }} />
     <ConfirmDialog open={deleteProjectOpen} title="Xóa dự án?" description="Dự án sẽ bị xóa mềm khỏi hệ thống. Hành động này có thể ảnh hưởng dữ liệu Sprint, Task và thành viên." confirmLabel="Xóa dự án" loading={saving} onCancel={() => setDeleteProjectOpen(false)} onConfirm={() => { onDeleteProject(); setDeleteProjectOpen(false) }} />
+
+    {selectedProject && (
+      <ProjectActivityDetailModal
+        open={!!selectedActivityId}
+        projectId={selectedProject.id}
+        activityId={selectedActivityId}
+        onClose={() => setSelectedActivityId(null)}
+      />
+    )}
   </div>
 }
 

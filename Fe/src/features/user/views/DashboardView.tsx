@@ -46,6 +46,7 @@ interface Props {
   onEdit: (user: User) => void
   onDelete: (user: User) => void
   onLogout: () => void
+  onOpenSettings: () => void
 }
 
 export function DashboardView({
@@ -72,6 +73,7 @@ export function DashboardView({
   onEdit,
   onDelete,
   onLogout,
+  onOpenSettings,
 }: Props) {
   const active = users.content.filter(user => user.enabled).length
   const adminCount = users.content.filter(user => user.role === 'ADMIN').length
@@ -128,11 +130,14 @@ export function DashboardView({
           <h1 className="text-base font-semibold">{activeSection === 'members' ? 'Quản lý thành viên' : 'Quản lý hoạt động'}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold">{me.username}</p>
-            <p className="text-xs text-white/45">{roleLabels[me.role]}</p>
-          </div>
-          <span className="grid size-9 place-items-center rounded-full bg-brand font-bold text-white">{me.username.slice(0, 2).toUpperCase()}</span>
+          <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-white/10 transition" onClick={onOpenSettings}>
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-semibold text-white text-left">{me.username}</p>
+              <p className="text-xs text-white/45 text-left">{roleLabels[me.role]}</p>
+            </div>
+            <span className="grid size-9 place-items-center rounded-full bg-brand font-bold text-white">{me.username.slice(0, 2).toUpperCase()}</span>
+          </button>
+          <div className="h-6 w-px bg-white/20 mx-1 hidden lg:block" />
           <Button className="lg:hidden !text-white" size="sm" variant="ghost" iconOnly leadingIcon={<LogOut size={18} />} aria-label="Đăng xuất" title="Đăng xuất" onClick={onLogout} />
         </div>
       </header>

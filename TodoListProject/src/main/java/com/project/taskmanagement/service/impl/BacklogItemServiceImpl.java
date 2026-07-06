@@ -68,6 +68,50 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.BACKLOG_ITEM_DETAIL,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public BacklogItemResponse create(
@@ -335,6 +379,50 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.BACKLOG_ITEM_DETAIL,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public BacklogItemResponse update(
@@ -451,6 +539,50 @@ public class BacklogItemServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.SPRINT_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })
@@ -611,6 +743,50 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.BACKLOG_ITEM_DETAIL,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public BacklogItemResponse updatePriority(
@@ -696,6 +872,50 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.BACKLOG_ITEM_DETAIL,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
             )
     })
     public void delete(
@@ -765,6 +985,50 @@ public class BacklogItemServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.BACKLOG_ITEM_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })

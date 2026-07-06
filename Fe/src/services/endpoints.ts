@@ -13,4 +13,7 @@ export const endpoints = {
   projects: '/projects',
   notifications: '/notifications',
   unreadNotifications: '/notifications/unread-count',
+  dashboard: '/dashboard',
 } as const
+
+export const projectPath = (id: string) => `${endpoints.projects}/${id}`

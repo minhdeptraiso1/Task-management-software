@@ -79,4 +79,12 @@ public interface ProjectMemberRepository
             @Param("deletedBy")
             String deletedBy
     );
+
+    long countByUserId(
+            UUID userId
+    );
+
+    long countByProjectId(
+            UUID projectId
+    );
 }

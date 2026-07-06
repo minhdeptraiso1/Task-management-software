@@ -1,0 +1,252 @@
+[
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/backlog-items",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/backlog-items",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/backlog-items/{itemId}",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/backlog-items/{itemId}",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/backlog-items/{itemId}/status",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/backlog-items/{itemId}/priority",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/backlog-items/{itemId}",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/backlog-items/{itemId}/position",
+    "file": "BacklogItemController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/dashboard/me/tasks",
+    "file": "DashboardController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/dashboard/me/time-summary",
+    "file": "DashboardController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/dashboard",
+    "file": "ProjectDashboardController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/dashboard/workload",
+    "file": "ProjectDashboardController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/dashboard/recent-activities",
+    "file": "ProjectDashboardController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/reports/sprints/{sprintId}",
+    "file": "ProjectReportController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/reports/members",
+    "file": "ProjectReportController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/reports/time",
+    "file": "ProjectReportController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/sprints",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints/{sprintId}",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/sprints/{sprintId}",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/sprints/{sprintId}",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/sprints/{sprintId}/backlog-items/{itemId}",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/sprints/{sprintId}/backlog-items/{itemId}",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/sprints/{sprintId}/start",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/sprints/{sprintId}/complete",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/sprints/{sprintId}/cancel",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints/{sprintId}/kanban",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/sprints",
+    "file": "SprintController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/tasks/{taskId}/comments",
+    "file": "TaskCommentController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks/{taskId}/comments",
+    "file": "TaskCommentController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/comments/{commentId}",
+    "file": "TaskCommentController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/tasks/{taskId}/comments/{commentId}",
+    "file": "TaskCommentController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/tasks",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks/{taskId}",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/assign",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/unassign",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/tasks/{taskId}",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks/../sprints/{sprintId}/kanban",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/status",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/position",
+    "file": "TaskController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints/{sprintId}/task-statistics",
+    "file": "TaskStatisticsController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/sprints/{sprintId}/burndown",
+    "file": "TaskStatisticsController.java"
+  },
+  {
+    "method": "POST",
+    "path": "/projects/{projectId}/tasks/{taskId}/time-logs",
+    "file": "TaskTimeLogController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks/{taskId}/time-logs",
+    "file": "TaskTimeLogController.java"
+  },
+  {
+    "method": "PATCH",
+    "path": "/projects/{projectId}/tasks/{taskId}/time-logs/{timeLogId}",
+    "file": "TaskTimeLogController.java"
+  },
+  {
+    "method": "DELETE",
+    "path": "/projects/{projectId}/tasks/{taskId}/time-logs/{timeLogId}",
+    "file": "TaskTimeLogController.java"
+  },
+  {
+    "method": "GET",
+    "path": "/projects/{projectId}/tasks/{taskId}/time-summary",
+    "file": "TaskTimeLogController.java"
+  }
+]

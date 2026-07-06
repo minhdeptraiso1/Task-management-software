@@ -14,7 +14,7 @@ const initialFilters: UserFilters = { keyword: '', role: '', enabled: '' }
 const fallbackRoles: UserRole[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
 type AdminSection = 'members' | 'audit'
 
-export function DashboardController({ me, onLogout }: { me: User; onLogout: () => void }) {
+export function DashboardController({ me, onLogout, onOpenSettings }: { me: User; onLogout: () => void; onOpenSettings: () => void }) {
   const [users, setUsers] = useState(emptyPage)
   const [activeSection, setActiveSection] = useState<AdminSection>('members')
   const [roles, setRoles] = useState<UserRole[]>(fallbackRoles)
@@ -155,6 +155,7 @@ export function DashboardController({ me, onLogout }: { me: User; onLogout: () =
       }}
       onDelete={setPendingDelete}
       onLogout={onLogout}
+      onOpenSettings={onOpenSettings}
     />
     {modalOpen && (
       <UserFormModal

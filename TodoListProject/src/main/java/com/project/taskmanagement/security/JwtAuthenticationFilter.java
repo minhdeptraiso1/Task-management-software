@@ -3,7 +3,9 @@ package com.project.taskmanagement.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.core.ErrorResponseSever;
+import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.exception.ErrorCode;
+import com.project.taskmanagement.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -23,7 +25,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -40,6 +44,7 @@ public class JwtAuthenticationFilter
 
     JwtTokenProvider jwtTokenProvider;
     TokenBlacklistService tokenBlacklistService;
+    UserRepository userRepository;
     ObjectMapper objectMapper;
 
     @Override
@@ -116,6 +121,37 @@ public class JwtAuthenticationFilter
                     .getBody();
 
             validateAccessTokenType(claims);
+
+            UUID userId = UUID.fromString(
+                    claims.getSubject()
+            );
+
+            User user = userRepository.findById(userId)
+                    .orElse(null);
+
+            if (user == null) {
+                writeErrorResponse(
+                        response,
+                        ErrorCode.INVALID_ACCESS_TOKEN
+                );
+                return;
+            }
+
+            if (!user.isEnabled()) {
+                writeErrorResponse(
+                        response,
+                        ErrorCode.ACCOUNT_DISABLED
+                );
+                return;
+            }
+
+            if (isIssuedBeforeLogoutAll(claims, user)) {
+                writeErrorResponse(
+                        response,
+                        ErrorCode.TOKEN_REVOKED
+                );
+                return;
+            }
 
             String username = claims.get(
                     "username",
@@ -199,6 +235,24 @@ public class JwtAuthenticationFilter
                     "Token không phải access token"
             );
         }
+    }
+
+    private boolean isIssuedBeforeLogoutAll(
+            Claims claims,
+            User user
+    ) {
+        if (user.getLogoutAllAt() == null) {
+            return false;
+        }
+
+        if (claims.getIssuedAt() == null) {
+            return true;
+        }
+
+        Instant issuedAt = claims.getIssuedAt()
+                .toInstant();
+
+        return issuedAt.isBefore(user.getLogoutAllAt());
     }
 
     private void writeErrorResponse(

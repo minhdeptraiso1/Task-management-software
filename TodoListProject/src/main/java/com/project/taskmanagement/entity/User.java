@@ -15,6 +15,8 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -63,4 +65,7 @@ public class User extends BaseAuditEntity {
             nullable = false
     )
     boolean enabled = true;
+
+    @Column(name = "logout_all_at")
+    Instant logoutAllAt;
 }

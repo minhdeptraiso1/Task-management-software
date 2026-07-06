@@ -26,6 +26,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +70,82 @@ public class ProjectMemberServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.PROJECT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_MEMBER_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })
@@ -185,6 +262,11 @@ public class ProjectMemberServiceImpl
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = CacheNames.PROJECT_MEMBER_LIST,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId"
+    )
     public List<ProjectMemberResponse> getMembers(
             UUID projectId
     ) {
@@ -262,6 +344,82 @@ public class ProjectMemberServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.PROJECT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_MEMBER_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })
@@ -386,6 +544,82 @@ public class ProjectMemberServiceImpl
             ),
             @CacheEvict(
                     value = CacheNames.PROJECT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_MEMBER_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.BACKLOG_ITEM_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_KANBAN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_TASK_STATISTICS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_BURNDOWN,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_TIME_LOG_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.TASK_COMMENT_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
             )
     })

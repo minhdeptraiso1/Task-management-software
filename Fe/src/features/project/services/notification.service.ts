@@ -15,3 +15,6 @@ export const markNotificationRead = (notificationId: string) =>
 
 export const markAllNotificationsRead = () =>
   apiRequest<void>(`${endpoints.notifications}/read-all`, { method: 'PATCH' })
+
+export const deleteNotification = (notificationId: string) =>
+  apiRequest<void>(`${endpoints.notifications}/${notificationId}`, { method: 'DELETE' })

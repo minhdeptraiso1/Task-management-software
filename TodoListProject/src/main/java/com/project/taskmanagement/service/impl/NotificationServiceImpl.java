@@ -1,5 +1,6 @@
 package com.project.taskmanagement.service.impl;
 
+import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.entity.Notification;
 import com.project.taskmanagement.entity.NotificationRecipient;
 import com.project.taskmanagement.repository.NotificationRecipientRepository;
@@ -9,6 +10,7 @@ import com.project.taskmanagement.service.model.NotificationCommand;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class NotificationServiceImpl
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public void create(
             NotificationCommand command
     ) {

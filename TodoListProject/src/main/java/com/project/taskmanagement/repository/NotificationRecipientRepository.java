@@ -1,6 +1,7 @@
 package com.project.taskmanagement.repository;
 
 import com.project.taskmanagement.entity.NotificationRecipient;
+import com.project.taskmanagement.enums.NotificationType;
 import com.project.taskmanagement.repository.projection.NotificationView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,14 @@ public interface NotificationRecipientRepository
             UUID userId
     );
 
-    long countByUserIdAndReadAtIsNull(
+    @Query("""
+            SELECT COUNT(nr)
+            FROM NotificationRecipient nr
+            WHERE nr.userId = :userId
+              AND nr.readAt IS NULL
+            """)
+    long countUnreadByUserId(
+            @Param("userId")
             UUID userId
     );
 
@@ -43,11 +51,32 @@ public interface NotificationRecipientRepository
             JOIN Notification n
                 ON n.id = nr.notificationId
             WHERE nr.userId = :userId
+              AND (
+                    :type IS NULL
+                    OR n.type = :type
+              )
+              AND (
+                    :unread IS NULL
+                    OR (
+                        :unread = TRUE
+                        AND nr.readAt IS NULL
+                    )
+                    OR (
+                        :unread = FALSE
+                        AND nr.readAt IS NOT NULL
+                    )
+              )
             ORDER BY n.createdAt DESC
             """)
-    Page<NotificationView> findNotificationViewsByUserId(
+    Page<NotificationView> searchNotificationViews(
             @Param("userId")
             UUID userId,
+
+            @Param("type")
+            NotificationType type,
+
+            @Param("unread")
+            Boolean unread,
 
             Pageable pageable
     );

@@ -103,6 +103,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Cacheable(
+            value = CacheNames.USER_PROJECT_CANDIDATE_SEARCH,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username() " +
+                    "+ '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword()) " +
+                    "+ '|role=' + (#request == null || #request.role() == null ? '' : #request.role()) " +
+                    "+ '|page=' + #pageable.pageNumber " +
+                    "+ '|size=' + #pageable.pageSize " +
+                    "+ '|sort=' + #pageable.sort.toString()"
+    )
     public UserPageResponse searchProjectCandidateUsers(
             UserSearchRequest request,
             Pageable pageable
@@ -139,7 +148,56 @@ public class UserServiceImpl implements UserService {
     @Caching(evict = {
             @CacheEvict(value = CacheNames.USER_DETAIL, key = "#userId"),
             @CacheEvict(value = CacheNames.USER_CURRENT, allEntries = true),
-            @CacheEvict(value = CacheNames.USER_SEARCH, allEntries = true)
+            @CacheEvict(value = CacheNames.USER_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheNames.USER_PROJECT_CANDIDATE_SEARCH, allEntries = true),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_MEMBER_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_ACTIVITY_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_ACTIVITY_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
+            )
     })
     public void deleteUserById(UUID userId) {
         User user = userRepository.findById(userId)
@@ -154,6 +212,58 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.USER_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheNames.USER_PROJECT_CANDIDATE_SEARCH, allEntries = true),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_MEMBER_LIST,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_ACTIVITY_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_ACTIVITY_DETAIL,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
+            )
+    })
     public UserResponse createUser(
             CreateUserRequest request
     ) {
@@ -205,7 +315,8 @@ public class UserServiceImpl implements UserService {
             },
             evict = {
                     @CacheEvict(value = CacheNames.USER_CURRENT, allEntries = true),
-                    @CacheEvict(value = CacheNames.USER_SEARCH, allEntries = true)
+                    @CacheEvict(value = CacheNames.USER_SEARCH, allEntries = true),
+                    @CacheEvict(value = CacheNames.USER_PROJECT_CANDIDATE_SEARCH, allEntries = true)
             }
     )
     public UserResponse updateUser(UUID id, UpdateUserRequest request) {

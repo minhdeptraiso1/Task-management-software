@@ -47,7 +47,9 @@ public class TaskStatisticsServiceImpl
     @Transactional(readOnly = true)
     @Cacheable(
             cacheNames = CacheNames.SPRINT_TASK_STATISTICS,
-            key = "#projectId.toString() + ':' + #sprintId.toString()"
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #sprintId"
     )
     public SprintTaskStatisticsResponse getSprintStatistics(
             UUID projectId,
@@ -213,7 +215,9 @@ public class TaskStatisticsServiceImpl
     @Transactional(readOnly = true)
     @Cacheable(
             cacheNames = CacheNames.SPRINT_BURNDOWN,
-            key = "#projectId.toString() + ':' + #sprintId.toString()"
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #sprintId"
     )
     public SprintBurndownResponse getSprintBurndown(
             UUID projectId,

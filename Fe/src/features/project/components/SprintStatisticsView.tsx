@@ -15,7 +15,7 @@ import { formatShortDate } from '../../../utils/format'
 interface SprintStatisticsViewProps {
   statistics: SprintTaskStatistics | null
   burndown: SprintBurndown | null
-  onBack: () => void
+  onBack?: () => void
   onRefresh?: () => void
 }
 
@@ -106,7 +106,7 @@ export function SprintStatisticsView({ statistics, burndown, onBack, onRefresh }
       {/* Header */}
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
-          <Button variant="secondary" size="sm" leadingIcon={<ChevronLeft size={16} />} onClick={onBack}>Kanban Task</Button>
+          {onBack && <Button variant="secondary" size="sm" leadingIcon={<ChevronLeft size={16} />} onClick={onBack}>Kanban Task</Button>}
           <div>
             <h3 className="text-lg font-bold text-slate-800">Thống kê Sprint: {statistics.sprintName}</h3>
             <p className="mt-0.5 text-sm text-slate-500">Báo cáo tổng quan tiến độ và khối lượng công việc trong Sprint.</p>

@@ -66,9 +66,16 @@ import {
   updateTaskStatus,
   updateTaskTimeLog,
 } from '../services/task.service'
-import { getNotifications, getUnreadCount, markAllNotificationsRead, markNotificationRead } from '../services/notification.service'
+import {
+  deleteNotification,
+  getNotifications,
+  getUnreadCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../services/notification.service'
 import { ProjectWorkspaceView } from '../views/ProjectWorkspaceView'
 import { searchProjectCandidateUsers } from '../../user/services/user.service'
+import type { ProjectActivityFilters } from '../services/project.service'
 import type { UserPage } from '../../user/models/user.model'
 
 const emptyProjectPage: ProjectPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 9, numberOfElements: 0, first: true, last: true, empty: true }
@@ -81,7 +88,7 @@ const emptyCommentPage: TaskCommentPage = { content: [], totalElements: 0, total
 const emptyTimeLogPage: TaskTimeLogPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: ProjectFilters = { keyword: '', status: '' }
 
-export function ProjectWorkspaceController({ user, onLogout }: { user: User; onLogout: () => void }) {
+export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: { user: User; onLogout: () => void; onOpenSettings: () => void }) {
   const [projects, setProjects] = useState(emptyProjectPage)
   const [filters, setFilters] = useState(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState(initialFilters)
@@ -90,6 +97,8 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
   const [members, setMembers] = useState<ProjectMember[]>([])
   const [activities, setActivities] = useState(emptyActivityPage)
   const [activityPage, setActivityPage] = useState(0)
+  const [activityFilters, setActivityFilters] = useState<ProjectActivityFilters>({})
+  const [appliedActivityFilters, setAppliedActivityFilters] = useState<ProjectActivityFilters>({})
   const [notifications, setNotifications] = useState(emptyNotificationPage)
   const [candidateUsers, setCandidateUsers] = useState(emptyCandidatePage)
   const [backlogItems, setBacklogItems] = useState(emptyBacklogPage)
@@ -106,7 +115,7 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
   const [taskImportResult, setTaskImportResult] = useState<TaskImportResult | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications'>('board')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -134,7 +143,7 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
     try {
       const result = await searchProjects(appliedFilters, page)
       setProjects(result)
-      setSelectedProject(current => current ?? result.content[0] ?? null)
+      // Do not auto-select first project, let null indicate Personal Dashboard
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Không tải được danh sách dự án')
     } finally {
@@ -153,7 +162,7 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       const [project, projectMembers, projectActivities] = await Promise.all([
         getProject(projectId),
         getProjectMembers(projectId),
-        getProjectActivities(projectId, activityPage),
+        getProjectActivities(projectId, activityPage, 10, appliedActivityFilters),
       ])
       setSelectedProject(project)
       setMembers(projectMembers)
@@ -163,7 +172,7 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
     } finally {
       setDetailLoading(false)
     }
-  }, [activityPage, setError])
+  }, [activityPage, appliedActivityFilters, setError])
 
   useEffect(() => {
     if (selectedProject?.id) void Promise.resolve().then(() => loadProjectDetail(selectedProject.id))
@@ -337,6 +346,11 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
 
   const handleReadAll = async () => {
     await markAllNotificationsRead()
+    await loadNotifications()
+  }
+
+  const handleDeleteNotification = async (id: string) => {
+    await deleteNotification(id)
     await loadNotifications()
   }
 
@@ -822,6 +836,15 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       candidateUsers={candidateUsers.content}
       unreadCount={unreadCount}
       filters={filters}
+      activities={activities}
+      activityPage={activityPage}
+      activityFilters={activityFilters}
+      onActivityFiltersChange={setActivityFilters}
+      onActivitySearch={(f) => {
+        setAppliedActivityFilters(f)
+        setActivityPage(0)
+      }}
+      onActivityPageChange={setActivityPage}
       activeTab={activeTab}
       page={page}
       activityPage={activityPage}
@@ -834,14 +857,17 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       onDismissError={dismissError}
       onLogout={onLogout}
       onFiltersChange={setFilters}
-      onSearch={() => {
+      onSearch={(forceFilters) => {
         setPage(0)
-        setAppliedFilters(filters)
+        setAppliedFilters(forceFilters || filters)
       }}
       onPageChange={setPage}
       onSelectProject={project => {
         setSelectedProject(project)
         setActivityPage(0)
+        setActivityFilters({})
+        setAppliedActivityFilters({})
+        setActiveTab('dashboard')
         setSelectedSprintId(null)
         setSprintStatistics(null)
         setSprintBurndown(null)
@@ -857,7 +883,9 @@ export function ProjectWorkspaceController({ user, onLogout }: { user: User; onL
       onRoleChange={handleRoleChange}
       onRemoveMember={setConfirmRemoveMember}
       onReadNotification={handleReadNotification}
+      onDeleteNotification={handleDeleteNotification}
       onReadAllNotifications={handleReadAll}
+      onOpenSettings={onOpenSettings}
       onCreateBacklog={handleCreateBacklog}
       onCreateSprint={handleCreateSprint}
       onUpdateBacklog={handleUpdateBacklog}

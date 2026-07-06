@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.dto.request.notification.NotificationSearchRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.notification.NotificationPageResponse;
 import com.project.taskmanagement.dto.response.notification.NotificationResponse;
@@ -37,11 +38,15 @@ public class NotificationController {
     public ApiResponseSever<NotificationPageResponse>
     getMyNotifications(
             @ParameterObject
+            NotificationSearchRequest request,
+
+            @ParameterObject
             Pageable pageable
     ) {
         return ApiResponseSever.ok(
                 notificationQueryService
                         .getMyNotifications(
+                                request,
                                 pageable
                         )
         );
@@ -91,6 +96,26 @@ public class NotificationController {
     public ResponseEntity<Void> markAllAsRead() {
         notificationQueryService
                 .markAllAsRead();
+
+        return ResponseEntity
+                .noContent()
+                .build();
+    }
+
+    // ===================== DELETE =====================
+
+    @Operation(
+            summary = "Xóa thông báo của người dùng hiện tại"
+    )
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable
+            UUID notificationId
+    ) {
+        notificationQueryService
+                .delete(
+                        notificationId
+                );
 
         return ResponseEntity
                 .noContent()

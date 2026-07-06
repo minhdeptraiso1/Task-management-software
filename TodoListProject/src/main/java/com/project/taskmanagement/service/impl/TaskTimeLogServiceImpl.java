@@ -27,7 +27,9 @@ import com.project.taskmanagement.service.validation.TaskTimeLogValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -57,6 +59,51 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
+            )
+    })
     public TaskTimeLogResponse create(
             UUID projectId,
             UUID taskId,
@@ -194,6 +241,15 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.TASK_TIME_LOG_LIST,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #taskId" +
+                    " + '|page=' + #pageable.pageNumber" +
+                    " + '|size=' + #pageable.pageSize" +
+                    " + '|sort=' + #pageable.sort.toString()"
+    )
     public TaskTimeLogPageResponse getTimeLogs(
             UUID projectId,
             UUID taskId,
@@ -263,6 +319,51 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
+            )
+    })
     public TaskTimeLogResponse update(
             UUID projectId,
             UUID taskId,
@@ -393,6 +494,51 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
+            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
+            @CacheEvict(
+                    value = CacheNames.MY_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TASK_SEARCH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.MY_TIME_SUMMARY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_SPRINT,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_MEMBER,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.PROJECT_REPORT_TIME,
+                    allEntries = true
+            )
+    })
     public void delete(
             UUID projectId,
             UUID taskId,
@@ -476,7 +622,9 @@ public class TaskTimeLogServiceImpl
     @Transactional(readOnly = true)
     @Cacheable(
             cacheNames = CacheNames.TASK_TIME_SUMMARY,
-            key = "#projectId.toString() + ':' + #taskId.toString()"
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #taskId"
     )
     public TaskTimeSummaryResponse getSummary(
             UUID projectId,

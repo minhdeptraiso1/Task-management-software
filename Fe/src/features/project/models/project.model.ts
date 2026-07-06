@@ -97,6 +97,21 @@ export interface ProjectActivityPage {
   empty: boolean
 }
 
+export interface ProjectActivityDetailResponse {
+  id: string
+  projectId: string
+  entityType: string
+  entityId: string
+  action: string
+  performedByUserId: string | null
+  performedByUsername: string
+  performedByEmail: string | null
+  oldValueJson: string | null
+  newValueJson: string | null
+  displayMessage: string
+  createdAt: string
+}
+
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   PLANNING: 'Lên kế hoạch',
   ACTIVE: 'Đang triển khai',
@@ -144,12 +159,18 @@ export const projectActivityLabels: Record<string, string> = {
   TASK_ASSIGNED: 'Phân công Task',
   TASK_UNASSIGNED: 'Gỡ phân công Task',
   TASK_IMPORTED: 'Import Task',
-  TASK_COMMENT_ADDED: 'Thêm bình luận',
-  TASK_COMMENT_UPDATED: 'Cập nhật bình luận',
-  TASK_COMMENT_DELETED: 'Xóa bình luận',
-  TASK_TIME_LOGGED: 'Log thời gian',
-  TASK_TIME_LOG_UPDATED: 'Cập nhật log thời gian',
-  TASK_TIME_LOG_DELETED: 'Xóa log thời gian',
+  TASK_PRIORITY_CHANGED: 'Đổi ưu tiên Task',
+  TASK_POSITION_CHANGED: 'Đổi vị trí Task',
+  TASK_MOVED_TO_SPRINT: 'Chuyển Task vào Sprint',
+  TASK_REMOVED_FROM_SPRINT: 'Gỡ Task khỏi Sprint',
+  BACKLOG_ITEM_POSITION_CHANGED: 'Đổi vị trí Backlog Item',
+  BUG_CREATED: 'Báo lỗi',
+  COMMENT_CREATED: 'Thêm bình luận',
+  COMMENT_UPDATED: 'Cập nhật bình luận',
+  COMMENT_DELETED: 'Xóa bình luận',
+  TIME_LOG_CREATED: 'Log thời gian',
+  TIME_LOG_UPDATED: 'Cập nhật log thời gian',
+  TIME_LOG_DELETED: 'Xóa log thời gian',
 }
 
 export const entityTypeLabels: Record<string, string> = {

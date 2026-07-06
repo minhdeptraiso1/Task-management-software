@@ -181,5 +181,22 @@ public interface BacklogItemRepository
             Long newPosition
     );
 
+    List<BacklogItem>
+    findAllByProjectIdOrderByPositionAsc(
+            UUID projectId
+    );
+
+    long countByProjectIdAndSprintIdIsNull(
+            UUID projectId
+    );
+
+    long countByProjectIdAndSprintIdIsNotNull(
+            UUID projectId
+    );
+
+    long countByProjectIdAndStatus(
+            UUID projectId,
+            BacklogItemStatus status
+    );
 
 }

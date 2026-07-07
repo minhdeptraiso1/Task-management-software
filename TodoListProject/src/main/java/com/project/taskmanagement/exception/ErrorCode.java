@@ -86,6 +86,48 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Ngày kết thúc Sprint không được trước ngày bắt đầu"
     ),
+    SPRINT_NOT_ACTIVE(
+            400551,
+            HttpStatus.BAD_REQUEST,
+            "Sprint không ở trạng thái đang thực hiện"
+    ),
+
+    SPRINT_EMPTY_CANNOT_START(
+            400552,
+            HttpStatus.BAD_REQUEST,
+            "Không thể bắt đầu Sprint chưa có Backlog Item"
+    ),
+
+    SPRINT_CANNOT_CANCEL(
+            400553,
+            HttpStatus.BAD_REQUEST,
+            "Chỉ có thể hủy Sprint đang lập kế hoạch hoặc đang thực hiện"
+    ),
+
+    SPRINT_STATUS_INVALID(
+            400554,
+            HttpStatus.BAD_REQUEST,
+            "Trạng thái Sprint không hợp lệ"
+    ),
+
+    SPRINT_CANNOT_UPDATE_CLOSED(
+            400555,
+            HttpStatus.BAD_REQUEST,
+            "Không thể cập nhật Sprint đã hoàn thành hoặc đã hủy"
+    ),
+
+    SPRINT_CANNOT_START(
+            400556,
+            HttpStatus.BAD_REQUEST,
+            "Chỉ Sprint ở trạng thái PLANNING mới có thể bắt đầu"
+    ),
+
+    SPRINT_CANNOT_COMPLETE(
+            400557,
+            HttpStatus.BAD_REQUEST,
+            "Chỉ Sprint đang ACTIVE mới có thể hoàn thành"
+    ),
+
     BACKLOG_POSITION_INVALID(
             400402,
             HttpStatus.BAD_REQUEST,

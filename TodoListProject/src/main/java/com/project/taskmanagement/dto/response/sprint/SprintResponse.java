@@ -30,6 +30,12 @@ public record SprintResponse(
 
         long backlogItemCount,
 
+        long taskCount,
+
+        long completedTaskCount,
+
+        double completionRate,
+
         Instant createdAt,
 
         Instant updatedAt

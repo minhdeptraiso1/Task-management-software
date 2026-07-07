@@ -398,4 +398,153 @@ public interface TaskRepository
             UUID taskId
     );
 
+    @Query("""
+            SELECT COALESCE(SUM(t.estimatedMinutes), 0)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+            """)
+    Long sumEstimatedMinutesByProjectIdAndCurrentSprintId(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
+
+    @Query("""
+            SELECT t.assigneeUserId,
+                   COALESCE(SUM(t.estimatedMinutes), 0)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.assigneeUserId IS NOT NULL
+            GROUP BY t.assigneeUserId
+            """)
+    List<Object[]> sumEstimatedMinutesGroupedByAssigneeInSprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
+
+    @Query("""
+            SELECT t.assigneeUserId,
+                   t.status,
+                   COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.assigneeUserId IS NOT NULL
+            GROUP BY t.assigneeUserId, t.status
+            """)
+    List<Object[]> countTasksGroupedByAssigneeAndStatusInSprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.assigneeUserId IS NULL
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countUnassignedActiveTasksInSprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.estimatedMinutes IS NULL
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countNoEstimateActiveTasksInSprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.status NOT IN :excludedStatuses
+            """)
+    long countUnfinishedBySprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT t
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.status NOT IN :excludedStatuses
+            ORDER BY t.dueDate ASC,
+                     t.position ASC
+            """)
+    List<Task> findUnfinishedBySprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT t
+            FROM Task t
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+              AND t.dueDate < :today
+              AND t.status NOT IN :excludedStatuses
+            ORDER BY t.dueDate ASC,
+                     t.position ASC
+            """)
+    List<Task> findOverdueBySprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("today")
+            java.time.LocalDate today,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
 }

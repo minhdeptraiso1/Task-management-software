@@ -219,6 +219,71 @@ public class TaskSprintSyncServiceImpl
 
     @Override
     @Transactional
+    public void handleSprintCompletion(
+            UUID projectId,
+            UUID sprintId,
+            UUID actorUserId
+    ) {
+        List<Task> unfinishedTasks =
+                taskRepository
+                        .findAllByProjectIdAndCurrentSprintIdAndStatusNotInOrderByPositionAsc(
+                                projectId,
+                                sprintId,
+                                TERMINAL_STATUSES
+                        );
+
+        if (unfinishedTasks.isEmpty()) {
+            return;
+        }
+
+        Long maxBacklogPosition =
+                taskRepository
+                        .findMaxBacklogPosition(
+                                projectId,
+                                TaskStatus.TODO
+                        );
+
+        long nextPosition =
+                maxBacklogPosition == null
+                        ? 1L
+                        : maxBacklogPosition + 1L;
+
+        for (Task task : unfinishedTasks) {
+            TaskStatus oldStatus =
+                    task.getStatus();
+
+            Long oldPosition =
+                    task.getPosition();
+
+            task.setCurrentSprintId(null);
+            task.setStatus(TaskStatus.TODO);
+            task.setCompletedAt(null);
+            task.setPosition(nextPosition++);
+
+            logMove(
+                    projectId,
+                    task,
+                    actorUserId,
+                    ProjectActivityAction
+                            .TASK_REMOVED_FROM_SPRINT,
+                    sprintId,
+                    null,
+                    oldStatus,
+                    TaskStatus.TODO,
+                    oldPosition,
+                    task.getPosition()
+            );
+        }
+
+        taskRepository.saveAll(
+                unfinishedTasks
+        );
+
+        taskRepository.flush();
+    }
+
+    @Override
+    @Transactional
     public void handleSprintCancellation(
             UUID projectId,
             UUID sprintId,

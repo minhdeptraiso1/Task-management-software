@@ -16,6 +16,7 @@ import com.project.taskmanagement.mapper.SprintMapper;
 import com.project.taskmanagement.repository.BacklogItemRepository;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.SprintRepository;
+import com.project.taskmanagement.repository.TaskRepository;
 import com.project.taskmanagement.repository.spec.SprintSpecification;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
@@ -53,6 +54,7 @@ public class SprintServiceImpl
 
     SprintRepository sprintRepository;
     BacklogItemRepository backlogItemRepository;
+    TaskRepository taskRepository;
     SprintMapper sprintMapper;
 
     ProjectAccessService projectAccessService;
@@ -98,6 +100,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -236,10 +257,7 @@ public class SprintServiceImpl
                 )
         );
 
-        return sprintMapper.toResponse(
-                savedSprint,
-                0L
-        );
+        return toResponse(savedSprint);
     }
 
     // ===================== SEARCH =====================
@@ -301,16 +319,7 @@ public class SprintServiceImpl
                                 specification,
                                 pageable
                         )
-                        .map(sprint ->
-                                sprintMapper.toResponse(
-                                        sprint,
-                                        backlogItemRepository
-                                                .countByProjectIdAndSprintId(
-                                                        projectId,
-                                                        sprint.getId()
-                                                )
-                                )
-                        );
+                        .map(this::toResponse);
 
         return SprintPageResponse.from(
                 responsePage
@@ -351,17 +360,7 @@ public class SprintServiceImpl
                         sprintId
                 );
 
-        long backlogItemCount =
-                backlogItemRepository
-                        .countByProjectIdAndSprintId(
-                                projectId,
-                                sprintId
-                        );
-
-        return sprintMapper.toResponse(
-                sprint,
-                backlogItemCount
-        );
+        return toResponse(sprint);
     }
 
     // ===================== UPDATE =====================
@@ -398,6 +397,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -554,17 +572,7 @@ public class SprintServiceImpl
                 )
         );
 
-        long backlogItemCount =
-                backlogItemRepository
-                        .countByProjectIdAndSprintId(
-                                projectId,
-                                sprintId
-                        );
-
-        return sprintMapper.toResponse(
-                savedSprint,
-                backlogItemCount
-        );
+        return toResponse(savedSprint);
     }
 
     // ===================== DELETE =====================
@@ -601,6 +609,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -735,6 +762,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -989,6 +1035,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1219,6 +1284,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1365,10 +1449,7 @@ public class SprintServiceImpl
                 )
         );
 
-        return sprintMapper.toResponse(
-                savedSprint,
-                backlogItems.size()
-        );
+        return toResponse(savedSprint);
     }
 
     // ===================== Complete Sprint =====================
@@ -1404,6 +1485,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1528,10 +1628,7 @@ public class SprintServiceImpl
                 )
         );
 
-        return sprintMapper.toResponse(
-                savedSprint,
-                backlogItems.size()
-        );
+        return toResponse(savedSprint);
     }
 
     // ===================== Cancel Sprint =====================
@@ -1575,6 +1672,25 @@ public class SprintServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1746,17 +1862,7 @@ public class SprintServiceImpl
                 )
         );
 
-        long remainingItemCount =
-                backlogItemRepository
-                        .countByProjectIdAndSprintId(
-                                projectId,
-                                sprintId
-                        );
-
-        return sprintMapper.toResponse(
-                savedSprint,
-                remainingItemCount
-        );
+        return toResponse(savedSprint);
     }
 
     // ===================== HELPER =====================
@@ -1826,5 +1932,55 @@ public class SprintServiceImpl
         );
 
         return value;
+    }
+
+    private SprintResponse toResponse(
+            Sprint sprint
+    ) {
+        long backlogItemCount =
+                backlogItemRepository
+                        .countByProjectIdAndSprintId(
+                                sprint.getProjectId(),
+                                sprint.getId()
+                        );
+
+        long taskCount =
+                taskRepository
+                        .countByProjectIdAndCurrentSprintId(
+                                sprint.getProjectId(),
+                                sprint.getId()
+                        );
+
+        long completedTaskCount =
+                taskRepository
+                        .countByProjectIdAndCurrentSprintIdAndStatus(
+                                sprint.getProjectId(),
+                                sprint.getId(),
+                                TaskStatus.DONE
+                        );
+
+        return sprintMapper.toResponse(
+                sprint,
+                backlogItemCount,
+                taskCount,
+                completedTaskCount,
+                percentage(
+                        completedTaskCount,
+                        taskCount
+                )
+        );
+    }
+
+    private double percentage(
+            long value,
+            long total
+    ) {
+        if (total <= 0) {
+            return 0.0;
+        }
+
+        return Math.round(
+                value * 10000.0 / total
+        ) / 100.0;
     }
 }

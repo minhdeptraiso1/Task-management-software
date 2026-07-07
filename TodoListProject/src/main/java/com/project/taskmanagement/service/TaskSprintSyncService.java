@@ -18,6 +18,12 @@ public interface TaskSprintSyncService {
             UUID actorUserId
     );
 
+    void handleSprintCompletion(
+            UUID projectId,
+            UUID sprintId,
+            UUID actorUserId
+    );
+
     void handleSprintCancellation(
             UUID projectId,
             UUID sprintId,

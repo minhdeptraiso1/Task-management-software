@@ -1,9 +1,11 @@
 import { Button } from '../../../components/ui'
-import { ChevronLeft, RefreshCcw, Download, Loader2 } from 'lucide-react'
+import { ChevronLeft, RefreshCcw, Download, Loader2, ShieldAlert, AlertTriangle, CalendarDays } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toJpeg } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import type { SprintTaskStatistics, SprintBurndown } from '../models/task.model'
+import type { SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse } from '../models/scrum.model'
+import { sprintRiskTypeLabels } from '../models/scrum.model'
 import { taskStatusLabels } from '../models/task.model'
 import {
   PieChart, Pie, Cell,
@@ -15,6 +17,9 @@ import { formatShortDate } from '../../../utils/format'
 interface SprintStatisticsViewProps {
   statistics: SprintTaskStatistics | null
   burndown: SprintBurndown | null
+  capacity?: SprintCapacityResponse | null
+  health?: SprintHealthResponse | null
+  risks?: SprintRiskResponse[] | null
   onBack?: () => void
   onRefresh?: () => void
 }
@@ -29,8 +34,46 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: '#94a3b8'
 }
 
-export function SprintStatisticsView({ statistics, burndown, onBack, onRefresh }: SprintStatisticsViewProps) {
+export function SprintStatisticsView({
+  statistics,
+  burndown,
+  capacity,
+  health,
+  risks,
+  onBack,
+  onRefresh
+}: SprintStatisticsViewProps) {
   if (!statistics) return null
+
+  const getHealthStatusStyles = (status?: string) => {
+    switch (status) {
+      case 'GOOD':
+        return { text: 'Tốt', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' }
+      case 'WARNING':
+        return { text: 'Cảnh báo', color: 'text-amber-700 bg-amber-50 border-amber-200' }
+      case 'CRITICAL':
+        return { text: 'Nguy kịch', color: 'text-red-700 bg-red-50 border-red-200' }
+      default:
+        return { text: 'Chưa rõ', color: 'text-slate-600 bg-slate-50 border-slate-200' }
+    }
+  }
+
+  const getSeverityBadgeClass = (severity: string) => {
+    switch (severity) {
+      case 'CRITICAL':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'HIGH':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      case 'MEDIUM':
+        return 'bg-amber-100 text-amber-800 border-amber-200'
+      default:
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+    }
+  }
+
+  const formatMinsToHours = (mins: number) => {
+    return `${(mins / 60).toFixed(1)}h`
+  }
 
   // Prepare Pie Chart Data
   const pieData = statistics.byStatus.map(s => ({
@@ -129,6 +172,107 @@ export function SprintStatisticsView({ statistics, burndown, onBack, onRefresh }
           )}
         </div>
       </div>
+
+      {/* Risks warning section */}
+      {risks && risks.length > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50/20 p-4">
+          <div className="flex items-center gap-2 text-red-800 font-bold mb-3">
+            <ShieldAlert size={18} className="text-red-600" />
+            <span className="text-sm">Cảnh báo rủi ro Sprint ({risks.length})</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {risks.map((risk, index) => (
+              <div key={index} className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-white p-3 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold border ${getSeverityBadgeClass(risk.severity)}`}>
+                    {risk.severity === 'CRITICAL' ? 'Khẩn cấp' : risk.severity === 'HIGH' ? 'Cao' : risk.severity === 'MEDIUM' ? 'Vừa' : 'Thấp'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    {sprintRiskTypeLabels[risk.type] || risk.type}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-700">{risk.message}</p>
+                {risk.taskTitle && (
+                  <div className="text-[10px] text-slate-500 bg-slate-50 p-1.5 rounded">
+                    <span className="font-bold">Task:</span> {risk.taskTitle}
+                  </div>
+                )}
+                {risk.username && (
+                  <div className="text-[10px] text-slate-500">
+                    <span className="font-bold">Người chịu trách nhiệm:</span> {risk.username}
+                  </div>
+                )}
+                {risk.suggestedAction && (
+                  <div className="mt-0.5 text-[10px] text-emerald-700 bg-emerald-50/50 border border-emerald-100 p-1.5 rounded">
+                    <span className="font-bold">Gợi ý:</span> {risk.suggestedAction}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Health Status summary cards */}
+      {health && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-2">Tình trạng Sức khỏe Sprint</p>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${getHealthStatusStyles(health.healthStatus).color}`}>
+                  {getHealthStatusStyles(health.healthStatus).text}
+                </span>
+                <p className="text-[11px] text-slate-400">Đánh giá chung</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Tổng số ngày:</span>
+              <span className="font-bold text-slate-700">{health.totalDays} ngày (Còn {health.remainingDays} ngày)</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-2">Tiến độ (Thực tế vs Dự kiến)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xl font-bold text-brand">{Math.round(health.progressRate)}%</p>
+                  <p className="text-[10px] text-slate-400">Thực tế</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-indigo-600">{Math.round(health.expectedProgressRate)}%</p>
+                  <p className="text-[10px] text-slate-400">Dự kiến</p>
+                </div>
+              </div>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full mt-3 overflow-hidden relative">
+              <div className="absolute top-0 left-0 h-full bg-indigo-200" style={{ width: `${Math.min(100, health.expectedProgressRate)}%` }} />
+              <div className="absolute top-0 left-0 h-full bg-brand" style={{ width: `${Math.min(100, health.progressRate)}%` }} />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 mb-2">Cảnh báo Công việc</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xl font-bold text-amber-500">{health.noAssigneeTasks}</p>
+                  <p className="text-[10px] text-slate-400">Chưa giao</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-blue-500">{health.noEstimateTasks}</p>
+                  <p className="text-[10px] text-slate-400">Chưa ước lượng</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Số lượng rủi ro:</span>
+              <span className="font-bold text-red-500">{health.riskCount} (Nguy cấp: {health.criticalRiskCount})</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="pb-4">
         {/* Overview cards */}
@@ -269,6 +413,151 @@ export function SprintStatisticsView({ statistics, burndown, onBack, onRefresh }
             </div>
           </div>
         </div>
+
+        {/* Member Capacity & Load Details Section */}
+        {capacity && (
+          <div className="mt-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="font-bold text-md text-slate-800">Quản lý tải & Công suất thành viên (Capacity)</h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tải dự kiến: <span className="font-bold">{formatMinsToHours(capacity.totalEstimatedMinutes)}</span> / Quỹ công suất tối đa: <span className="font-bold">{formatMinsToHours(capacity.totalCapacityMinutes)}</span> ({capacity.utilizationRate.toFixed(1)}% hiệu suất sử dụng)
+                </p>
+              </div>
+              {capacity.overCapacity && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2.5 py-0.5 text-xs font-bold text-red-600 shadow-sm">
+                  <AlertTriangle size={13} className="text-red-500" /> Quá tải Sprint (+{formatMinsToHours(capacity.overCapacityMinutes)})
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-bold">
+                    <th className="py-2.5 px-3">Thành viên</th>
+                    <th className="py-2.5 px-3">Vai trò</th>
+                    <th className="py-2.5 px-3">Quỹ Công suất</th>
+                    <th className="py-2.5 px-3">Đã ước lượng (Tasks)</th>
+                    <th className="py-2.5 px-3">Đã Log</th>
+                    <th className="py-2.5 px-3">Tải trọng (%)</th>
+                    <th className="py-2.5 px-3">Phân bổ task</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {capacity.members.map((member) => (
+                    <tr key={member.userId} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-2.5 px-3 font-semibold text-slate-700">
+                        <div className="flex flex-col">
+                          <span>{member.username}</span>
+                          <span className="text-[10px] font-normal text-slate-400">{member.email}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-500">{member.projectRole}</td>
+                      <td className="py-2.5 px-3 text-slate-600 font-medium">{formatMinsToHours(member.capacityMinutes)}</td>
+                      <td className="py-2.5 px-3 font-medium">
+                        <span className={member.overCapacity ? 'text-red-600 font-bold' : 'text-slate-600'}>
+                          {formatMinsToHours(member.assignedEstimatedMinutes)}
+                        </span>
+                        {member.overCapacity && (
+                          <span className="ml-1 text-[10px] text-red-500 font-bold" title={`Quá tải ${formatMinsToHours(member.overCapacityMinutes)}`}>
+                            (+{formatMinsToHours(member.overCapacityMinutes)})
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-600">{formatMinsToHours(member.spentMinutes)}</td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-bold ${member.utilizationRate > 100 ? 'text-red-600' : member.utilizationRate > 80 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {member.utilizationRate.toFixed(1)}%
+                          </span>
+                          <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${member.utilizationRate > 100 ? 'bg-red-500' : member.utilizationRate > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                              style={{ width: `${Math.min(100, member.utilizationRate)}%` }} 
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {(() => {
+                          const segments = [
+                            { count: member.todoTasks, color: '#64748b', title: 'Todo' },
+                            { count: member.inProgressTasks, color: '#3b82f6', title: 'In Progress' },
+                            { count: member.inReviewTasks, color: '#a855f7', title: 'In Review' },
+                            { count: member.doneTasks, color: '#22c55e', title: 'Done' },
+                            { count: member.blockedTasks, color: '#ef4444', title: 'Blocked' }
+                          ]
+                          
+                          const segmentsFiltered = segments.filter(s => s.count > 0)
+                          const total = segments.reduce((sum, s) => sum + s.count, 0)
+                          
+                          if (total === 0) {
+                            return (
+                              <div className="flex items-center gap-2">
+                                <svg className="size-6 text-slate-200" viewBox="0 0 36 36">
+                                  <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" strokeWidth="6" />
+                                </svg>
+                                <span className="text-[10px] text-slate-400 italic">Không có task</span>
+                              </div>
+                            )
+                          }
+                          
+                          const radius = 15
+                          const circumference = 2 * Math.PI * radius
+                          let accumulatedPercent = 0
+                          
+                          return (
+                            <div className="relative group inline-block">
+                              <div className="relative size-7 shrink-0 cursor-pointer">
+                                <svg className="size-full -rotate-90" viewBox="0 0 36 36">
+                                  <circle cx="18" cy="18" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                                  {segmentsFiltered.map((seg, idx) => {
+                                    const percent = (seg.count / total) * 100
+                                    const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`
+                                    const strokeDashoffset = -((accumulatedPercent / 100) * circumference)
+                                    accumulatedPercent += percent
+                                    return (
+                                      <circle
+                                        key={idx}
+                                        cx="18"
+                                        cy="18"
+                                        r={radius}
+                                        fill="none"
+                                        stroke={seg.color}
+                                        strokeWidth="6"
+                                        strokeDasharray={strokeDasharray}
+                                        strokeDashoffset={strokeDashoffset}
+                                      />
+                                    )
+                                  })}
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold text-slate-500">
+                                  {total}
+                                </div>
+                              </div>
+                              
+                              {/* Hover legend details popover (single-line horizontal to prevent vertical clipping) */}
+                              <div className="invisible group-hover:visible absolute right-full top-1/2 -translate-y-1/2 mr-3 px-2.5 py-1.5 bg-[#1e1e1e] text-white rounded-lg shadow-xl text-[10px] z-50 flex items-center gap-3.5 whitespace-nowrap after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2 after:left-full after:border-4 after:border-transparent after:border-l-[#1e1e1e]">
+                                {segments.map((seg, idx) => (
+                                  <div key={idx} className="flex items-center gap-1.5">
+                                    <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                                    <span className="text-white/60 font-semibold">{seg.title}</span>
+                                    <span className="font-bold text-white">{seg.count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

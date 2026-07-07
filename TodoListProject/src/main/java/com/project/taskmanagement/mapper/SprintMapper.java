@@ -12,8 +12,36 @@ public interface SprintMapper {
             target = "backlogItemCount",
             source = "backlogItemCount"
     )
+    @Mapping(
+            target = "taskCount",
+            source = "taskCount"
+    )
+    @Mapping(
+            target = "completedTaskCount",
+            source = "completedTaskCount"
+    )
+    @Mapping(
+            target = "completionRate",
+            source = "completionRate"
+    )
     SprintResponse toResponse(
             Sprint sprint,
-            long backlogItemCount
+            long backlogItemCount,
+            long taskCount,
+            long completedTaskCount,
+            double completionRate
     );
+
+    default SprintResponse toResponse(
+            Sprint sprint,
+            long backlogItemCount
+    ) {
+        return toResponse(
+                sprint,
+                backlogItemCount,
+                0L,
+                0L,
+                0.0
+        );
+    }
 }

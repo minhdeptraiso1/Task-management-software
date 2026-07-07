@@ -40,7 +40,7 @@ import {
 } from '../models/project.model'
 import { formatDate } from '../../../utils/format'
 import type { NotificationPage } from '../models/notification.model'
-import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
 import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
@@ -66,6 +66,10 @@ interface Props {
   selectedSprintId: string | null
   sprintStatistics: SprintTaskStatistics | null
   sprintBurndown: SprintBurndown | null
+  sprintCapacity: SprintCapacityResponse | null
+  sprintHealth: SprintHealthResponse | null
+  sprintRisks: SprintRiskResponse[] | null
+  sprintProgress: SprintProgress | null
   selectedTask: Task | null
   taskComments: TaskCommentPage
   taskTimeLogs: TaskTimeLogPage
@@ -286,6 +290,10 @@ export function ProjectWorkspaceView({
   selectedSprintId,
   sprintStatistics,
   sprintBurndown,
+  sprintCapacity,
+  sprintHealth,
+  sprintRisks,
+  sprintProgress,
   selectedTask,
   taskComments,
   taskTimeLogs,
@@ -467,8 +475,8 @@ export function ProjectWorkspaceView({
       </div>
     </header>
 
-    <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 items-start ${sidebarCollapsed ? 'xl:grid-cols-[76px_1fr]' : 'xl:grid-cols-[380px_1fr]'}`}>
-      <aside className={`sticky top-5 flex h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
+    <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 items-start grid-cols-1 ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)]'}`}>
+      <aside className={`sticky top-5 flex h-auto lg:h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
         <div className="shrink-0 border-b border-line p-5">
           <div className="flex items-center justify-between gap-3">
             {!sidebarCollapsed && <div>
@@ -620,7 +628,7 @@ export function ProjectWorkspaceView({
         </>}
       </aside>
 
-      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white overflow-y-auto">
+      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white h-auto lg:h-[calc(100vh-96px)] overflow-y-auto">
         {!selectedProject ? (
           <PersonalDashboardController me={user} />
         ) : <>
@@ -671,6 +679,7 @@ export function ProjectWorkspaceView({
           <div className={`p-5 ${detailLoading ? 'opacity-50' : ''}`}>
             {activeTab === 'dashboard' && <ProjectDashboardTab projectId={selectedProject.id} sprints={sprints} />}
             {activeTab === 'board' && <ScrumBoardView
+              projectId={selectedProject.id}
               backlogItems={backlogItems}
               sprints={sprints}
               sprintItems={sprintItems}
@@ -678,6 +687,10 @@ export function ProjectWorkspaceView({
               selectedSprintId={selectedSprintId}
               sprintStatistics={sprintStatistics}
               sprintBurndown={sprintBurndown}
+              sprintCapacity={sprintCapacity}
+              sprintHealth={sprintHealth}
+              sprintRisks={sprintRisks}
+              sprintProgress={sprintProgress}
               selectedTask={selectedTask}
               taskComments={taskComments}
               taskTimeLogs={taskTimeLogs}

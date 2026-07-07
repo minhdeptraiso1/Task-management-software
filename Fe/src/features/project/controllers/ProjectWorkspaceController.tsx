@@ -11,7 +11,7 @@ import type {
   ProjectStatus,
 } from '../models/project.model'
 import type { NotificationPage } from '../models/notification.model'
-import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogPriority, Sprint, SprintPage } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
 import {
   addProjectMember,
@@ -42,6 +42,10 @@ import {
   updateBacklogItemPriority,
   updateBacklogItemStatus,
   updateSprint,
+  getSprintCapacity,
+  getSprintHealth,
+  getSprintRisks,
+  getSprintProgress,
 } from '../services/scrum.service'
 import {
   assignTask,
@@ -108,6 +112,10 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null)
   const [sprintStatistics, setSprintStatistics] = useState<SprintTaskStatistics | null>(null)
   const [sprintBurndown, setSprintBurndown] = useState<SprintBurndown | null>(null)
+  const [sprintCapacity, setSprintCapacity] = useState<SprintCapacityResponse | null>(null)
+  const [sprintHealth, setSprintHealth] = useState<SprintHealthResponse | null>(null)
+  const [sprintRisks, setSprintRisks] = useState<SprintRiskResponse[] | null>(null)
+  const [sprintProgress, setSprintProgress] = useState<SprintProgress | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [taskComments, setTaskComments] = useState(emptyCommentPage)
   const [taskTimeLogs, setTaskTimeLogs] = useState(emptyTimeLogPage)
@@ -216,18 +224,34 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
   const loadSprintStatistics = useCallback(async () => {
     if (!selectedProject?.id || !selectedSprintId) {
+      setSprintCapacity(null)
+      setSprintHealth(null)
+      setSprintRisks(null)
+      setSprintProgress(null)
       return
     }
     try {
-      const [statistics, burndown] = await Promise.all([
+      const [statistics, burndown, capacity, health, risks, progress] = await Promise.all([
         getSprintTaskStatistics(selectedProject.id, selectedSprintId),
         getSprintBurndown(selectedProject.id, selectedSprintId),
+        getSprintCapacity(selectedProject.id, selectedSprintId),
+        getSprintHealth(selectedProject.id, selectedSprintId),
+        getSprintRisks(selectedProject.id, selectedSprintId),
+        getSprintProgress(selectedProject.id, selectedSprintId),
       ])
       setSprintStatistics(statistics)
       setSprintBurndown(burndown)
+      setSprintCapacity(capacity)
+      setSprintHealth(health)
+      setSprintRisks(risks)
+      setSprintProgress(progress)
     } catch {
       setSprintStatistics(null)
       setSprintBurndown(null)
+      setSprintCapacity(null)
+      setSprintHealth(null)
+      setSprintRisks(null)
+      setSprintProgress(null)
     }
   }, [selectedProject?.id, selectedSprintId])
 
@@ -828,6 +852,10 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       selectedSprintId={selectedSprintId}
       sprintStatistics={sprintStatistics}
       sprintBurndown={sprintBurndown}
+      sprintCapacity={sprintCapacity}
+      sprintHealth={sprintHealth}
+      sprintRisks={sprintRisks}
+      sprintProgress={sprintProgress}
       selectedTask={selectedTask}
       taskComments={taskComments}
       taskTimeLogs={taskTimeLogs}
@@ -871,6 +899,9 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
         setSelectedSprintId(null)
         setSprintStatistics(null)
         setSprintBurndown(null)
+        setSprintCapacity(null)
+        setSprintHealth(null)
+        setSprintRisks(null)
       }}
       onCreateProject={handleCreateProject}
       onUpdateProject={handleUpdateProject}

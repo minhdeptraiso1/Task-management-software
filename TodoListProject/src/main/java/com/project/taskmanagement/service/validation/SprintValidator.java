@@ -44,11 +44,18 @@ public final class SprintValidator {
     public static void validateEditable(
             Sprint sprint
     ) {
-        if (sprint.getStatus()
-                != SprintStatus.PLANNING) {
+        if (sprint == null) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_NOT_FOUND
+            );
+        }
+
+        if (sprint.getStatus() == SprintStatus.COMPLETED
+                || sprint.getStatus()
+                == SprintStatus.CANCELLED) {
 
             throw new BusinessException(
-                    ErrorCode.SPRINT_NOT_EDITABLE
+                    ErrorCode.SPRINT_CANNOT_UPDATE_CLOSED
             );
         }
     }
@@ -68,11 +75,17 @@ public final class SprintValidator {
     public static void validateCanStart(
             Sprint sprint
     ) {
+        if (sprint == null) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_NOT_FOUND
+            );
+        }
+
         if (sprint.getStatus()
                 != SprintStatus.PLANNING) {
 
             throw new BusinessException(
-                    ErrorCode.SPRINT_START_INVALID
+                    ErrorCode.SPRINT_CANNOT_START
             );
         }
     }
@@ -80,11 +93,17 @@ public final class SprintValidator {
     public static void validateCanComplete(
             Sprint sprint
     ) {
+        if (sprint == null) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_NOT_FOUND
+            );
+        }
+
         if (sprint.getStatus()
                 != SprintStatus.ACTIVE) {
 
             throw new BusinessException(
-                    ErrorCode.SPRINT_COMPLETE_INVALID
+                    ErrorCode.SPRINT_CANNOT_COMPLETE
             );
         }
     }
@@ -92,6 +111,12 @@ public final class SprintValidator {
     public static void validateCanCancel(
             Sprint sprint
     ) {
+        if (sprint == null) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_NOT_FOUND
+            );
+        }
+
         boolean canCancel =
                 sprint.getStatus() == SprintStatus.PLANNING
                         || sprint.getStatus()

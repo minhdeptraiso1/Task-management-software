@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, RotateCcw, Save, Settings, Target, Trash2, Trophy, UserRound, X, BarChart3 } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, RotateCcw, Save, Settings, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
+import { SprintClosingView } from '../components/SprintClosingView'
+import { SprintProgressView } from '../components/SprintProgressView'
 import { BacklogCard, priorityClass, typeClass, statusClass } from '../components/BacklogCard'
 
 function UserStoryHorizontalCard({
@@ -36,7 +38,7 @@ function UserStoryHorizontalCard({
     </button>
   )
 }
-import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
 import { backlogPriorityLabels, backlogStatusLabels, backlogTypeLabels, sprintStatusLabels } from '../models/scrum.model'
 import type { KanbanBoard, KanbanTask, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
 import { taskPriorityLabels, taskStatusLabels, taskTypeLabels } from '../models/task.model'
@@ -50,6 +52,7 @@ const taskPriorities: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 type AskConfirm = (title: string, description: string, confirmLabel: string, onConfirm: () => void) => void
 
 interface ScrumBoardViewProps {
+  projectId: string
   backlogItems: BacklogItem[]
   sprints: Sprint[]
   sprintItems: Record<string, BacklogItem[]>
@@ -57,6 +60,10 @@ interface ScrumBoardViewProps {
   selectedSprintId: string | null
   sprintStatistics: SprintTaskStatistics | null
   sprintBurndown: SprintBurndown | null
+  sprintCapacity: SprintCapacityResponse | null
+  sprintHealth: SprintHealthResponse | null
+  sprintRisks: SprintRiskResponse[] | null
+  sprintProgress: SprintProgress | null
   selectedTask: Task | null
   taskComments: TaskCommentPage
   taskTimeLogs: TaskTimeLogPage
@@ -562,6 +569,8 @@ function SprintTaskKanban({
   onClearImportResult,
   onBack,
   onOpenStatistics,
+  onOpenProgress,
+  onOpenClosing,
 }: {
   sprints: Sprint[]
   selectedSprintId: string | null
@@ -580,6 +589,8 @@ function SprintTaskKanban({
   onClearImportResult: ScrumBoardViewProps['onClearTaskImportResult']
   onBack: () => void
   onOpenStatistics: () => void
+  onOpenProgress?: () => void
+  onOpenClosing: () => void
 }) {
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
   const [selectedBacklogItemId, setSelectedBacklogItemId] = useState<string>('')
@@ -664,6 +675,8 @@ function SprintTaskKanban({
         <Select aria-label="Chọn Sprint Kanban" value={selectedSprintId ?? ''} onChange={event => onSelectSprint(event.target.value)} options={sprints.map(sprint => ({ label: `${sprint.name} · ${sprintStatusLabels[sprint.status]}`, value: sprint.id }))} />
         {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
         {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="solid-blue" onClick={onOpenStatistics}>Thống kê</Button>}
+        {selectedSprintId && onOpenProgress && <Button leadingIcon={<Target size={17} />} variant="outline-amber" onClick={onOpenProgress}>Tiến độ</Button>}
+        {selectedSprintId && <Button leadingIcon={<CheckCheck size={17} />} variant="outline-green" onClick={onOpenClosing}>Tổng kết</Button>}
         {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
         {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
           <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
@@ -769,6 +782,7 @@ function SprintTaskKanban({
 }
 
 export function ScrumBoardView({
+  projectId,
   backlogItems,
   sprints,
   sprintItems,
@@ -776,6 +790,10 @@ export function ScrumBoardView({
   selectedSprintId,
   sprintStatistics,
   sprintBurndown,
+  sprintCapacity,
+  sprintHealth,
+  sprintRisks,
+  sprintProgress,
   selectedTask,
   taskComments,
   taskTimeLogs,
@@ -822,11 +840,17 @@ export function ScrumBoardView({
   const [sprintOpen, setSprintOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
   const [statisticsOpen, setStatisticsOpen] = useState(false)
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [closingOpen, setClosingOpen] = useState(false)
   const [sprintEdit, setSprintEdit] = useState<Sprint | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [taskBoardOpen, setTaskBoardOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'time-logs'>('details')
+  const [taskImportResultOpen, setTaskImportResultOpen] = useState(false)
+
+  const hasActiveSprint = sprints.some(s => s.status === 'ACTIVE')
 
   const getPayload = (event: DragEvent) => JSON.parse(event.dataTransfer.getData('application/json')) as { itemId: string; sprintId: string | null }
   const handleCardDragStart = (event: DragEvent<HTMLElement>, item: BacklogItem) => {
@@ -856,8 +880,25 @@ export function ScrumBoardView({
         <SprintStatisticsView
           statistics={sprintStatistics}
           burndown={sprintBurndown}
+          capacity={sprintCapacity}
+          health={sprintHealth}
+          risks={sprintRisks}
           onBack={() => setStatisticsOpen(false)}
           onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
+        />
+      ) : progressOpen ? (
+        <SprintProgressView
+          progress={sprintProgress}
+          onBack={() => setProgressOpen(false)}
+          onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
+        />
+      ) : closingOpen ? (
+        <SprintClosingView
+          projectId={projectId}
+          sprintId={selectedSprintId || ''}
+          members={members}
+          canManage={canManage}
+          onBack={() => setClosingOpen(false)}
         />
       ) : (
         <SprintTaskKanban
@@ -875,10 +916,12 @@ export function ScrumBoardView({
       onCreateTaskClick={() => setTaskOpen(true)}
       onDownloadTemplate={onDownloadTaskTemplate}
       onImportTasks={onImportTasks}
-        onClearImportResult={onClearTaskImportResult}
-        onBack={() => setTaskBoardOpen(false)}
-        onOpenStatistics={() => setStatisticsOpen(true)}
-      />
+         onClearImportResult={onClearTaskImportResult}
+         onBack={() => setTaskBoardOpen(false)}
+         onOpenStatistics={() => setStatisticsOpen(true)}
+         onOpenProgress={() => setProgressOpen(true)}
+         onOpenClosing={() => setClosingOpen(true)}
+       />
       )
     ) : <>
     <div className="flex flex-col gap-3 rounded-xl border border-brand-line/70 bg-brand-cream p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -940,13 +983,65 @@ export function ScrumBoardView({
               <CalendarDays size={16} className="text-brand" />
               {formatDisplayDate(sprint.startDate)} <span className="text-white/50">→</span> {formatDisplayDate(sprint.endDate)}
             </div>
+            
+            {sprint.taskCount !== undefined && sprint.taskCount > 0 && (
+              <div className="relative mt-4 pt-3 border-t border-white/10 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold text-white/75">
+                  <span>Tasks: {sprint.completedTaskCount} / {sprint.taskCount}</span>
+                  <span 
+                    className="font-extrabold"
+                    style={{ color: `hsl(${((sprint.completionRate || 0) / 100) * 38}, 90%, 55%)` }}
+                  >
+                    {Math.round(sprint.completionRate || 0)}%
+                  </span>
+                </div>
+                <div className="w-full h-1 bg-white/15 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${sprint.completionRate || 0}%`,
+                      backgroundColor: `hsl(${((sprint.completionRate || 0) / 100) * 38}, 85%, 45%)`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="relative mt-5 flex flex-wrap items-center gap-2">
               <Button size="sm" variant="primary" leadingIcon={<FolderKanban size={15} />} onClick={() => openTaskBoard(sprint.id)}>Mở Kanban</Button>
               {canManage && <>
-                {sprint.status === 'PLANNING' && <Button size="sm" variant="solid-green" leadingIcon={<Play size={15} />} onClick={() => onStartSprint(sprint.id)}>Start</Button>}
-                {sprint.status === 'ACTIVE' && <Button size="sm" variant="solid-blue" leadingIcon={<Trophy size={15} />} onClick={() => onCompleteSprint(sprint.id)}>Done</Button>}
-                {sprint.status !== 'COMPLETED' && sprint.status !== 'CANCELLED' && <Button size="sm" variant="solid-red" onClick={() => askConfirm('Hủy Sprint?', `Bạn có chắc chắn muốn hủy Sprint "${sprint.name}" không? Các công việc trong Sprint này sẽ bị gián đoạn.`, 'Xác nhận hủy', () => onCancelSprint(sprint.id))}>Hủy</Button>}
-                {sprint.status !== 'CANCELLED' && (
+                {sprint.status === 'PLANNING' && (
+                  <Button
+                    size="sm"
+                    variant="solid-green"
+                    leadingIcon={<Play size={15} />}
+                    disabled={hasActiveSprint || !(sprintItems[sprint.id]?.length > 0)}
+                    title={hasActiveSprint ? 'Đã có Sprint đang hoạt động' : !(sprintItems[sprint.id]?.length > 0) ? 'Sprint chưa có công việc nào' : ''}
+                    onClick={() => askConfirm('Bắt đầu Sprint?', `Bạn có chắc chắn muốn bắt đầu Sprint "${sprint.name}" không? Bạn chỉ có thể chạy 1 Sprint tại một thời điểm.`, 'Bắt đầu', () => onStartSprint(sprint.id))}
+                  >
+                    Start
+                  </Button>
+                )}
+                {sprint.status === 'ACTIVE' && (
+                  <Button
+                    size="sm"
+                    variant="solid-blue"
+                    leadingIcon={<Trophy size={15} />}
+                    onClick={() => askConfirm('Hoàn thành Sprint?', `Bạn có chắc chắn muốn hoàn thành Sprint "${sprint.name}" không? Các công việc chưa hoàn thành (chưa DONE) sẽ được tự động chuyển về Product Backlog.`, 'Hoàn thành', () => onCompleteSprint(sprint.id))}
+                  >
+                    Done
+                  </Button>
+                )}
+                {sprint.status !== 'COMPLETED' && sprint.status !== 'CANCELLED' && (
+                  <Button
+                    size="sm"
+                    variant="solid-red"
+                    onClick={() => askConfirm('Hủy Sprint?', `Bạn có chắc chắn muốn hủy Sprint "${sprint.name}" không? Các công việc chưa hoàn thành sẽ được tự động chuyển về Product Backlog.`, 'Xác nhận hủy', () => onCancelSprint(sprint.id))}
+                  >
+                    Hủy
+                  </Button>
+                )}
+                {sprint.status !== 'CANCELLED' && sprint.status !== 'COMPLETED' && (
                   <ActionMenu tone="dark">
                     <ActionItem onClick={() => setSprintEdit(sprint)}><Pencil size={15} /> Sửa</ActionItem>
                     <ActionItem danger onClick={() => askConfirm('Xóa Sprint?', `Sprint "${sprint.name}" sẽ bị xóa mềm.`, 'Xóa Sprint', () => onDeleteSprint(sprint.id))}><Trash2 size={15} /> Xóa</ActionItem>

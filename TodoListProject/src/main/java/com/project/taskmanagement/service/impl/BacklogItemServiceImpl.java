@@ -90,6 +90,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -401,6 +420,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -562,6 +600,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -765,6 +822,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -894,6 +970,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1008,6 +1103,25 @@ public class BacklogItemServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),

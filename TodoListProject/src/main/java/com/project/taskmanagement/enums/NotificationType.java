@@ -21,6 +21,8 @@ public enum NotificationType {
     TASK_IMPORT_FAILED,
     
     SPRINT_TASKS_AT_RISK,
+    SPRINT_ENDING_SOON,
+    SPRINT_PROGRESS_AT_RISK,
 
     BUG_CREATED,
     BUG_ASSIGNED,

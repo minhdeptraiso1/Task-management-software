@@ -10,6 +10,7 @@ import com.project.taskmanagement.dto.response.sprint.SprintPageResponse;
 import com.project.taskmanagement.dto.response.sprint.SprintResponse;
 import com.project.taskmanagement.dto.response.taskimport.TaskImportResponse;
 import com.project.taskmanagement.service.SprintService;
+import com.project.taskmanagement.service.SprintWorkflowService;
 import com.project.taskmanagement.service.TaskExcelImportService;
 import com.project.taskmanagement.service.TaskExcelTemplateService;
 import com.project.taskmanagement.service.TaskService;
@@ -40,6 +41,7 @@ import java.util.UUID;
 public class SprintController {
 
     SprintService sprintService;
+    SprintWorkflowService sprintWorkflowService;
     TaskService taskService;
     TaskExcelTemplateService taskExcelTemplateService;
     TaskExcelImportService taskExcelImportService;
@@ -235,7 +237,7 @@ public class SprintController {
             UUID sprintId
     ) {
         return ApiResponseSever.ok(
-                sprintService.start(
+                sprintWorkflowService.start(
                         projectId,
                         sprintId
                 )
@@ -260,7 +262,7 @@ public class SprintController {
             UUID sprintId
     ) {
         return ApiResponseSever.ok(
-                sprintService.complete(
+                sprintWorkflowService.complete(
                         projectId,
                         sprintId
                 )
@@ -286,7 +288,7 @@ public class SprintController {
             UUID sprintId
     ) {
         return ApiResponseSever.ok(
-                sprintService.cancel(
+                sprintWorkflowService.cancel(
                         projectId,
                         sprintId
                 )

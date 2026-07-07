@@ -29,6 +29,20 @@ public final class CacheNames {
 
     public static final String SPRINT_BURNDOWN = "sprint_burndown";
 
+    public static final String SPRINT_CAPACITY = "sprint_capacity";
+
+    public static final String SPRINT_HEALTH = "sprint_health";
+
+    public static final String SPRINT_RISKS = "sprint_risks";
+
+    public static final String SPRINT_PROGRESS = "sprint_progress";
+
+    public static final String SPRINT_CLOSING_REPORT = "sprint_closing_report";
+
+    public static final String SPRINT_REVIEW = "sprint_review";
+
+    public static final String SPRINT_RETROSPECTIVE = "sprint_retrospective";
+
     public static final String TASK_TIME_SUMMARY = "task_time_summary";
 
     public static final String TASK_TIME_LOG_LIST = "task_time_log_list";

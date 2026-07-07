@@ -398,4 +398,38 @@ public interface TaskTimeLogRepository
             @Param("taskId")
             UUID taskId
     );
+
+    @Query("""
+            SELECT COALESCE(SUM(tl.minutes), 0)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+            """)
+    Long sumMinutesByProjectIdAndSprintId(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
+
+    @Query("""
+            SELECT tl.userId,
+                   COALESCE(SUM(tl.minutes), 0)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+            GROUP BY tl.userId
+            """)
+    List<Object[]> sumMinutesGroupedByUserInSprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
 }

@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../services/apiClient'
 import { endpoints } from '../../../services/endpoints'
-import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintPage } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress, SprintReminderResponse, SprintReviewResponse, SprintRetrospectiveResponse, SprintClosingReportResponse } from '../models/scrum.model'
 
 const projectPath = (projectId: string) => `${endpoints.projects}/${projectId}`
 
@@ -63,3 +63,41 @@ export const completeSprint = (projectId: string, sprintId: string) =>
 
 export const cancelSprint = (projectId: string, sprintId: string) =>
   apiRequest<Sprint>(`${projectPath(projectId)}/sprints/${sprintId}/cancel`, { method: 'PATCH' })
+
+export const getSprintCapacity = (projectId: string, sprintId: string) =>
+  apiRequest<SprintCapacityResponse>(`${projectPath(projectId)}/sprints/${sprintId}/capacity`)
+
+export const getSprintHealth = (projectId: string, sprintId: string) =>
+  apiRequest<SprintHealthResponse>(`${projectPath(projectId)}/sprints/${sprintId}/health`)
+
+export const getSprintRisks = (projectId: string, sprintId: string) =>
+  apiRequest<SprintRiskResponse[]>(`${projectPath(projectId)}/sprints/${sprintId}/risks`)
+
+export const getSprintClosingReport = (projectId: string, sprintId: string) =>
+  apiRequest<SprintClosingReportResponse>(`${projectPath(projectId)}/sprints/${sprintId}/closing-report`)
+
+export const getSprintReview = (projectId: string, sprintId: string) =>
+  apiRequest<SprintReviewResponse>(`${projectPath(projectId)}/sprints/${sprintId}/review`)
+
+export const updateSprintReview = (projectId: string, sprintId: string, data: { goalAchieved: boolean; demoSummary?: string; stakeholderFeedback?: string; acceptedItemSummary?: string; rejectedItemSummary?: string; note?: string }) =>
+  apiRequest<SprintReviewResponse>(`${projectPath(projectId)}/sprints/${sprintId}/review`, { method: 'PUT', body: JSON.stringify(data) })
+
+export const getSprintRetrospective = (projectId: string, sprintId: string) =>
+  apiRequest<SprintRetrospectiveResponse>(`${projectPath(projectId)}/sprints/${sprintId}/retrospective`)
+
+export const updateSprintRetrospective = (projectId: string, sprintId: string, data: { wentWell?: string; wentWrong?: string; improvement?: string; actionItems: Array<{ content: string; assigneeUserId: string; dueDate: string | null; done: boolean }>; note?: string }) =>
+  apiRequest<SprintRetrospectiveResponse>(`${projectPath(projectId)}/sprints/${sprintId}/retrospective`, { method: 'PUT', body: JSON.stringify(data) })
+
+
+export const getSprintProgress = (projectId: string, sprintId: string) =>
+  apiRequest<SprintProgress>(`${projectPath(projectId)}/sprints/${sprintId}/progress`)
+
+export const remindSprintEnding = (projectId: string, sprintId: string) =>
+  apiRequest<SprintReminderResponse>(`${projectPath(projectId)}/sprints/${sprintId}/notifications/remind-ending`, { method: 'POST' })
+
+export const remindSprintOverdueTasks = (projectId: string, sprintId: string) =>
+  apiRequest<SprintReminderResponse>(`${projectPath(projectId)}/sprints/${sprintId}/notifications/remind-overdue-tasks`, { method: 'POST' })
+
+export const remindSprintBlockedTasks = (projectId: string, sprintId: string) =>
+  apiRequest<SprintReminderResponse>(`${projectPath(projectId)}/sprints/${sprintId}/notifications/remind-blocked-tasks`, { method: 'POST' })
+

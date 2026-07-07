@@ -89,6 +89,25 @@ public class TaskServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.TASK_TIME_LOG_LIST,
                     allEntries = true
             ),
@@ -446,6 +465,25 @@ public class TaskServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.TASK_TIME_SUMMARY,
                     allEntries = true
             ),
@@ -910,6 +948,25 @@ public class TaskServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.TASK_TIME_SUMMARY,
                     allEntries = true
             ),
@@ -1159,6 +1216,25 @@ public class TaskServiceImpl
                     allEntries = true
             ),
             @CacheEvict(
+                    value = CacheNames.SPRINT_CAPACITY,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_HEALTH,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_RISKS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_PROGRESS,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.SPRINT_CLOSING_REPORT,
+                    allEntries = true
+            ),            @CacheEvict(
                     value = CacheNames.TASK_TIME_LOG_LIST,
                     allEntries = true
             ),

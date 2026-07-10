@@ -306,3 +306,13 @@ export interface SprintProgress {
   overdueSprint: boolean
   dailyProgress: SprintProgressDaily[]
 }
+
+export interface SprintReminderResponse {
+  projectId: string
+  sprintId: string
+  reminderType: string
+  targetItemCount: number
+  recipientCount: number
+  recipientUserIds: string[]
+  sentAt: string
+}

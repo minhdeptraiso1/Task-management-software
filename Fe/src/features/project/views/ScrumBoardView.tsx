@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from 'react'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, RotateCcw, Save, Settings, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck } from 'lucide-react'
+import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
+import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
@@ -40,13 +40,12 @@ function UserStoryHorizontalCard({
 }
 import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
 import { backlogPriorityLabels, backlogStatusLabels, backlogTypeLabels, sprintStatusLabels } from '../models/scrum.model'
-import type { KanbanBoard, KanbanTask, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
-import { taskPriorityLabels, taskStatusLabels, taskTypeLabels } from '../models/task.model'
+import type { KanbanBoard, KanbanTask, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
+import { taskPriorityLabels, taskStatusLabels, taskTypeLabels, taskRiskLevelLabels } from '../models/task.model'
 import type { ProjectMember } from '../models/project.model'
 
 const itemTypes: BacklogItemType[] = ['USER_STORY', 'FEATURE', 'TECHNICAL', 'EPIC']
 const priorities: BacklogPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
-const statuses: BacklogItemStatus[] = ['DRAFT', 'READY', 'IN_SPRINT', 'DONE', 'CANCELLED']
 const taskTypes: TaskType[] = ['DEVELOPMENT', 'TESTING', 'DESIGN', 'DOCUMENTATION', 'RESEARCH', 'DEVOPS', 'OTHER']
 const taskPriorities: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 type AskConfirm = (title: string, description: string, confirmLabel: string, onConfirm: () => void) => void
@@ -64,11 +63,14 @@ interface ScrumBoardViewProps {
   sprintHealth: SprintHealthResponse | null
   sprintRisks: SprintRiskResponse[] | null
   sprintProgress: SprintProgress | null
+  sprintTaskRiskSummary: TaskRiskSummary | null
   selectedTask: Task | null
   taskComments: TaskCommentPage
   taskTimeLogs: TaskTimeLogPage
   taskTimeSummary: TaskTimeSummary | null
   taskImportResult: TaskImportResult | null
+  taskDependencies: TaskDependency[]
+  taskRisk: TaskRisk | null
   members: ProjectMember[]
   loading: boolean
   taskDetailLoading: boolean
@@ -95,6 +97,9 @@ interface ScrumBoardViewProps {
   onAssignTask: (taskId: string, assigneeUserId: string) => void
   onOpenTask: (taskId: string) => void
   onCloseTask: () => void
+  onAddDependency: (taskId: string, dependsOnTaskId: string) => void
+  onRemoveDependency: (taskId: string, dependencyId: string) => void
+  onUnblockTask: (taskId: string, targetStatus: TaskStatus) => void
   onCreateTaskComment: (taskId: string, content: string, parentCommentId?: string) => void
   onUpdateTaskComment: (taskId: string, commentId: string, content: string) => void
   onDeleteTaskComment: (taskId: string, commentId: string) => void
@@ -287,6 +292,9 @@ function TaskDetailModal({
   comments,
   timeLogs,
   timeSummary,
+  dependencies,
+  risk,
+  allTasks,
   members,
   loading,
   saving,
@@ -295,6 +303,9 @@ function TaskDetailModal({
   onUpdateTask,
   onDeleteTask,
   onAssignTask,
+  onAddDependency,
+  onRemoveDependency,
+  onUnblockTask,
   onCreateComment,
   onUpdateComment,
   onDeleteComment,
@@ -307,6 +318,9 @@ function TaskDetailModal({
   comments: TaskCommentPage
   timeLogs: TaskTimeLogPage
   timeSummary: TaskTimeSummary | null
+  dependencies: TaskDependency[]
+  risk: TaskRisk | null
+  allTasks: KanbanTask[]
   members: ProjectMember[]
   loading: boolean
   saving: boolean
@@ -315,6 +329,9 @@ function TaskDetailModal({
   onUpdateTask: ScrumBoardViewProps['onUpdateTask']
   onDeleteTask: ScrumBoardViewProps['onDeleteTask']
   onAssignTask: ScrumBoardViewProps['onAssignTask']
+  onAddDependency: ScrumBoardViewProps['onAddDependency']
+  onRemoveDependency: ScrumBoardViewProps['onRemoveDependency']
+  onUnblockTask: ScrumBoardViewProps['onUnblockTask']
   onCreateComment: ScrumBoardViewProps['onCreateTaskComment']
   onUpdateComment: ScrumBoardViewProps['onUpdateTaskComment']
   onDeleteComment: ScrumBoardViewProps['onDeleteTaskComment']
@@ -337,6 +354,84 @@ function TaskDetailModal({
   const [editEstimatedMinutes, setEditEstimatedMinutes] = useState(task?.estimatedMinutes ?? 0)
   const [editStartDate, setEditStartDate] = useState(task?.startDate ?? '')
   const [editDueDate, setEditDueDate] = useState(task?.dueDate ?? '')
+  const [unblockModalOpen, setUnblockModalOpen] = useState(false)
+  const [unblockStatus, setUnblockStatus] = useState<TaskStatus>('TODO')
+  const [selectedDepTaskId, setSelectedDepTaskId] = useState('')
+  const [mentionSearch, setMentionSearch] = useState('')
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false)
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1)
+  const [activeMentionInput, setActiveMentionInput] = useState<'comment' | 'modal'>('comment')
+
+  const filteredMembers = members.filter(m =>
+    m.username.toLowerCase().includes(mentionSearch.toLowerCase())
+  )
+
+  const handleCommentInputChange = (value: string) => {
+    setComment(value)
+    const lastAt = value.lastIndexOf('@')
+    if (lastAt !== -1 && (lastAt === 0 || value[lastAt - 1] === ' ')) {
+      const searchPart = value.substring(lastAt + 1)
+      if (!searchPart.includes(' ')) {
+        setMentionSearch(searchPart)
+        setShowMentionDropdown(true)
+        setMentionStartIndex(lastAt)
+        setActiveMentionInput('comment')
+        return
+      }
+    }
+    setShowMentionDropdown(false)
+  }
+
+  const handleModalInputChange = (value: string) => {
+    setTextAction(current => current ? { ...current, value } : null)
+    const lastAt = value.lastIndexOf('@')
+    if (lastAt !== -1 && (lastAt === 0 || value[lastAt - 1] === ' ')) {
+      const searchPart = value.substring(lastAt + 1)
+      if (!searchPart.includes(' ')) {
+        setMentionSearch(searchPart)
+        setShowMentionDropdown(true)
+        setMentionStartIndex(lastAt)
+        setActiveMentionInput('modal')
+        return
+      }
+    }
+    setShowMentionDropdown(false)
+  }
+
+  const handleSelectMention = (username: string) => {
+    if (activeMentionInput === 'comment') {
+      const prefix = comment.substring(0, mentionStartIndex)
+      const suffix = comment.substring(mentionStartIndex + 1 + mentionSearch.length)
+      setComment(`${prefix}@${username} ${suffix}`)
+    } else if (activeMentionInput === 'modal' && textAction) {
+      const prefix = textAction.value.substring(0, mentionStartIndex)
+      const suffix = textAction.value.substring(mentionStartIndex + 1 + mentionSearch.length)
+      setTextAction({ ...textAction, value: `${prefix}@${username} ${suffix}` })
+    }
+    setShowMentionDropdown(false)
+  }
+
+  const renderCommentContent = (content: string, mentionedUsernames?: string[]) => {
+    if (!mentionedUsernames || mentionedUsernames.length === 0) return <span>{content}</span>
+    const parts = content.split(/(\s+)/)
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (part.startsWith('@')) {
+            const username = part.substring(1)
+            if (mentionedUsernames.includes(username)) {
+              return (
+                <span key={index} className="font-bold text-brand hover:underline cursor-pointer">
+                  {part}
+                </span>
+              )
+            }
+          }
+          return <span key={index}>{part}</span>
+        })}
+      </>
+    )
+  }
 
   if (!task) return null
 
@@ -346,18 +441,75 @@ function TaskDetailModal({
     title={task.title}
     description={`${taskTypeLabels[task.type]} · ${taskStatusLabels[task.status]}`}
     actions={canManage ? <ActionMenu>
-      <ActionItem onClick={() => setEditingTask(value => !value)}><Pencil size={15} /> {editingTask ? 'Đóng sửa' : 'Sửa đầy đủ'}</ActionItem>
-      <ActionItem danger onClick={() => onAskConfirm('Xóa Task?', `Task "${task.title}" sẽ bị xóa mềm khỏi Sprint.`, 'Xóa Task', () => onDeleteTask(task.id))}><Trash2 size={15} /> Xóa Task</ActionItem>
+      {task.status !== 'DONE' && task.status !== 'CANCELLED' && (
+        <ActionItem onClick={() => setEditingTask(value => !value)}><Pencil size={15} /> {editingTask ? 'Đóng sửa' : 'Sửa đầy đủ'}</ActionItem>
+      )}
+      {task.status !== 'CANCELLED' && (
+        <ActionItem danger onClick={() => onAskConfirm('Xóa Task?', `Task "${task.title}" sẽ bị xóa mềm khỏi Sprint.`, 'Xóa Task', () => onDeleteTask(task.id))}><Trash2 size={15} /> Xóa Task</ActionItem>
+      )}
     </ActionMenu> : undefined}
   >
     <div className={`space-y-5 ${loading ? 'opacity-50' : ''}`}>
+      {task.status === 'CANCELLED' && (
+        <div className="rounded-xl border border-red-200 bg-red-50/50 p-4 text-sm text-red-800 font-medium">
+          Task đã bị hủy nên không thể chỉnh sửa, phân công hoặc cập nhật.
+        </div>
+      )}
+
+      {risk && (risk.riskLevel === 'HIGH' || risk.riskLevel === 'CRITICAL') && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-sm text-amber-800 font-medium flex items-start gap-2">
+          <ShieldAlert size={18} className="shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-900">Cảnh báo rủi ro: Mức độ {taskRiskLevelLabels[risk.riskLevel]}</p>
+            <ul className="list-disc pl-4 mt-1 space-y-1">
+              {risk.reasons.map((reason, idx) => (
+                <li key={idx}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {task.status === 'BLOCKED' && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-4 text-sm text-rose-800 font-medium">
+          <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
+            <div className="flex gap-2">
+              <AlertTriangle size={18} className="shrink-0 text-rose-600 mt-0.5" />
+              <div>
+                <p className="font-bold text-rose-900">Task đang bị chặn (BLOCKED)</p>
+                <p className="mt-1 text-xs text-rose-700">
+                  Chặn bởi: <span className="font-semibold">{members.find(m => m.userId === task.blockedByUserId)?.username || 'Thành viên'}</span> 
+                  {task.blockedAt && ` vào lúc ${new Date(task.blockedAt).toLocaleString('vi-VN')}`}
+                </p>
+                <p className="mt-2 text-sm text-rose-950 bg-white/60 p-2 rounded-lg border border-rose-100/70">
+                  Lý do: {task.blockReason || 'Không có lý do chi tiết'}
+                </p>
+              </div>
+            </div>
+            {canManage && (
+              <Button 
+                type="button" 
+                size="sm" 
+                className="shrink-0 bg-white hover:bg-rose-100 text-rose-700 border border-rose-300 shadow-sm"
+                onClick={() => {
+                  setUnblockStatus('TODO')
+                  setUnblockModalOpen(true)
+                }}
+              >
+                Mở chặn (Unblock)
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Ước tính</p><p className="font-bold">{formatMinutes(task.estimatedMinutes)}</p></div>
         <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Đã log</p><p className="font-bold">{formatMinutes(task.spentMinutes)}</p></div>
         <div className="rounded-xl bg-canvas p-3"><p className="text-xs text-muted">Tiến độ time</p><p className="font-bold">{Math.round(timeSummary?.progressPercentage ?? 0)}%</p></div>
       </div>
 
-      {canManage && <section className="rounded-xl border border-line bg-canvas p-4">
+      {canManage && task.status !== 'CANCELLED' && <section className="rounded-xl border border-line bg-canvas p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-bold">Nội dung Task</h3>
         </div>
@@ -382,22 +534,56 @@ function TaskDetailModal({
         </div>}
       </section>}
 
-      {canManage && <div className="grid gap-3 sm:grid-cols-[1fr_160px_160px]">
+      {canManage && task.status !== 'CANCELLED' && <div className="grid gap-3 sm:grid-cols-[1fr_160px_160px]">
         <Select aria-label="Phân công" value={task.assigneeUserId ?? ''} onChange={event => onAssignTask(task.id, event.target.value)} options={[{ label: 'Chưa phân công', value: '' }, ...members.map(member => ({ label: `${member.username} · ${member.projectRole}`, value: member.userId }))]} />
-        <Select aria-label="Ưu tiên" value={task.priority} onChange={event => onUpdateTask(task.id, { priority: event.target.value as TaskPriority })} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
-        <Input aria-label="Ước tính phút" type="number" min={0} value={task.estimatedMinutes ?? 0} onChange={event => onUpdateTask(task.id, { estimatedMinutes: Number(event.target.value) })} />
+        <Select aria-label="Ưu tiên" value={task.priority} onChange={event => onUpdateTask(task.id, { priority: event.target.value as TaskPriority })} disabled={task.status === 'DONE'} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
+        <Input aria-label="Ước tính phút" type="number" min={0} value={task.estimatedMinutes ?? 0} onChange={event => onUpdateTask(task.id, { estimatedMinutes: Number(event.target.value) })} disabled={task.status === 'DONE'} />
       </div>}
 
       <section>
         <h3 className="mb-3 flex items-center gap-2 font-bold"><MessageSquare size={17} /> Bình luận</h3>
-        <form className="mb-3 flex gap-2" onSubmit={event => { event.preventDefault(); if (comment.trim()) { onCreateComment(task.id, comment); setComment('') } }}>
-          <Input aria-label="Nhập bình luận" value={comment} onChange={event => setComment(event.target.value)} placeholder="Trao đổi về task..." />
-          <Button type="submit" loading={saving}>Gửi</Button>
-        </form>
+        <div className="relative">
+          <form className="mb-3 flex gap-2" onSubmit={event => { event.preventDefault(); if (comment.trim()) { onCreateComment(task.id, comment); setComment(''); setShowMentionDropdown(false) } }}>
+            <div className="flex-1 relative">
+              <Input 
+                aria-label="Nhập bình luận" 
+                value={comment} 
+                onChange={event => handleCommentInputChange(event.target.value)} 
+                placeholder="Trao đổi về task (Gõ @ để nhắc tên)..." 
+              />
+              {showMentionDropdown && activeMentionInput === 'comment' && filteredMembers.length > 0 && (
+                <div className="absolute z-50 left-0 bottom-full mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border border-line bg-white shadow-lg divide-y divide-line">
+                  {filteredMembers.map(member => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
+                      onClick={() => handleSelectMention(member.username)}
+                    >
+                      <span className="font-semibold text-slate-800">@{member.username}</span>
+                      <span className="text-slate-400 text-[10px]">{member.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button type="submit" loading={saving}>Gửi</Button>
+          </form>
+        </div>
         <div className="space-y-2">
           {comments.content.map(item => <article key={item.id} className="rounded-xl border border-line p-3">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="text-sm font-semibold">{item.username}</p><p className="mt-1 text-sm text-muted">{item.content}</p></div>
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  {item.username}
+                  {item.edited && (
+                    <span className="text-[10px] text-muted font-normal bg-slate-100 px-1 py-0.2 rounded" title="Đã chỉnh sửa">
+                      (đã sửa)
+                    </span>
+                  )}
+                </p>
+                <p className="mt-1 text-sm text-muted">{renderCommentContent(item.content, item.mentionedUsernames)}</p>
+              </div>
               <ActionMenu>
                 {item.canEdit && <ActionItem onClick={() => setTextAction({ title: 'Sửa bình luận', value: item.content, onSave: value => onUpdateComment(task.id, item.id, value) })}><Pencil size={15} /> Sửa bình luận</ActionItem>}
                 <ActionItem onClick={() => setTextAction({ title: 'Reply bình luận', value: '', onSave: value => onCreateComment(task.id, value, item.id) })}><MessageSquare size={15} /> Trả lời</ActionItem>
@@ -406,8 +592,15 @@ function TaskDetailModal({
             </div>
             {item.replies?.length > 0 && <div className="mt-3 space-y-2 border-l-2 border-line pl-3">
               {item.replies.map(reply => <div key={reply.id} className="rounded-lg bg-canvas p-2">
-                <p className="text-xs font-semibold">{reply.username}</p>
-                <p className="mt-1 text-xs text-muted">{reply.content}</p>
+                <p className="text-xs font-semibold flex items-center gap-1.5">
+                  {reply.username}
+                  {reply.edited && (
+                    <span className="text-[9px] text-muted font-normal bg-slate-200 px-1 py-0.2 rounded" title="Đã chỉnh sửa">
+                      (đã sửa)
+                    </span>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-muted">{renderCommentContent(reply.content, reply.mentionedUsernames)}</p>
               </div>)}
             </div>}
           </article>)}
@@ -415,14 +608,99 @@ function TaskDetailModal({
         </div>
       </section>
 
+      <section className="rounded-xl border border-line bg-canvas p-4">
+        <h3 className="mb-3 flex items-center gap-2 font-bold text-ink">
+          <FolderKanban size={17} className="text-brand" /> Task liên kết phụ thuộc (Dependencies)
+        </h3>
+
+        <div className="space-y-2 mb-4">
+          {dependencies.map(dep => (
+            <div key={dep.id} className="flex items-center justify-between gap-3 rounded-lg border border-line bg-white p-3 shadow-sm">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm text-ink truncate" title={dep.dependsOnTaskTitle}>
+                  {dep.dependsOnTaskTitle}
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  <span className={`rounded px-1.5 py-0.5 font-bold ${
+                    dep.dependsOnTaskStatus === 'DONE' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                  }`}>
+                    {taskStatusLabels[dep.dependsOnTaskStatus]}
+                  </span>
+                  <span className="text-muted">
+                    Ưu tiên: {taskPriorityLabels[dep.dependsOnTaskPriority]}
+                  </span>
+                  {dep.dependencyCompleted && (
+                    <span className="rounded bg-emerald-100 text-emerald-800 px-1 py-0.5 text-[10px] font-bold">
+                      Đã xong
+                    </span>
+                  )}
+                </div>
+              </div>
+              {canManage && task.status !== 'CANCELLED' && (
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-muted hover:bg-slate-100 hover:text-rose-600 transition"
+                  onClick={() => onRemoveDependency(task.id, dep.id)}
+                  title="Xóa liên kết"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+          ))}
+          {dependencies.length === 0 && (
+            <p className="text-center text-xs text-muted py-3 bg-white rounded-lg border border-line border-dashed">
+              Không có task phụ thuộc nào.
+            </p>
+          )}
+        </div>
+
+        {canManage && task.status !== 'CANCELLED' && (
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Select
+                label="Thêm task phụ thuộc"
+                value={selectedDepTaskId}
+                onChange={event => setSelectedDepTaskId(event.target.value)}
+                options={[
+                  { label: '-- Chọn Task phụ thuộc --', value: '' },
+                  ...allTasks
+                    .filter(t => t.id !== task.id && !dependencies.some(d => d.dependsOnTaskId === t.id))
+                    .map(t => ({
+                      label: `${t.backlogItemTitle ? `[${t.backlogItemTitle}] ` : ''}${t.title}`,
+                      value: t.id
+                    }))
+                ]}
+              />
+            </div>
+            <Button
+              type="button"
+              disabled={!selectedDepTaskId || saving}
+              onClick={() => {
+                onAddDependency(task.id, selectedDepTaskId)
+                setSelectedDepTaskId('')
+              }}
+            >
+              Liên kết
+            </Button>
+          </div>
+        )}
+      </section>
+
       <section>
         <h3 className="mb-3 flex items-center gap-2 font-bold"><Clock3 size={17} /> Time log</h3>
-        <form className="mb-3 grid gap-2 sm:grid-cols-[150px_120px_1fr_auto]" onSubmit={event => { event.preventDefault(); onCreateTimeLog(task.id, { workDate, minutes, description: logDescription || undefined }); setLogDescription('') }}>
-          <Input aria-label="Ngày làm" type="date" value={workDate} onChange={event => setWorkDate(event.target.value)} required />
-          <Input aria-label="Số phút" type="number" min={1} max={1440} value={minutes} onChange={event => setMinutes(Number(event.target.value))} required />
-          <Input aria-label="Mô tả time log" value={logDescription} onChange={event => setLogDescription(event.target.value)} placeholder="Đã làm gì?" />
-          <Button type="submit" loading={saving}>Ghi</Button>
-        </form>
+        {task.status !== 'CANCELLED' ? (
+          <form className="mb-3 grid gap-2 sm:grid-cols-[150px_120px_1fr_auto]" onSubmit={event => { event.preventDefault(); onCreateTimeLog(task.id, { workDate, minutes, description: logDescription || undefined }); setLogDescription('') }}>
+            <Input aria-label="Ngày làm" type="date" value={workDate} onChange={event => setWorkDate(event.target.value)} required />
+            <Input aria-label="Số phút" type="number" min={1} max={720} value={minutes} onChange={event => setMinutes(Number(event.target.value))} required />
+            <Input aria-label="Mô tả time log" value={logDescription} onChange={event => setLogDescription(event.target.value)} placeholder="Đã làm gì?" />
+            <Button type="submit" loading={saving}>Ghi</Button>
+          </form>
+        ) : (
+          <p className="mb-3 text-xs text-rose-600 bg-rose-50 border border-rose-100 p-2.5 rounded-lg font-semibold flex items-center gap-1.5">
+            <AlertTriangle size={14} /> Không thể ghi log thời gian cho Task đã Hủy.
+          </p>
+        )}
         <div className="space-y-2">
           {timeLogs.content.map(item => <article key={item.id} className="flex items-start justify-between gap-3 rounded-xl border border-line p-3">
             <div><p className="text-sm font-semibold">{item.username} · {item.workDate}</p><p className="mt-1 text-sm text-muted">{item.description || 'Không có mô tả'}</p></div>
@@ -437,16 +715,39 @@ function TaskDetailModal({
           {!timeLogs.content.length && <p className="rounded-xl bg-canvas p-4 text-center text-sm text-muted">Chưa có time log.</p>}
         </div>
       </section>
-      <Modal open={Boolean(textAction)} title={textAction?.title ?? ''} onClose={() => setTextAction(null)} showClose={false}>
+      <Modal open={Boolean(textAction)} title={textAction?.title ?? ''} onClose={() => { setTextAction(null); setShowMentionDropdown(false) }} showClose={false}>
         <form className="space-y-4" onSubmit={event => {
           event.preventDefault()
           const value = textAction?.value.trim()
           if (textAction && value) textAction.onSave(value)
           setTextAction(null)
+          setShowMentionDropdown(false)
         }}>
-          <textarea className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={textAction?.value ?? ''} onChange={event => setTextAction(current => current ? { ...current, value: event.target.value } : current)} autoFocus />
+          <div className="relative">
+            <textarea 
+              className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" 
+              value={textAction?.value ?? ''} 
+              onChange={event => handleModalInputChange(event.target.value)} 
+              autoFocus 
+            />
+            {showMentionDropdown && activeMentionInput === 'modal' && filteredMembers.length > 0 && (
+              <div className="absolute z-50 left-0 bottom-full mb-1 w-64 max-h-48 overflow-y-auto rounded-lg border border-line bg-white shadow-lg divide-y divide-line">
+                {filteredMembers.map(member => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
+                    onClick={() => handleSelectMention(member.username)}
+                  >
+                    <span className="font-semibold text-slate-800">@{member.username}</span>
+                    <span className="text-slate-400 text-[10px]">{member.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setTextAction(null)}>Hủy</Button>
+            <Button type="button" variant="secondary" onClick={() => { setTextAction(null); setShowMentionDropdown(false) }}>Hủy</Button>
             <Button type="submit" loading={saving}>Lưu</Button>
           </div>
         </form>
@@ -457,11 +758,35 @@ function TaskDetailModal({
           if (timeEdit) onUpdateTimeLog(task.id, timeEdit.id, { minutes: timeEdit.minutes, description: timeEdit.description })
           setTimeEdit(null)
         }}>
-          <Input label="Số phút" type="number" min={1} max={1440} value={timeEdit?.minutes ?? 0} onChange={event => setTimeEdit(current => current ? { ...current, minutes: Number(event.target.value) } : current)} />
+          <Input label="Số phút" type="number" min={1} max={720} value={timeEdit?.minutes ?? 0} onChange={event => setTimeEdit(current => current ? { ...current, minutes: Number(event.target.value) } : current)} />
           <Input label="Mô tả" value={timeEdit?.description ?? ''} onChange={event => setTimeEdit(current => current ? { ...current, description: event.target.value } : current)} />
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setTimeEdit(null)}>Hủy</Button>
             <Button type="submit" loading={saving}>Lưu</Button>
+          </div>
+        </form>
+      </Modal>
+      <Modal open={unblockModalOpen} title="Mở chặn Task (Unblock)" onClose={() => setUnblockModalOpen(false)} showClose={false}>
+        <form className="space-y-4" onSubmit={event => {
+          event.preventDefault()
+          if (unblockStatus) {
+            onUnblockTask(task.id, unblockStatus)
+            setUnblockModalOpen(false)
+          }
+        }}>
+          <Select 
+            label="Chọn trạng thái đích muốn quay lại" 
+            required 
+            value={unblockStatus} 
+            onChange={event => setUnblockStatus(event.target.value as TaskStatus)} 
+            options={[
+              { label: 'Cần làm (TODO)', value: 'TODO' },
+              { label: 'Đang làm (IN_PROGRESS)', value: 'IN_PROGRESS' }
+            ]} 
+          />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setUnblockModalOpen(false)}>Hủy</Button>
+            <Button type="submit" loading={saving}>Mở chặn</Button>
           </div>
         </form>
       </Modal>
@@ -556,7 +881,7 @@ function SprintTaskKanban({
   selectedSprintId,
   board,
   userStories,
-  statistics,
+  statistics: _statistics,
   burndown,
   importResult,
   canManage,
@@ -762,6 +1087,8 @@ function SprintTaskKanban({
                 event.preventDefault()
                 setDragOver(null)
                 const payload = JSON.parse(event.dataTransfer.getData('application/json')) as { taskId: string; status: TaskStatus }
+                if (payload.status === 'CANCELLED') return
+                if (payload.status === 'DONE' && column.status === 'TODO') return
                 if (canMoveTask && payload.status !== column.status) onTaskStatusChange(payload.taskId, column.status, (originalColumn?.tasks.length ?? column.tasks.length) + 1)
               }}
               className={`flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${dragOver === column.status ? `${colors.activeBorder} ring-2 ${colors.ringColor}` : colors.borderColor}`}
@@ -794,11 +1121,14 @@ export function ScrumBoardView({
   sprintHealth,
   sprintRisks,
   sprintProgress,
+  sprintTaskRiskSummary,
   selectedTask,
   taskComments,
   taskTimeLogs,
   taskTimeSummary,
   taskImportResult,
+  taskDependencies,
+  taskRisk,
   members,
   loading,
   taskDetailLoading,
@@ -825,6 +1155,9 @@ export function ScrumBoardView({
   onAssignTask,
   onOpenTask,
   onCloseTask,
+  onAddDependency,
+  onRemoveDependency,
+  onUnblockTask,
   onCreateTaskComment,
   onUpdateTaskComment,
   onDeleteTaskComment,
@@ -847,10 +1180,10 @@ export function ScrumBoardView({
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [taskBoardOpen, setTaskBoardOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'time-logs'>('details')
-  const [taskImportResultOpen, setTaskImportResultOpen] = useState(false)
 
   const hasActiveSprint = sprints.some(s => s.status === 'ACTIVE')
+  const currentBoard = selectedSprintId ? kanbanBoards[selectedSprintId] : undefined
+  const sprintTasks = currentBoard ? currentBoard.columns.flatMap(col => col.tasks) : []
 
   const getPayload = (event: DragEvent) => JSON.parse(event.dataTransfer.getData('application/json')) as { itemId: string; sprintId: string | null }
   const handleCardDragStart = (event: DragEvent<HTMLElement>, item: BacklogItem) => {
@@ -883,6 +1216,7 @@ export function ScrumBoardView({
           capacity={sprintCapacity}
           health={sprintHealth}
           risks={sprintRisks}
+          taskRiskSummary={sprintTaskRiskSummary}
           onBack={() => setStatisticsOpen(false)}
           onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
         />
@@ -1085,6 +1419,9 @@ export function ScrumBoardView({
       comments={taskComments}
       timeLogs={taskTimeLogs}
       timeSummary={taskTimeSummary}
+      dependencies={taskDependencies}
+      risk={taskRisk}
+      allTasks={sprintTasks}
       members={members}
       loading={taskDetailLoading}
       saving={saving}
@@ -1093,6 +1430,9 @@ export function ScrumBoardView({
       onUpdateTask={onUpdateTask}
       onDeleteTask={onDeleteTask}
       onAssignTask={onAssignTask}
+      onAddDependency={onAddDependency}
+      onRemoveDependency={onRemoveDependency}
+      onUnblockTask={onUnblockTask}
       onCreateComment={onCreateTaskComment}
       onUpdateComment={onUpdateTaskComment}
       onDeleteComment={onDeleteTaskComment}

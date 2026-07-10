@@ -1,5 +1,6 @@
 package com.project.taskmanagement.dto.response.dashboard;
 
+import com.project.taskmanagement.dto.response.taskrisk.MyTaskRiskSummaryResponse;
 import com.project.taskmanagement.enums.UserRole;
 
 import java.util.List;
@@ -22,6 +23,8 @@ public record MyDashboardResponse(
         long unreadNotifications,
 
         MyTaskSummaryResponse taskSummary,
+
+        MyTaskRiskSummaryResponse riskSummary,
 
         MyTimeSummaryResponse timeSummary,
 

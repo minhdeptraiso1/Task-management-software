@@ -49,7 +49,7 @@ export interface BacklogCardProps {
   dragging: boolean
   onDragStart: (event: DragEvent<HTMLElement>, item: BacklogItem) => void
   onDragEnd: () => void
-  onUpdate: (id: string, data: Partial<BacklogItem>) => void
+  onUpdate: (id: string, data: { title?: string; description?: string; type?: BacklogItemType; priority?: BacklogPriority; storyPoints?: number }) => void
   onDelete: (id: string) => void
   onStatusChange: (id: string, status: BacklogItemStatus) => void
   onPriorityChange: (id: string, priority: BacklogPriority) => void

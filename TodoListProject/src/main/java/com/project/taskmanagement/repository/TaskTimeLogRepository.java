@@ -4,6 +4,9 @@ import com.project.taskmanagement.entity.TaskTimeLog;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeDailyView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeMemberView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeTaskView;
+import com.project.taskmanagement.repository.projection.timesheet.TimesheetDailySummaryView;
+import com.project.taskmanagement.repository.projection.timesheet.TimesheetEntryView;
+import com.project.taskmanagement.repository.projection.timesheet.TimesheetUserSummaryView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -431,5 +434,260 @@ public interface TaskTimeLogRepository
 
             @Param("sprintId")
             UUID sprintId
+    );
+
+    @Query("""
+            SELECT
+                tl.id AS id,
+                p.id AS projectId,
+                p.code AS projectCode,
+                p.name AS projectName,
+                t.id AS taskId,
+                t.title AS taskTitle,
+                u.id AS userId,
+                u.username AS username,
+                u.email AS email,
+                tl.workDate AS workDate,
+                tl.minutes AS minutes,
+                tl.description AS description,
+                tl.createdAt AS createdAt,
+                tl.updatedAt AS updatedAt
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            JOIN Project p
+                ON p.id = t.projectId
+            JOIN User u
+                ON u.id = tl.userId
+            WHERE (
+                    :projectId IS NULL
+                    OR p.id = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR u.id = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR t.id = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            ORDER BY tl.workDate DESC,
+                     tl.createdAt DESC
+            """)
+    Page<TimesheetEntryView> searchTimesheetEntries(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("userId")
+            UUID userId,
+
+            @Param("taskId")
+            UUID taskId,
+
+            @Param("fromDate")
+            LocalDate fromDate,
+
+            @Param("toDate")
+            LocalDate toDate,
+
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT
+                tl.workDate AS workDate,
+                COALESCE(SUM(tl.minutes), 0) AS totalMinutes,
+                COUNT(tl) AS logCount
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            GROUP BY tl.workDate
+            ORDER BY tl.workDate ASC
+            """)
+    List<TimesheetDailySummaryView> summarizeTimesheetByDate(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("userId")
+            UUID userId,
+
+            @Param("taskId")
+            UUID taskId,
+
+            @Param("fromDate")
+            LocalDate fromDate,
+
+            @Param("toDate")
+            LocalDate toDate
+    );
+
+    @Query("""
+            SELECT
+                u.id AS userId,
+                u.username AS username,
+                u.email AS email,
+                COALESCE(SUM(tl.minutes), 0) AS totalMinutes,
+                COUNT(tl) AS logCount,
+                COUNT(DISTINCT tl.taskId) AS taskCount
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            JOIN User u
+                ON u.id = tl.userId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            GROUP BY u.id,
+                     u.username,
+                     u.email
+            ORDER BY SUM(tl.minutes) DESC
+            """)
+    List<TimesheetUserSummaryView> summarizeTimesheetByUser(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("userId")
+            UUID userId,
+
+            @Param("taskId")
+            UUID taskId,
+
+            @Param("fromDate")
+            LocalDate fromDate,
+
+            @Param("toDate")
+            LocalDate toDate
+    );
+
+    @Query("""
+            SELECT COUNT(DISTINCT tl.taskId)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            """)
+    long countTimesheetTasks(
+            @Param("projectId") UUID projectId,
+            @Param("userId") UUID userId,
+            @Param("taskId") UUID taskId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
+
+    @Query("""
+            SELECT COUNT(DISTINCT tl.userId)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            """)
+    long countTimesheetUsers(
+            @Param("projectId") UUID projectId,
+            @Param("userId") UUID userId,
+            @Param("taskId") UUID taskId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(tl.minutes), 0)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            """)
+    Long sumTimesheetMinutes(
+            @Param("projectId") UUID projectId,
+            @Param("userId") UUID userId,
+            @Param("taskId") UUID taskId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
+
+    @Query("""
+            SELECT COUNT(tl)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE (
+                    :projectId IS NULL
+                    OR t.projectId = :projectId
+            )
+              AND (
+                    :userId IS NULL
+                    OR tl.userId = :userId
+            )
+              AND (
+                    :taskId IS NULL
+                    OR tl.taskId = :taskId
+            )
+              AND tl.workDate BETWEEN :fromDate AND :toDate
+            """)
+    long countTimesheetLogs(
+            @Param("projectId") UUID projectId,
+            @Param("userId") UUID userId,
+            @Param("taskId") UUID taskId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
     );
 }

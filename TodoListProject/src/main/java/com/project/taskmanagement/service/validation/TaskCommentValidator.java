@@ -52,4 +52,17 @@ public final class TaskCommentValidator {
             );
         }
     }
+
+    public static void validateRootComment(
+            TaskComment comment
+    ) {
+        if (comment.getParentCommentId()
+                != null) {
+
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_COMMENT_REPLY_DEPTH_INVALID
+            );
+        }
+    }
 }

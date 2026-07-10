@@ -81,7 +81,7 @@ export function ProjectActivityDetailModal({ open, projectId, activityId, onClos
   }, [open, activityId, projectId])
 
   return (
-    <Modal open={open} onClose={onClose} title="Chi tiết hoạt động" size="lg">
+    <Modal open={open} onClose={onClose} title="Chi tiết hoạt động">
       <div className="space-y-4">
         {loading ? (
           <div className="grid h-32 place-items-center">

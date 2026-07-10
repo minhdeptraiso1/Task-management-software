@@ -108,7 +108,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -438,7 +439,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -618,7 +620,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -840,7 +843,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -988,7 +992,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1121,7 +1126,8 @@ public class BacklogItemServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),

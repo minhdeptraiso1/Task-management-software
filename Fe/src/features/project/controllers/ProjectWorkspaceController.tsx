@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ConfirmDialog } from '../../../components/ui'
+import { ConfirmDialog, Modal, Button } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import type {
   Project,
@@ -12,7 +12,7 @@ import type {
 } from '../models/project.model'
 import type { NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
-import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
+import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import {
   addProjectMember,
   createProject,
@@ -51,6 +51,7 @@ import {
   assignTask,
   createTask,
   createTaskComment,
+  createTaskCommentReply,
   createTaskTimeLog,
   deleteTask,
   deleteTaskComment,
@@ -69,6 +70,14 @@ import {
   updateTaskComment,
   updateTaskStatus,
   updateTaskTimeLog,
+  blockTask,
+  reopenTask,
+  getTaskDependencies,
+  addTaskDependency,
+  removeTaskDependency,
+  unblockTask,
+  getTaskRisk,
+  getSprintRiskSummary,
 } from '../services/task.service'
 import {
   deleteNotification,
@@ -116,6 +125,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [sprintHealth, setSprintHealth] = useState<SprintHealthResponse | null>(null)
   const [sprintRisks, setSprintRisks] = useState<SprintRiskResponse[] | null>(null)
   const [sprintProgress, setSprintProgress] = useState<SprintProgress | null>(null)
+  const [sprintTaskRiskSummary, setSprintTaskRiskSummary] = useState<TaskRiskSummary | null>(null)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [taskComments, setTaskComments] = useState(emptyCommentPage)
   const [taskTimeLogs, setTaskTimeLogs] = useState(emptyTimeLogPage)
@@ -123,23 +133,38 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskImportResult, setTaskImportResult] = useState<TaskImportResult | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [errors, setErrors] = useState<{id: number, message: string}[]>([])
+  const [errors, setErrors] = useState<{id: string, message: string}[]>([])
+  const [taskDependencies, setTaskDependencies] = useState<TaskDependency[]>([])
+  const [taskRisk, setTaskRisk] = useState<TaskRisk | null>(null)
+
+  const [blockTaskState, setBlockTaskState] = useState<{
+    taskId: string
+    status: TaskStatus
+    position?: number
+  } | null>(null)
+  const [reopenTaskState, setReopenTaskState] = useState<{
+    taskId: string
+    targetStatus: TaskStatus
+    position?: number
+  } | null>(null)
+  const [blockReason, setBlockReason] = useState('')
+  const [reopenReason, setReopenReason] = useState('')
 
   const setError = useCallback((message: string) => {
     if (!message) return
-    const id = Date.now() + Math.random()
+    const id = String(Date.now() + Math.random())
     setErrors(prev => [...prev, { id, message }])
     setTimeout(() => {
       setErrors(prev => prev.filter(err => err.id !== id))
     }, 5000)
   }, [])
   
-  const dismissError = useCallback((id: number) => {
+  const dismissError = useCallback((id: string) => {
     setErrors(prev => prev.filter(err => err.id !== id))
   }, [])
 
@@ -228,16 +253,18 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       setSprintHealth(null)
       setSprintRisks(null)
       setSprintProgress(null)
+      setSprintTaskRiskSummary(null)
       return
     }
     try {
-      const [statistics, burndown, capacity, health, risks, progress] = await Promise.all([
+      const [statistics, burndown, capacity, health, risks, progress, riskSummary] = await Promise.all([
         getSprintTaskStatistics(selectedProject.id, selectedSprintId),
         getSprintBurndown(selectedProject.id, selectedSprintId),
         getSprintCapacity(selectedProject.id, selectedSprintId),
         getSprintHealth(selectedProject.id, selectedSprintId),
         getSprintRisks(selectedProject.id, selectedSprintId),
         getSprintProgress(selectedProject.id, selectedSprintId),
+        getSprintRiskSummary(selectedProject.id, selectedSprintId).catch(() => null),
       ])
       setSprintStatistics(statistics)
       setSprintBurndown(burndown)
@@ -245,6 +272,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       setSprintHealth(health)
       setSprintRisks(risks)
       setSprintProgress(progress)
+      setSprintTaskRiskSummary(riskSummary)
     } catch {
       setSprintStatistics(null)
       setSprintBurndown(null)
@@ -252,6 +280,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       setSprintHealth(null)
       setSprintRisks(null)
       setSprintProgress(null)
+      setSprintTaskRiskSummary(null)
     }
   }, [selectedProject?.id, selectedSprintId])
 
@@ -387,16 +416,20 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     setTaskDetailLoading(true)
     setError('')
     try {
-      const [task, comments, timeLogs, timeSummary] = await Promise.all([
+      const [task, comments, timeLogs, timeSummary, dependencies, risk] = await Promise.all([
         getTask(selectedProject.id, taskId),
         getTaskComments(selectedProject.id, taskId),
         getTaskTimeLogs(selectedProject.id, taskId),
         getTaskTimeSummary(selectedProject.id, taskId),
+        getTaskDependencies(selectedProject.id, taskId),
+        getTaskRisk(selectedProject.id, taskId).catch(() => null),
       ])
       setSelectedTask(task)
       setTaskComments(comments)
       setTaskTimeLogs(timeLogs)
       setTaskTimeSummary(timeSummary)
+      setTaskDependencies(dependencies || [])
+      setTaskRisk(risk)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Không tải được chi tiết Task')
     } finally {
@@ -682,6 +715,21 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
   const handleTaskStatusChange = async (taskId: string, status: TaskStatus, position?: number) => {
     if (!selectedProject) return
+
+    const board = selectedSprintId ? kanbanBoards[selectedSprintId] : undefined
+    const task = board?.columns.flatMap(c => c.tasks).find(t => t.id === taskId)
+    const oldStatus = task?.status
+
+    if (status === 'BLOCKED') {
+      setBlockTaskState({ taskId, status, position })
+      return
+    }
+
+    if (oldStatus === 'DONE' && status !== 'DONE') {
+      setReopenTaskState({ taskId, targetStatus: status, position })
+      return
+    }
+
     setSaving(true)
     try {
       await updateTaskStatus(selectedProject.id, taskId, status, position)
@@ -709,11 +757,67 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     }
   }
 
+  const handleAddDependency = async (taskId: string, dependsOnTaskId: string) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await addTaskDependency(selectedProject.id, taskId, dependsOnTaskId)
+      const [dependencies, risk] = await Promise.all([
+        getTaskDependencies(selectedProject.id, taskId),
+        getTaskRisk(selectedProject.id, taskId).catch(() => null),
+      ])
+      setTaskDependencies(dependencies || [])
+      setTaskRisk(risk)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không thêm được liên kết phụ thuộc')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRemoveDependency = async (taskId: string, dependencyId: string) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await removeTaskDependency(selectedProject.id, taskId, dependencyId)
+      const [dependencies, risk] = await Promise.all([
+        getTaskDependencies(selectedProject.id, taskId),
+        getTaskRisk(selectedProject.id, taskId).catch(() => null),
+      ])
+      setTaskDependencies(dependencies || [])
+      setTaskRisk(risk)
+      await reloadBoard()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không xóa được liên kết phụ thuộc')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUnblockTask = async (taskId: string, targetStatus: TaskStatus) => {
+    if (!selectedProject) return
+    setSaving(true)
+    try {
+      await unblockTask(selectedProject.id, taskId, targetStatus)
+      await reloadBoard()
+      await loadSelectedTask(taskId)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không mở chặn được Task')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleCreateTaskComment = async (taskId: string, content: string, parentCommentId?: string) => {
     if (!selectedProject) return
     setSaving(true)
     try {
-      await createTaskComment(selectedProject.id, taskId, { content, parentCommentId })
+      if (parentCommentId) {
+        await createTaskCommentReply(selectedProject.id, taskId, parentCommentId, content)
+      } else {
+        await createTaskComment(selectedProject.id, taskId, { content })
+      }
       await refreshSelectedTask()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Không gửi được bình luận')
@@ -856,16 +960,17 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       sprintHealth={sprintHealth}
       sprintRisks={sprintRisks}
       sprintProgress={sprintProgress}
+      sprintTaskRiskSummary={sprintTaskRiskSummary}
       selectedTask={selectedTask}
       taskComments={taskComments}
       taskTimeLogs={taskTimeLogs}
       taskTimeSummary={taskTimeSummary}
       taskImportResult={taskImportResult}
+      taskDependencies={taskDependencies}
+      taskRisk={taskRisk}
       candidateUsers={candidateUsers.content}
       unreadCount={unreadCount}
       filters={filters}
-      activities={activities}
-      activityPage={activityPage}
       activityFilters={activityFilters}
       onActivityFiltersChange={setActivityFilters}
       onActivitySearch={(f) => {
@@ -908,7 +1013,6 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       onDeleteProject={handleDeleteProject}
       onStatusChange={handleStatusChange}
       onTabChange={setActiveTab}
-      onActivityPageChange={setActivityPage}
       onAddMember={handleAddMember}
       onCandidateSearch={handleCandidateSearch}
       onRoleChange={handleRoleChange}
@@ -942,7 +1046,12 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
         setTaskComments(emptyCommentPage)
         setTaskTimeLogs(emptyTimeLogPage)
         setTaskTimeSummary(null)
+        setTaskDependencies([])
+        setTaskRisk(null)
       }}
+      onAddDependency={handleAddDependency}
+      onRemoveDependency={handleRemoveDependency}
+      onUnblockTask={handleUnblockTask}
       onCreateTaskComment={handleCreateTaskComment}
       onUpdateTaskComment={handleUpdateTaskComment}
       onDeleteTaskComment={handleDeleteTaskComment}
@@ -963,5 +1072,113 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       onCancel={() => setConfirmRemoveMember(null)}
       onConfirm={handleRemoveMember}
     />
+
+    <Modal
+      open={Boolean(blockTaskState)}
+      title="Chặn Task (Block Task)"
+      description="Vui lòng cung cấp lý do chi tiết cho việc chặn Task này."
+      onClose={() => {
+        setBlockTaskState(null)
+        setBlockReason('')
+      }}
+    >
+      <div className="space-y-4">
+        <textarea
+          className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+          placeholder="Lý do chặn task..."
+          value={blockReason}
+          onChange={event => setBlockReason(event.target.value)}
+        />
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setBlockTaskState(null)
+              setBlockReason('')
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            loading={saving}
+            disabled={!blockReason.trim()}
+            onClick={async () => {
+              if (!selectedProject || !blockTaskState) return
+              setSaving(true)
+              try {
+                await blockTask(selectedProject.id, blockTaskState.taskId, blockReason)
+                setBlockTaskState(null)
+                setBlockReason('')
+                await reloadBoard()
+                if (selectedTask?.id === blockTaskState.taskId) await loadSelectedTask(blockTaskState.taskId)
+              } catch (error) {
+                setError(error instanceof Error ? error.message : 'Không block được Task')
+                await reloadBoard()
+              } finally {
+                setSaving(false)
+              }
+            }}
+          >
+            Xác nhận Chặn
+          </Button>
+        </div>
+      </div>
+    </Modal>
+
+    <Modal
+      open={Boolean(reopenTaskState)}
+      title="Mở lại Task (Reopen Task)"
+      description="Bạn có chắc chắn muốn mở lại Task này không?"
+      onClose={() => {
+        setReopenTaskState(null)
+        setReopenReason('')
+      }}
+    >
+      <div className="space-y-4">
+        <textarea
+          className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+          placeholder="Lý do mở lại (tùy chọn)..."
+          value={reopenReason}
+          onChange={event => setReopenReason(event.target.value)}
+        />
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setReopenTaskState(null)
+              setReopenReason('')
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            loading={saving}
+            onClick={async () => {
+              if (!selectedProject || !reopenTaskState) return
+              setSaving(true)
+              try {
+                await reopenTask(
+                  selectedProject.id,
+                  reopenTaskState.taskId,
+                  reopenTaskState.targetStatus,
+                  reopenReason || undefined
+                )
+                setReopenTaskState(null)
+                setReopenReason('')
+                await reloadBoard()
+                if (selectedTask?.id === reopenTaskState.taskId) await loadSelectedTask(reopenTaskState.taskId)
+              } catch (error) {
+                setError(error instanceof Error ? error.message : 'Không mở lại được Task')
+                await reloadBoard()
+              } finally {
+                setSaving(false)
+              }
+            }}
+          >
+            Xác nhận Mở lại
+          </Button>
+        </div>
+      </div>
+    </Modal>
   </>
 }

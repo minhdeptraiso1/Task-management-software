@@ -3,9 +3,13 @@ package com.project.taskmanagement.service.impl;
 import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.request.dashboard.MyTaskSearchRequest;
 import com.project.taskmanagement.dto.response.dashboard.*;
+import com.project.taskmanagement.dto.response.taskrisk.MyTaskRiskSummaryResponse;
+import com.project.taskmanagement.dto.response.taskrisk.TaskRiskResponse;
 import com.project.taskmanagement.entity.Project;
 import com.project.taskmanagement.entity.Task;
 import com.project.taskmanagement.entity.User;
+import com.project.taskmanagement.enums.TaskRiskLevel;
+import com.project.taskmanagement.enums.TaskRiskReason;
 import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.enums.UserRole;
 import com.project.taskmanagement.exception.BusinessException;
@@ -44,6 +48,7 @@ public class MyDashboardServiceImpl
         implements MyDashboardService {
 
     TaskRepository taskRepository;
+    TaskDependencyRepository taskDependencyRepository;
     TaskTimeLogRepository taskTimeLogRepository;
 
     ProjectRepository projectRepository;
@@ -118,6 +123,12 @@ public class MyDashboardServiceImpl
                         today
                 );
 
+        MyTaskRiskSummaryResponse riskSummary =
+                buildRiskSummary(
+                        currentUser.getId(),
+                        today
+                );
+
         MyTimeSummaryResponse timeSummary =
                 buildTimeSummary(
                         currentUser.getId(),
@@ -149,6 +160,7 @@ public class MyDashboardServiceImpl
                 projectCount,
                 unreadNotifications,
                 taskSummary,
+                riskSummary,
                 timeSummary,
                 overdueTasks,
                 upcomingTasks
@@ -446,6 +458,213 @@ public class MyDashboardServiceImpl
         );
     }
 
+    private MyTaskRiskSummaryResponse buildRiskSummary(
+            UUID userId,
+            LocalDate today
+    ) {
+        Specification<Task> specification =
+                TaskSpecification.hasAssignee(userId);
+
+        List<Task> tasks =
+                taskRepository.findAll(specification);
+
+        List<TaskRiskResponse> risks =
+                tasks.stream()
+                        .map(task -> buildRiskResponse(task, today))
+                        .filter(risk ->
+                                risk.riskLevel() != TaskRiskLevel.LOW
+                                        && risk.riskLevel() != TaskRiskLevel.NONE
+                        )
+                        .sorted((left, right) ->
+                                Integer.compare(
+                                        riskWeight(right.riskLevel()),
+                                        riskWeight(left.riskLevel())
+                                )
+                        )
+                        .toList();
+
+        return new MyTaskRiskSummaryResponse(
+                risks.size(),
+                countRiskLevel(risks, TaskRiskLevel.MEDIUM),
+                countRiskLevel(risks, TaskRiskLevel.HIGH),
+                countRiskLevel(risks, TaskRiskLevel.CRITICAL),
+                risks.stream().filter(TaskRiskResponse::overdue).count(),
+                risks.stream().filter(TaskRiskResponse::dueSoon).count(),
+                risks.stream().filter(TaskRiskResponse::blocked).count(),
+                risks.stream().limit(DASHBOARD_TASK_LIMIT).toList()
+        );
+    }
+
+    private TaskRiskResponse buildRiskResponse(
+            Task task,
+            LocalDate today
+    ) {
+        boolean terminal =
+                TERMINAL_STATUSES.contains(task.getStatus());
+
+        boolean blocked =
+                task.getStatus() == TaskStatus.BLOCKED;
+
+        boolean overdue =
+                !terminal
+                        && task.getDueDate() != null
+                        && task.getDueDate().isBefore(today);
+
+        boolean dueSoon =
+                !terminal
+                        && task.getDueDate() != null
+                        && !task.getDueDate().isBefore(today)
+                        && !task.getDueDate().isAfter(
+                                today.plusDays(DUE_SOON_DAYS)
+                        );
+
+        long unresolvedDependencyCount =
+                countUnresolvedDependencies(task);
+
+        long blockingTaskCount =
+                taskDependencyRepository
+                        .findBlockedTaskIdsByDependency(task.getId())
+                        .size();
+
+        TaskRiskLevel riskLevel =
+                resolveRiskLevel(
+                        overdue,
+                        dueSoon,
+                        blocked,
+                        blockingTaskCount,
+                        unresolvedDependencyCount
+                );
+
+        List<TaskRiskReason> reasons =
+                new ArrayList<>();
+
+        if (overdue && blocked) {
+            reasons.add(TaskRiskReason.OVERDUE_AND_BLOCKED);
+        } else {
+            if (overdue) {
+                reasons.add(TaskRiskReason.OVERDUE);
+            }
+            if (blocked) {
+                reasons.add(TaskRiskReason.BLOCKED);
+            }
+        }
+
+        if (dueSoon) {
+            reasons.add(TaskRiskReason.DUE_SOON);
+        }
+
+        if (unresolvedDependencyCount > 0) {
+            reasons.add(TaskRiskReason.DEPENDENCY_NOT_DONE);
+        }
+
+        if (blockingTaskCount > 0) {
+            reasons.add(TaskRiskReason.BLOCKING_OTHER_TASKS);
+        }
+
+        if (reasons.isEmpty()) {
+            reasons.add(TaskRiskReason.NONE);
+        }
+
+        long daysUntilDue =
+                task.getDueDate() == null
+                        ? 0L
+                        : java.time.temporal.ChronoUnit.DAYS.between(
+                                today,
+                                task.getDueDate()
+                        );
+
+        return new TaskRiskResponse(
+                task.getId(),
+                task.getProjectId(),
+                task.getCurrentSprintId(),
+                task.getTitle(),
+                task.getStatus(),
+                task.getPriority(),
+                task.getAssigneeUserId(),
+                null,
+                null,
+                task.getDueDate(),
+                overdue,
+                dueSoon,
+                blocked,
+                daysUntilDue,
+                blockingTaskCount,
+                unresolvedDependencyCount,
+                riskLevel,
+                reasons,
+                "/projects/"
+                        + task.getProjectId()
+                        + "/tasks/"
+                        + task.getId()
+        );
+    }
+
+    private TaskRiskLevel resolveRiskLevel(
+            boolean overdue,
+            boolean dueSoon,
+            boolean blocked,
+            long blockingTaskCount,
+            long unresolvedDependencyCount
+    ) {
+        if (overdue && blocked) {
+            return TaskRiskLevel.CRITICAL;
+        }
+
+        if (blockingTaskCount >= 3) {
+            return TaskRiskLevel.CRITICAL;
+        }
+
+        if (overdue || blocked) {
+            return TaskRiskLevel.HIGH;
+        }
+
+        if (dueSoon || unresolvedDependencyCount > 0) {
+            return TaskRiskLevel.MEDIUM;
+        }
+
+        return TaskRiskLevel.LOW;
+    }
+
+    private long countUnresolvedDependencies(
+            Task task
+    ) {
+        List<UUID> dependencyIds =
+                taskDependencyRepository.findDependsOnTaskIds(task.getId());
+
+        if (dependencyIds.isEmpty()) {
+            return 0L;
+        }
+
+        return taskRepository
+                .findAllById(dependencyIds)
+                .stream()
+                .filter(dependency ->
+                        !TERMINAL_STATUSES.contains(dependency.getStatus())
+                )
+                .count();
+    }
+
+    private long countRiskLevel(
+            List<TaskRiskResponse> risks,
+            TaskRiskLevel level
+    ) {
+        return risks.stream()
+                .filter(risk -> risk.riskLevel() == level)
+                .count();
+    }
+
+    private int riskWeight(
+            TaskRiskLevel level
+    ) {
+        return switch (level) {
+            case CRITICAL -> 4;
+            case HIGH -> 3;
+            case MEDIUM -> 2;
+            case LOW -> 1;
+            case NONE -> 0;
+        };
+    }
+
     // ===================== DASHBOARD TASK LIST =====================
 
     private List<MyUpcomingTaskResponse>
@@ -650,6 +869,16 @@ public class MyDashboardServiceImpl
                 0L,
                 unreadNotifications,
                 emptyTaskSummary,
+                new MyTaskRiskSummaryResponse(
+                        0L,
+                        0L,
+                        0L,
+                        0L,
+                        0L,
+                        0L,
+                        0L,
+                        List.of()
+                ),
                 timeSummary,
                 List.of(),
                 List.of()

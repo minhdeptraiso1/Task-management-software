@@ -59,6 +59,18 @@ public interface TaskService {
             UpdateTaskStatusRequest request
     );
 
+    TaskResponse block(
+            UUID projectId,
+            UUID taskId,
+            BlockTaskRequest request
+    );
+
+    TaskResponse reopen(
+            UUID projectId,
+            UUID taskId,
+            ReopenTaskRequest request
+    );
+
     TaskResponse updatePosition(
             UUID projectId,
             UUID taskId,

@@ -5,12 +5,14 @@ import com.project.taskmanagement.dto.request.project.ProjectActivitySearchReque
 import com.project.taskmanagement.dto.response.dashboard.*;
 import com.project.taskmanagement.dto.response.project.ProjectActivityPageResponse;
 import com.project.taskmanagement.dto.response.project.ProjectActivityResponse;
+import com.project.taskmanagement.dto.response.taskrisk.TaskRiskSummaryResponse;
 import com.project.taskmanagement.entity.*;
 import com.project.taskmanagement.enums.BacklogItemStatus;
 import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.repository.*;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.ProjectDashboardService;
+import com.project.taskmanagement.service.TaskRiskService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import lombok.AccessLevel;
@@ -48,6 +50,7 @@ public class ProjectDashboardServiceImpl
     ProjectAccessService projectAccessService;
 
     ProjectActivityService projectActivityService;
+    TaskRiskService taskRiskService;
 
     static final ZoneId BUSINESS_ZONE =
             ZoneId.of("Asia/Ho_Chi_Minh");
@@ -113,6 +116,9 @@ public class ProjectDashboardServiceImpl
                         spentMinutesByTaskId
                 );
 
+        TaskRiskSummaryResponse riskSummary =
+                taskRiskService.getProjectRiskSummary(projectId);
+
         List<ProjectDashboardMemberWorkloadResponse> workload =
                 buildWorkload(
                         projectId,
@@ -131,6 +137,7 @@ public class ProjectDashboardServiceImpl
                 sprintResponse,
                 backlogResponse,
                 taskResponse,
+                riskSummary,
                 workload,
                 activities
         );

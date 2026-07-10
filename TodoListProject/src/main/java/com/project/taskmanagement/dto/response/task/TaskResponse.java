@@ -46,6 +46,18 @@ public record TaskResponse(
 
         Instant completedAt,
 
+        String blockReason,
+
+        Instant blockedAt,
+
+        UUID blockedByUserId,
+
+        boolean overdue,
+
+        boolean blocked,
+
+        String targetUrl,
+
         Long position,
 
         Instant createdAt,

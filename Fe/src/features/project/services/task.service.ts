@@ -7,6 +7,7 @@ import type {
   Task,
   TaskComment,
   TaskCommentPage,
+  TaskCommentReply,
   TaskImportResult,
   TaskPage,
   TaskPriority,
@@ -15,6 +16,10 @@ import type {
   TaskTimeLogPage,
   TaskTimeSummary,
   TaskType,
+  TaskDependency,
+  TaskRisk,
+  TaskRiskSummary,
+  TaskRiskScan,
 } from '../models/task.model'
 
 const projectPath = (projectId: string) => `${endpoints.projects}/${projectId}`
@@ -115,6 +120,12 @@ export const getSprintKanban = (projectId: string, sprintId: string) =>
 export const updateTaskStatus = (projectId: string, taskId: string, status: TaskStatus, position?: number) =>
   apiRequest<Task>(`${taskPath(projectId, taskId)}/status`, { method: 'PATCH', body: JSON.stringify({ status, position }) })
 
+export const blockTask = (projectId: string, taskId: string, reason: string) =>
+  apiRequest<Task>(`${taskPath(projectId, taskId)}/block`, { method: 'PATCH', body: JSON.stringify({ reason }) })
+
+export const reopenTask = (projectId: string, taskId: string, targetStatus: TaskStatus, reason?: string) =>
+  apiRequest<Task>(`${taskPath(projectId, taskId)}/reopen`, { method: 'PATCH', body: JSON.stringify({ targetStatus, reason }) })
+
 export const updateTaskPosition = (projectId: string, taskId: string, position: number) =>
   apiRequest<Task>(`${taskPath(projectId, taskId)}/position`, { method: 'PATCH', body: JSON.stringify({ position }) })
 
@@ -130,6 +141,15 @@ export const updateTaskComment = (projectId: string, taskId: string, commentId: 
 
 export const deleteTaskComment = (projectId: string, taskId: string, commentId: string) =>
   apiRequest<void>(`${taskPath(projectId, taskId)}/comments/${commentId}`, { method: 'DELETE' })
+
+export const getTaskCommentReplies = (projectId: string, taskId: string, commentId: string) =>
+  apiRequest<TaskCommentReply[]>(`${taskPath(projectId, taskId)}/comments/${commentId}/replies`)
+
+export const createTaskCommentReply = (projectId: string, taskId: string, commentId: string, content: string) =>
+  apiRequest<TaskCommentReply>(`${taskPath(projectId, taskId)}/comments/${commentId}/replies`, {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  })
 
 export function getTaskTimeLogs(projectId: string, taskId: string, page = 0) {
   return apiRequest<TaskTimeLogPage>(`${taskPath(projectId, taskId)}/time-logs?page=${page}&size=20&sort=workDate,desc`)
@@ -179,3 +199,36 @@ export async function importTasksFromExcel(projectId: string, sprintId: string, 
   }
   return body.data as TaskImportResult
 }
+
+export const getTaskDependencies = (projectId: string, taskId: string) =>
+  apiRequest<TaskDependency[]>(`${taskPath(projectId, taskId)}/dependencies`)
+
+export const addTaskDependency = (projectId: string, taskId: string, dependsOnTaskId: string) =>
+  apiRequest<TaskDependency>(`${taskPath(projectId, taskId)}/dependencies`, {
+    method: 'POST',
+    body: JSON.stringify({ dependsOnTaskId }),
+  })
+
+export const removeTaskDependency = (projectId: string, taskId: string, dependencyId: string) =>
+  apiRequest<void>(`${taskPath(projectId, taskId)}/dependencies/${dependencyId}`, { method: 'DELETE' })
+
+export const unblockTask = (projectId: string, taskId: string, targetStatus: TaskStatus) =>
+  apiRequest<Task>(`${taskPath(projectId, taskId)}/unblock`, {
+    method: 'PATCH',
+    body: JSON.stringify({ targetStatus }),
+  })
+
+export const getTaskRisk = (projectId: string, taskId: string) =>
+  apiRequest<TaskRisk>(`${taskPath(projectId, taskId)}/risk`)
+
+export const getProjectTaskRisks = (projectId: string) =>
+  apiRequest<TaskRisk[]>(`${projectPath(projectId)}/task-risks`)
+
+export const getProjectRiskSummary = (projectId: string) =>
+  apiRequest<TaskRiskSummary>(`${projectPath(projectId)}/task-risks/summary`)
+
+export const getSprintRiskSummary = (projectId: string, sprintId: string) =>
+  apiRequest<TaskRiskSummary>(`${projectPath(projectId)}/sprints/${sprintId}/task-risks/summary`)
+
+export const scanProjectRisks = (projectId: string) =>
+  apiRequest<TaskRiskScan>(`${projectPath(projectId)}/task-risks/scan`, { method: 'POST' })

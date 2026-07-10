@@ -15,8 +15,8 @@ public record UpdateTaskTimeLogRequest(
                 message = "Số phút phải lớn hơn 0"
         )
         @Max(
-                value = 1440,
-                message = "Một bản ghi không được vượt quá 1440 phút"
+                value = 720,
+                message = "Một bản ghi không được vượt quá 720 phút"
         )
         Integer minutes,
 

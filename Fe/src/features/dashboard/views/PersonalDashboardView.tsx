@@ -1,8 +1,10 @@
-import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock } from 'lucide-react'
+import { useState } from 'react'
+import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert } from 'lucide-react'
 import type { User } from '../../user/models/user.model'
 import type { MyDashboardResponse, MyTaskPageResponse, MyTimeSummaryResponse } from '../models/dashboard.model'
 import { Button } from '../../../components/ui'
-import { taskStatusLabels, taskPriorityLabels } from '../../project/models/task.model'
+import { taskStatusLabels, taskPriorityLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../../project/models/task.model'
+import { TimesheetView } from '../../project/components/TimesheetView'
 
 interface PersonalDashboardViewProps {
   me: User
@@ -25,6 +27,10 @@ export function PersonalDashboardView({
   taskPage,
   onTaskPageChange
 }: PersonalDashboardViewProps) {
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'timesheet'>('overview')
+  const isOverview = activeSubTab === 'overview'
+  const isTimesheet = activeSubTab === 'timesheet'
+
   if (loading && !dashboard) {
     return (
       <div className="grid h-full place-items-center p-8">
@@ -42,11 +48,67 @@ export function PersonalDashboardView({
     )
   }
 
+  if (isTimesheet) {
+    return (
+      <div className="p-6">
+        <header className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-ink">Timesheet cá nhân</h1>
+            <p className="mt-1 text-sm text-muted">Quản lý và tổng hợp thời gian làm việc của {me.username}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="secondary" 
+              className={isOverview ? '!bg-indigo-500 !text-white !border-transparent' : ''} 
+              size="sm" 
+              leadingIcon={<LayoutDashboard size={16} />}
+              onClick={() => setActiveSubTab('overview')}
+            >
+              Tổng quan
+            </Button>
+            <Button 
+              variant="secondary" 
+              className={isTimesheet ? '!bg-brand !text-white !border-transparent' : ''} 
+              size="sm" 
+              leadingIcon={<Clock size={16} />}
+              onClick={() => setActiveSubTab('timesheet')}
+            >
+              Timesheet cá nhân
+            </Button>
+          </div>
+        </header>
+        <TimesheetView mode="personal" />
+      </div>
+    )
+  }
+
   return (
     <div className="p-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-ink">Chào mừng, {me.username}!</h1>
-        <p className="mt-1 text-sm text-muted">Dưới đây là tổng quan công việc của bạn</p>
+      <header className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Chào mừng, {me.username}!</h1>
+          <p className="mt-1 text-sm text-muted">Dưới đây là tổng quan công việc của bạn</p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="secondary" 
+            className={isOverview ? '!bg-indigo-500 !text-white !border-transparent' : ''} 
+            size="sm" 
+            leadingIcon={<LayoutDashboard size={16} />}
+            onClick={() => setActiveSubTab('overview')}
+          >
+            Tổng quan
+          </Button>
+          <Button 
+            variant="secondary" 
+            className={isTimesheet ? '!bg-brand !text-white !border-transparent' : ''} 
+            size="sm" 
+            leadingIcon={<Clock size={16} />}
+            onClick={() => setActiveSubTab('timesheet')}
+          >
+            Timesheet cá nhân
+          </Button>
+        </div>
       </header>
 
       {dashboard && (
@@ -142,6 +204,62 @@ export function PersonalDashboardView({
                     <div className="flex items-center gap-2 text-muted"><CalendarDays size={18} /> Tháng này</div>
                     <div className="font-bold">{Math.floor(timeSummary.monthMinutes / 60)}h {timeSummary.monthMinutes % 60}m</div>
                   </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {dashboard?.riskSummary && (
+            <section className="rounded-xl border border-line bg-white shadow-sm mt-6">
+              <header className="border-b border-line px-5 py-4 flex items-center justify-between">
+                <h2 className="font-bold text-ink flex items-center gap-2">
+                  <ShieldAlert size={18} className="text-rose-600" /> Rủi ro công việc cá nhân
+                </h2>
+                <span className="rounded bg-rose-100 text-rose-800 px-2 py-0.5 text-xs font-bold">
+                  {dashboard.riskSummary.totalRiskTasks} rủi ro
+                </span>
+              </header>
+              <div className="p-5 space-y-4">
+                {/* Stats list */}
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="bg-rose-50/50 border border-rose-100 rounded-lg p-2">
+                    <p className="text-rose-700 font-bold">{dashboard.riskSummary.criticalRiskTasks}</p>
+                    <p className="text-muted mt-0.5 scale-90">Critical</p>
+                  </div>
+                  <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-2">
+                    <p className="text-orange-700 font-bold">{dashboard.riskSummary.highRiskTasks}</p>
+                    <p className="text-muted mt-0.5 scale-90">High</p>
+                  </div>
+                  <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-2">
+                    <p className="text-amber-700 font-bold">{dashboard.riskSummary.mediumRiskTasks}</p>
+                    <p className="text-muted mt-0.5 scale-90">Medium</p>
+                  </div>
+                </div>
+
+                {/* Top risks lists */}
+                <div className="space-y-2 pt-2 border-t border-line">
+                  <p className="text-xs font-semibold text-ink">Các Task rủi ro nhất:</p>
+                  {dashboard.riskSummary.topRisks.map(risk => (
+                    <div key={risk.taskId} className="bg-canvas border border-line rounded-lg p-2 text-xs">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="font-semibold text-ink truncate flex-1" title={risk.title}>
+                          {risk.title}
+                        </span>
+                        <span className={`rounded-full px-1.5 py-0.2 font-bold ${
+                          risk.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                          risk.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {taskRiskLevelLabels[risk.riskLevel]}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-rose-700 mt-1">
+                        {risk.reasons.map(r => taskRiskReasonLabels[r] || r).join(', ')}
+                      </p>
+                    </div>
+                  ))}
+                  {dashboard.riskSummary.topRisks.length === 0 && (
+                    <p className="text-center text-xs text-muted py-2">Tuyệt vời! Không có rủi ro nào được tìm thấy.</p>
+                  )}
                 </div>
               </div>
             </section>

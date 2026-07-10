@@ -584,7 +584,7 @@ public class TaskTimeLogServiceImpl
                                 currentUser
                         );
 
-        if (!isOwner && !canModerate) {
+        if (!isOwner) {
             throw new BusinessException(
                     ErrorCode
                             .TASK_TIME_LOG_ACCESS_DENIED
@@ -760,7 +760,7 @@ public class TaskTimeLogServiceImpl
                         );
 
         boolean canDelete =
-                canEdit || canModerate;
+                canEdit;
 
         return new TaskTimeLogResponse(
                 timeLog.getId(),

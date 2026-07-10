@@ -4,6 +4,8 @@ import com.project.taskmanagement.entity.Task;
 import com.project.taskmanagement.enums.TaskStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -328,6 +330,11 @@ public interface TaskRepository
 
     List<Task> findAllByProjectId(
             UUID projectId
+    );
+
+    Page<Task> findAllByProjectId(
+            UUID projectId,
+            Pageable pageable
     );
 
     long countByProjectId(

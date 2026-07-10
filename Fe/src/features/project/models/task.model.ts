@@ -21,7 +21,13 @@ export interface Task {
   startDate: string | null
   dueDate: string | null
   completedAt: string | null
+  blockReason: string | null
+  blockedAt: string | null
+  blockedByUserId: string | null
   position: number
+  overdue: boolean
+  blocked: boolean
+  targetUrl: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -94,11 +100,13 @@ export interface TaskCommentReply {
   email: string
   parentCommentId: string
   content: string
+  edited: boolean
   editedAt: string | null
   createdAt: string
   updatedAt: string | null
   canEdit: boolean
   canDelete: boolean
+  mentionedUsernames?: string[]
 }
 
 export interface TaskComment {
@@ -108,6 +116,7 @@ export interface TaskComment {
   username: string
   email: string
   content: string
+  edited: boolean
   editedAt: string | null
   createdAt: string
   updatedAt: string | null
@@ -115,6 +124,7 @@ export interface TaskComment {
   canDelete: boolean
   replyCount: number
   replies: TaskCommentReply[]
+  mentionedUsernames?: string[]
 }
 
 export interface TaskCommentPage {
@@ -296,4 +306,108 @@ export const taskTypeLabels: Record<TaskType, string> = {
   RESEARCH: 'Research',
   DEVOPS: 'DevOps',
   OTHER: 'Khác',
+}
+
+export interface TaskDependency {
+  id: string
+  taskId: string
+  dependsOnTaskId: string
+  dependsOnTaskTitle: string
+  dependsOnTaskStatus: TaskStatus
+  dependsOnTaskPriority: TaskPriority
+  dependsOnTaskAssigneeUserId: string | null
+  dependsOnTaskDueDate: string | null
+  dependencyCompleted: boolean
+  createdAt: string
+}
+
+export type TaskRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export type TaskRiskReason = 'NONE' | 'DUE_SOON' | 'OVERDUE' | 'BLOCKED' | 'DEPENDENCY_NOT_DONE' | 'BLOCKING_OTHER_TASKS' | 'OVERDUE_AND_BLOCKED'
+
+export interface TaskRisk {
+  taskId: string
+  projectId: string
+  sprintId: string | null
+  title: string
+  status: TaskStatus
+  priority: TaskPriority
+  assigneeUserId: string | null
+  assigneeUsername: string | null
+  assigneeEmail: string | null
+  dueDate: string | null
+  overdue: boolean
+  dueSoon: boolean
+  blocked: boolean
+  daysUntilDue: number
+  blockingTaskCount: number
+  unresolvedDependencyCount: number
+  riskLevel: TaskRiskLevel
+  reasons: TaskRiskReason[]
+  targetUrl: string | null
+}
+
+export interface TaskRiskSummary {
+  projectId: string
+  sprintId: string | null
+  totalRiskTasks: number
+  lowRiskTasks: number
+  mediumRiskTasks: number
+  highRiskTasks: number
+  criticalRiskTasks: number
+  overdueTasks: number
+  dueSoonTasks: number
+  blockedTasks: number
+  dependencyRiskTasks: number
+  topRisks: TaskRisk[]
+}
+
+export interface TaskRiskScan {
+  projectId: string
+  scannedTasks: number
+  riskTasks: number
+  highRiskTasks: number
+  criticalRiskTasks: number
+  notificationsCreated: number
+  scannedAt: string
+}
+
+export interface MyTaskRiskSummary {
+  totalRiskTasks: number
+  mediumRiskTasks: number
+  highRiskTasks: number
+  criticalRiskTasks: number
+  overdueTasks: number
+  dueSoonTasks: number
+  blockedTasks: number
+  topRisks: TaskRisk[]
+}
+
+export interface ProjectTaskRiskPage {
+  content: TaskRisk[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  numberOfElements: number
+  first: boolean
+  last: boolean
+  empty: boolean
+}
+
+export const taskRiskLevelLabels: Record<TaskRiskLevel, string> = {
+  LOW: 'Thấp',
+  MEDIUM: 'Vừa',
+  HIGH: 'Cao',
+  CRITICAL: 'Nguy kịch',
+}
+
+export const taskRiskReasonLabels: Record<TaskRiskReason, string> = {
+  NONE: 'Không có rủi ro',
+  DUE_SOON: 'Sắp đến hạn',
+  OVERDUE: 'Đã quá hạn',
+  BLOCKED: 'Đang bị chặn',
+  DEPENDENCY_NOT_DONE: 'Phụ thuộc chưa hoàn thành',
+  BLOCKING_OTHER_TASKS: 'Đang chặn task khác',
+  OVERDUE_AND_BLOCKED: 'Quá hạn và đang bị chặn',
 }

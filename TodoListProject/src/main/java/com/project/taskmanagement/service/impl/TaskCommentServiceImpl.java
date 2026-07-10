@@ -25,6 +25,8 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.mention.CommentMentionResolver;
+import com.project.taskmanagement.service.mention.MentionedUser;
 import com.project.taskmanagement.service.validation.TaskCommentValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -58,13 +60,15 @@ public class TaskCommentServiceImpl
 
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
+    CommentMentionResolver commentMentionResolver;
 
     // ===================== CREATE =====================
 
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
     })
     public TaskCommentResponse create(
             UUID projectId,
@@ -79,16 +83,17 @@ public class TaskCommentServiceImpl
                 projectAccessService
                         .getProjectOrThrow(projectId);
 
-        projectAccessService
-                .requireViewAccess(
-                        project,
-                        currentUser
-                );
-
         Task task =
                 getTaskOrThrow(
                         projectId,
                         taskId
+                );
+
+        projectAccessService
+                .requireTaskCommentAccess(
+                        project,
+                        task,
+                        currentUser
                 );
 
         String content =
@@ -149,6 +154,13 @@ public class TaskCommentServiceImpl
                         comment
                 );
 
+        List<MentionedUser> mentionedUsers =
+                commentMentionResolver
+                        .resolveProjectMentions(
+                                projectId,
+                                savedComment.getContent()
+                        );
+
         Map<String, Object> newValue =
                 new LinkedHashMap<>();
 
@@ -166,6 +178,13 @@ public class TaskCommentServiceImpl
         newValue.put(
                 "content",
                 savedComment.getContent()
+        );
+
+        newValue.put(
+                "mentionedUsernames",
+                mentionedUsers.stream()
+                        .map(MentionedUser::username)
+                        .toList()
         );
 
         projectActivityService.log(
@@ -186,7 +205,16 @@ public class TaskCommentServiceImpl
                 task,
                 savedComment,
                 parentComment,
-                currentUser
+                currentUser,
+                mentionedUsers
+        );
+
+        sendMentionNotifications(
+                projectId,
+                task,
+                savedComment,
+                currentUser,
+                mentionedUsers
         );
 
         return toCommentResponse(
@@ -270,7 +298,8 @@ public class TaskCommentServiceImpl
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
     })
     public TaskCommentResponse update(
             UUID projectId,
@@ -378,7 +407,8 @@ public class TaskCommentServiceImpl
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true)
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
     })
     public void delete(
             UUID projectId,
@@ -475,6 +505,105 @@ public class TaskCommentServiceImpl
         );
     }
 
+    // ===================== REPLIES =====================
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.TASK_COMMENT_LIST,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + ':' + #projectId" +
+                    " + ':' + #taskId" +
+                    " + ':' + #commentId + ':replies'"
+    )
+    public List<TaskCommentReplyResponse> getReplies(
+            UUID projectId,
+            UUID taskId,
+            UUID commentId
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(projectId);
+
+        projectAccessService
+                .requireViewAccess(
+                        project,
+                        currentUser
+                );
+
+        getTaskOrThrow(
+                projectId,
+                taskId
+        );
+
+        TaskComment parentComment =
+                getCommentOrThrow(
+                        taskId,
+                        commentId
+                );
+
+        TaskCommentValidator
+                .validateRootComment(parentComment);
+
+        return taskCommentRepository
+                .findAllByParentCommentIdOrderByCreatedAtAsc(
+                        commentId
+                )
+                .stream()
+                .map(reply ->
+                        toReplyResponse(
+                                projectId,
+                                reply,
+                                currentUser
+                        )
+                )
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
+            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
+    })
+    public TaskCommentReplyResponse createReply(
+            UUID projectId,
+            UUID taskId,
+            UUID commentId,
+            CreateTaskCommentRequest request
+    ) {
+        TaskCommentResponse response =
+                create(
+                        projectId,
+                        taskId,
+                        new CreateTaskCommentRequest(
+                                commentId,
+                                request.content()
+                        )
+                );
+
+        return new TaskCommentReplyResponse(
+                response.id(),
+                response.taskId(),
+                response.userId(),
+                response.username(),
+                response.email(),
+                response.parentCommentId(),
+                response.content(),
+                response.edited(),
+                response.editedAt(),
+                response.createdAt(),
+                response.updatedAt(),
+                response.canEdit(),
+                response.canDelete(),
+                response.mentionedUsernames()
+        );
+    }
+
     // ===================== RESPONSE =====================
 
     private TaskCommentResponse toCommentResponse(
@@ -528,13 +657,19 @@ public class TaskCommentServiceImpl
                 author != null
                         ? author.getEmail()
                         : null,
+                comment.getParentCommentId(),
                 comment.getContent(),
+                comment.getEditedAt() != null,
                 comment.getEditedAt(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt(),
                 canEdit,
                 canDelete,
                 replies.size(),
+                getMentionedUsernames(
+                        projectId,
+                        comment.getContent()
+                ),
                 replies
         );
     }
@@ -577,11 +712,16 @@ public class TaskCommentServiceImpl
                         : null,
                 reply.getParentCommentId(),
                 reply.getContent(),
+                reply.getEditedAt() != null,
                 reply.getEditedAt(),
                 reply.getCreatedAt(),
                 reply.getUpdatedAt(),
                 canEdit,
-                canDelete
+                canDelete,
+                getMentionedUsernames(
+                        projectId,
+                        reply.getContent()
+                )
         );
     }
 
@@ -592,7 +732,8 @@ public class TaskCommentServiceImpl
             Task task,
             TaskComment newComment,
             TaskComment parentComment,
-            User actor
+            User actor,
+            List<MentionedUser> mentionedUsers
     ) {
         Set<UUID> recipients =
                 new LinkedHashSet<>();
@@ -633,6 +774,10 @@ public class TaskCommentServiceImpl
                 actor.getId()
         );
 
+        mentionedUsers.stream()
+                .map(MentionedUser::userId)
+                .forEach(recipients::remove);
+
         if (recipients.isEmpty()) {
             return;
         }
@@ -665,6 +810,56 @@ public class TaskCommentServiceImpl
                         )
                 )
         );
+    }
+
+    private void sendMentionNotifications(
+            UUID projectId,
+            Task task,
+            TaskComment newComment,
+            User actor,
+            List<MentionedUser> mentionedUsers
+    ) {
+        List<UUID> recipients =
+                mentionedUsers.stream()
+                        .map(MentionedUser::userId)
+                        .filter(userId ->
+                                !userId.equals(actor.getId())
+                        )
+                        .distinct()
+                        .toList();
+
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        notificationService.create(
+                new NotificationCommand(
+                        NotificationType.TASK_MENTIONED,
+                        "Bạn được nhắc trong Task",
+                        actor.getUsername()
+                                + " đã nhắc bạn trong Task "
+                                + task.getTitle(),
+                        actor.getId(),
+                        projectId,
+                        ActivityEntityType.COMMENT,
+                        newComment.getId(),
+                        recipients
+                )
+        );
+    }
+
+    private List<String> getMentionedUsernames(
+            UUID projectId,
+            String content
+    ) {
+        return commentMentionResolver
+                .resolveProjectMentions(
+                        projectId,
+                        content
+                )
+                .stream()
+                .map(MentionedUser::username)
+                .toList();
     }
 
     // ===================== HELPER =====================

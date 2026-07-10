@@ -49,11 +49,33 @@ public final class TaskValidator {
     public static void validateEditable(
             Task task
     ) {
+        if (task == null) {
+            throw new BusinessException(
+                    ErrorCode.TASK_NOT_FOUND
+            );
+        }
+
         if (task.getStatus()
                 == TaskStatus.CANCELLED) {
 
             throw new BusinessException(
-                    ErrorCode.TASK_NOT_EDITABLE
+                    ErrorCode
+                            .TASK_CANCELLED_CANNOT_BE_UPDATED
+            );
+        }
+    }
+
+    public static void validateMainInfoEditable(
+            Task task
+    ) {
+        validateEditable(task);
+
+        if (task.getStatus()
+                == TaskStatus.DONE) {
+
+            throw new BusinessException(
+                    ErrorCode
+                            .TASK_DONE_CANNOT_BE_UPDATED_EXCEPT_REOPEN
             );
         }
     }
@@ -104,6 +126,25 @@ public final class TaskValidator {
         if (sprint.getStatus() != SprintStatus.ACTIVE) {
             throw new BusinessException(
                     ErrorCode.TASK_NOT_IN_ACTIVE_SPRINT
+            );
+        }
+    }
+
+    public static void validateTaskInActiveSprint(
+            Task task,
+            Sprint sprint
+    ) {
+        if (task.getCurrentSprintId() == null) {
+            throw new BusinessException(
+                    ErrorCode.TASK_KANBAN_SPRINT_INVALID
+            );
+        }
+
+        if (sprint == null
+                || sprint.getStatus() != SprintStatus.ACTIVE) {
+
+            throw new BusinessException(
+                    ErrorCode.TASK_KANBAN_SPRINT_INVALID
             );
         }
     }

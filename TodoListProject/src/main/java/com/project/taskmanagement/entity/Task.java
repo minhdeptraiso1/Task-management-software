@@ -111,6 +111,18 @@ public class Task extends BaseAuditEntity {
     @Column(name = "completed_at")
     Instant completedAt;
 
+    @Column(
+            name = "block_reason",
+            columnDefinition = "TEXT"
+    )
+    String blockReason;
+
+    @Column(name = "blocked_at")
+    Instant blockedAt;
+
+    @Column(name = "blocked_by_user_id")
+    UUID blockedByUserId;
+
     @Builder.Default
     @Column(
             name = "position",

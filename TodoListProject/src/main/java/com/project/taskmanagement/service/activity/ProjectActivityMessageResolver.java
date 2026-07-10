@@ -208,6 +208,34 @@ public class ProjectActivityMessageResolver {
             case TASK_REMOVED_FROM_SPRINT -> actor
                     + " đã đưa Task ra khỏi Sprint";
 
+            case TASK_BLOCKED -> actor
+                    + " đã chặn Task. Lý do: "
+                    + value(newValue, "reason");
+
+            case TASK_REOPENED -> actor
+                    + " đã mở lại Task từ "
+                    + value(oldValue, "status")
+                    + " sang "
+                    + value(newValue, "status");
+
+            case TASK_CANCELLED -> actor
+                    + " đã hủy Task";
+
+            case TASK_UNBLOCKED -> actor
+                    + " da bo chan Task";
+
+            case TASK_DEPENDENCY_ADDED -> actor
+                    + " da them dependency cho Task";
+
+            case TASK_DEPENDENCY_REMOVED -> actor
+                    + " da xoa dependency cua Task";
+
+            case TASK_RISK_SCANNED -> actor
+                    + " da quet Task risk";
+
+            case TASK_RISK_LEVEL_CHANGED -> actor
+                    + " da cap nhat muc risk cua Task";
+
             case BUG_CREATED -> actor
                     + " đã tạo Bug";
 

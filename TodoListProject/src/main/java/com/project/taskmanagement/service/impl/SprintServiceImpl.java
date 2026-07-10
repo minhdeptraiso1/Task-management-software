@@ -118,7 +118,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -415,7 +416,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -627,7 +629,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -780,7 +783,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1053,7 +1057,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1302,7 +1307,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1503,7 +1509,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),
@@ -1690,7 +1697,8 @@ public class SprintServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_CLOSING_REPORT,
                     allEntries = true
-            ),            @CacheEvict(
+            ),
+            @CacheEvict(
                     value = CacheNames.PROJECT_DASHBOARD,
                     allEntries = true
             ),

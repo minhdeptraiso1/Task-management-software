@@ -149,6 +149,71 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Thời gian dự kiến phải lớn hơn hoặc bằng 0"
     ),
+    TASK_CANCELLED_CANNOT_BE_UPDATED(
+            400962,
+            HttpStatus.BAD_REQUEST,
+            "Task đã bị hủy nên không thể cập nhật"
+    ),
+
+    TASK_STATUS_INVALID(
+            400966,
+            HttpStatus.BAD_REQUEST,
+            "Trang thai Task khong hop le"
+    ),
+    TASK_DONE_CANNOT_BE_UPDATED_EXCEPT_REOPEN(
+            400967,
+            HttpStatus.BAD_REQUEST,
+            "Task da hoan thanh chi co the reopen hoac cap nhat du lieu phu tro"
+    ),
+
+    TASK_DONE_REOPEN_TARGET_INVALID(
+            400963,
+            HttpStatus.BAD_REQUEST,
+            "Trạng thái mở lại Task không hợp lệ"
+    ),
+
+    TASK_BLOCK_REASON_REQUIRED(
+            400964,
+            HttpStatus.BAD_REQUEST,
+            "Cần nhập lý do khi block Task"
+    ),
+
+    TASK_KANBAN_SPRINT_INVALID(
+            400965,
+            HttpStatus.BAD_REQUEST,
+            "Task không thuộc Sprint đang hoạt động nên không thể thao tác Kanban"
+    ),
+
+    TASK_DEPENDENCY_SELF_NOT_ALLOWED(
+            400801,
+            HttpStatus.BAD_REQUEST,
+            "Task không được phụ thuộc chính nó"
+    ),
+
+    TASK_DEPENDENCY_CROSS_PROJECT_NOT_ALLOWED(
+            400802,
+            HttpStatus.BAD_REQUEST,
+            "Không thể tạo dependency với Task thuộc dự án khác"
+    ),
+
+    TASK_DEPENDENCY_CYCLE_DETECTED(
+            400803,
+            HttpStatus.BAD_REQUEST,
+            "Không thể tạo dependency vì sẽ phát sinh vòng lặp"
+    ),
+
+    TASK_NOT_BLOCKED(
+            400804,
+            HttpStatus.BAD_REQUEST,
+            "Task hiện không bị block"
+    ),
+
+    TASK_UNBLOCK_TARGET_STATUS_INVALID(
+            400805,
+            HttpStatus.BAD_REQUEST,
+            "Trạng thái sau khi bỏ block không hợp lệ"
+    ),
+
     REPORT_DATE_RANGE_INVALID(
             400951,
             HttpStatus.BAD_REQUEST,
@@ -354,6 +419,11 @@ public enum ErrorCode {
             404601,
             HttpStatus.NOT_FOUND,
             "Không tìm thấy Task"
+    ),
+    TASK_DEPENDENCY_NOT_FOUND(
+            404801,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy dependency của Task"
     ),
     PROJECT_ACTIVITY_NOT_FOUND(
             404902,
@@ -595,6 +665,12 @@ public enum ErrorCode {
             409606,
             HttpStatus.CONFLICT,
             "Chuyển trạng thái Task không hợp lệ"
+    ),
+
+    TASK_DEPENDENCY_ALREADY_EXISTS(
+            409801,
+            HttpStatus.CONFLICT,
+            "Dependency này đã tồn tại"
     ),
 
     TASK_STATUS_UPDATE_DENIED(

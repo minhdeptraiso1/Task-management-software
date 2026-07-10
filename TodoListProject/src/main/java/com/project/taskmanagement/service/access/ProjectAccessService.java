@@ -332,6 +332,25 @@ public class ProjectAccessService {
         return membership;
     }
 
+    public void requireTaskCommentAccess(
+            Project project,
+            Task task,
+            User currentUser
+    ) {
+        if (!task.getProjectId()
+                .equals(project.getId())) {
+
+            throw new BusinessException(
+                    ErrorCode.TASK_NOT_FOUND
+            );
+        }
+
+        requireViewAccess(
+                project,
+                currentUser
+        );
+    }
+
     public ProjectMember requireTaskAssignmentAccess(
             UUID projectId,
             User currentUser

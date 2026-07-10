@@ -1,6 +1,6 @@
 import type { UserRole } from '../../user/models/user.model'
 import type { ProjectMemberRole, ProjectStatus } from '../../project/models/project.model'
-import type { TaskPriority, TaskStatus } from '../../project/models/task.model'
+import type { TaskPriority, TaskStatus, TaskRiskSummary, MyTaskRiskSummary } from '../../project/models/task.model'
 import type { SprintStatus } from '../../project/models/scrum.model'
 
 export interface MyTaskSummaryResponse {
@@ -65,6 +65,7 @@ export interface MyDashboardResponse {
   projectCount: number
   unreadNotifications: number
   taskSummary: MyTaskSummaryResponse
+  riskSummary: MyTaskRiskSummary
   timeSummary: MyTimeSummaryResponse
   overdueTasks: MyUpcomingTaskResponse[]
   upcomingTasks: MyUpcomingTaskResponse[]
@@ -171,6 +172,7 @@ export interface ProjectDashboardResponse {
   currentSprint: ProjectDashboardSprintResponse | null
   backlogSummary: ProjectDashboardBacklogSummaryResponse
   taskSummary: ProjectDashboardTaskSummaryResponse
+  riskSummary: TaskRiskSummary
   workload: ProjectDashboardMemberWorkloadResponse[]
   recentActivities: ProjectDashboardActivityResponse[]
 }

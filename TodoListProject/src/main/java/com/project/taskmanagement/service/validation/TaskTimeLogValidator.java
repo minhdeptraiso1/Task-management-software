@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 public final class TaskTimeLogValidator {
 
-    private static final int MAX_DAILY_MINUTES = 1440;
+    private static final int MAX_DAILY_MINUTES = 720;
 
     private TaskTimeLogValidator() {
     }

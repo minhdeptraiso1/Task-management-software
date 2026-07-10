@@ -1,6 +1,7 @@
 package com.project.taskmanagement.dto.response.taskcomment;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record TaskCommentReplyResponse(
@@ -19,6 +20,8 @@ public record TaskCommentReplyResponse(
 
         String content,
 
+        boolean edited,
+
         Instant editedAt,
 
         Instant createdAt,
@@ -27,7 +30,9 @@ public record TaskCommentReplyResponse(
 
         boolean canEdit,
 
-        boolean canDelete
+        boolean canDelete,
+
+        List<String> mentionedUsernames
 
 ) {
 }

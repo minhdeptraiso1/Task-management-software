@@ -1,12 +1,12 @@
 import { Button } from '../../../components/ui'
-import { ChevronLeft, RefreshCcw, Download, Loader2, ShieldAlert, AlertTriangle, CalendarDays } from 'lucide-react'
+import { ChevronLeft, RefreshCcw, Download, Loader2, ShieldAlert, AlertTriangle } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toJpeg } from 'html-to-image'
 import { jsPDF } from 'jspdf'
-import type { SprintTaskStatistics, SprintBurndown } from '../models/task.model'
+import type { SprintTaskStatistics, SprintBurndown, TaskRiskSummary } from '../models/task.model'
 import type { SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse } from '../models/scrum.model'
 import { sprintRiskTypeLabels } from '../models/scrum.model'
-import { taskStatusLabels } from '../models/task.model'
+import { taskStatusLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../models/task.model'
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -20,6 +20,7 @@ interface SprintStatisticsViewProps {
   capacity?: SprintCapacityResponse | null
   health?: SprintHealthResponse | null
   risks?: SprintRiskResponse[] | null
+  taskRiskSummary?: TaskRiskSummary | null
   onBack?: () => void
   onRefresh?: () => void
 }
@@ -40,6 +41,7 @@ export function SprintStatisticsView({
   capacity,
   health,
   risks,
+  taskRiskSummary,
   onBack,
   onRefresh
 }: SprintStatisticsViewProps) {
@@ -209,6 +211,75 @@ export function SprintStatisticsView({
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sprint Task Risk Summary Section */}
+      {taskRiskSummary && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2 text-slate-800 font-bold">
+              <ShieldAlert size={18} className="text-rose-600" />
+              <span>Phân tích Rủi ro Công việc trong Sprint ({taskRiskSummary.totalRiskTasks} rủi ro)</span>
+            </div>
+          </div>
+
+          {/* Quick Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs">
+            <div className="bg-red-50/40 border border-red-100 rounded-lg p-3">
+              <p className="text-red-700 text-lg font-bold">{taskRiskSummary.criticalRiskTasks}</p>
+              <p className="text-slate-500 mt-0.5">Nguy cấp</p>
+            </div>
+            <div className="bg-orange-50/40 border border-orange-100 rounded-lg p-3">
+              <p className="text-orange-700 text-lg font-bold">{taskRiskSummary.highRiskTasks}</p>
+              <p className="text-slate-500 mt-0.5">Rủi ro Cao</p>
+            </div>
+            <div className="bg-amber-50/40 border border-amber-100 rounded-lg p-3">
+              <p className="text-amber-700 text-lg font-bold">{taskRiskSummary.mediumRiskTasks}</p>
+              <p className="text-slate-500 mt-0.5">Rủi ro Vừa</p>
+            </div>
+            <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-3">
+              <p className="text-rose-700 text-lg font-bold">{taskRiskSummary.overdueTasks}</p>
+              <p className="text-slate-500 mt-0.5">Task Quá hạn</p>
+            </div>
+          </div>
+
+          {/* Task risk list */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-slate-700 mb-2.5">Danh sách các Task rủi ro trong Sprint:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {taskRiskSummary.topRisks.map(risk => (
+                <div key={risk.taskId} className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex flex-col justify-between gap-1">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-semibold text-slate-800 line-clamp-2 flex-1" title={risk.title}>
+                      {risk.title}
+                    </span>
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                      risk.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 border border-red-200' :
+                      risk.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                      risk.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                      'bg-blue-100 text-blue-700 border border-blue-200'
+                    }`}>
+                      {taskRiskLevelLabels[risk.riskLevel] || risk.riskLevel}
+                    </span>
+                  </div>
+                  {risk.assigneeUsername && (
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Chịu trách nhiệm: <span className="font-medium text-slate-700">{risk.assigneeUsername}</span>
+                    </p>
+                  )}
+                  <p className="text-[10px] text-rose-700 mt-1 font-medium bg-rose-50/50 p-2 rounded-lg border border-rose-100/50">
+                    Nguyên nhân: {risk.reasons.map(r => taskRiskReasonLabels[r] || r).join(', ')}
+                  </p>
+                </div>
+              ))}
+              {taskRiskSummary.topRisks.length === 0 && (
+                <div className="col-span-2 text-center text-slate-500 py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  Sprint này hiện tại không phát hiện rủi ro công việc nào.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

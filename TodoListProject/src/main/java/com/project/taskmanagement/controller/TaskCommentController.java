@@ -4,6 +4,7 @@ import com.project.taskmanagement.dto.request.taskcomment.CreateTaskCommentReque
 import com.project.taskmanagement.dto.request.taskcomment.UpdateTaskCommentRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentPageResponse;
+import com.project.taskmanagement.dto.response.taskcomment.TaskCommentReplyResponse;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentResponse;
 import com.project.taskmanagement.service.TaskCommentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -83,7 +85,13 @@ public class TaskCommentController {
     @Operation(
             summary = "Chỉnh sửa comment Task"
     )
-    @PatchMapping("/{commentId}")
+    @RequestMapping(
+            value = "/{commentId}",
+            method = {
+                    RequestMethod.PUT,
+                    RequestMethod.PATCH
+            }
+    )
     public ApiResponseSever<TaskCommentResponse>
     update(
             @PathVariable
@@ -101,6 +109,59 @@ public class TaskCommentController {
     ) {
         return ApiResponseSever.ok(
                 taskCommentService.update(
+                        projectId,
+                        taskId,
+                        commentId,
+                        request
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Lấy danh sách reply của comment Task"
+    )
+    @GetMapping("/{commentId}/replies")
+    public ApiResponseSever<List<TaskCommentReplyResponse>>
+    getReplies(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID taskId,
+
+            @PathVariable
+            UUID commentId
+    ) {
+        return ApiResponseSever.ok(
+                taskCommentService.getReplies(
+                        projectId,
+                        taskId,
+                        commentId
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Tạo reply cho comment Task"
+    )
+    @PostMapping("/{commentId}/replies")
+    public ApiResponseSever<TaskCommentReplyResponse>
+    createReply(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID taskId,
+
+            @PathVariable
+            UUID commentId,
+
+            @Valid
+            @RequestBody
+            CreateTaskCommentRequest request
+    ) {
+        return ApiResponseSever.ok(
+                taskCommentService.createReply(
                         projectId,
                         taskId,
                         commentId,

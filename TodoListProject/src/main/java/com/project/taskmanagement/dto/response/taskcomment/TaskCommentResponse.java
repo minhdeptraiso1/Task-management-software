@@ -16,7 +16,11 @@ public record TaskCommentResponse(
 
         String email,
 
+        UUID parentCommentId,
+
         String content,
+
+        boolean edited,
 
         Instant editedAt,
 
@@ -29,6 +33,8 @@ public record TaskCommentResponse(
         boolean canDelete,
 
         int replyCount,
+
+        List<String> mentionedUsernames,
 
         List<TaskCommentReplyResponse> replies
 

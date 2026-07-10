@@ -80,6 +80,7 @@ export interface ProjectActivity {
   entityId: string | null
   action: ProjectActivityAction
   performedByUserId: string | null
+  performedByUsername: string
   oldValueJson: string | null
   newValueJson: string | null
   createdAt: string
@@ -163,6 +164,12 @@ export const projectActivityLabels: Record<string, string> = {
   TASK_POSITION_CHANGED: 'Đổi vị trí Task',
   TASK_MOVED_TO_SPRINT: 'Chuyển Task vào Sprint',
   TASK_REMOVED_FROM_SPRINT: 'Gỡ Task khỏi Sprint',
+  TASK_BLOCKED: 'Chặn Task',
+  TASK_REOPENED: 'Mở lại Task',
+  TASK_CANCELLED: 'Hủy Task',
+  TASK_UNBLOCKED: 'Mở chặn Task',
+  TASK_DEPENDENCY_ADDED: 'Thêm liên kết phụ thuộc',
+  TASK_DEPENDENCY_REMOVED: 'Xóa liên kết phụ thuộc',
   BACKLOG_ITEM_POSITION_CHANGED: 'Đổi vị trí Backlog Item',
   BUG_CREATED: 'Báo lỗi',
   COMMENT_CREATED: 'Thêm bình luận',

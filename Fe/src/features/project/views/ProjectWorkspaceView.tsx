@@ -3,7 +3,6 @@ import {
   Activity,
   Bell,
   CalendarDays,
-  CheckCircle2,
   CheckCheck,
   ChevronLeft,
   ChevronRight,
@@ -14,9 +13,7 @@ import {
   LogOut,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
-  Settings,
   Trash2,
   User as UserIcon,
   UserPlus,
@@ -41,11 +38,12 @@ import {
 import { formatDate } from '../../../utils/format'
 import type { NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
-import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType } from '../models/task.model'
+import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
 import { PersonalDashboardController } from '../../dashboard/controllers/PersonalDashboardController'
 import { ProjectDashboardTab } from './ProjectDashboardTab'
+import { TimesheetView } from '../components/TimesheetView'
 import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
 import { searchProjects } from '../services/project.service'
 
@@ -70,15 +68,21 @@ interface Props {
   sprintHealth: SprintHealthResponse | null
   sprintRisks: SprintRiskResponse[] | null
   sprintProgress: SprintProgress | null
+  sprintTaskRiskSummary: TaskRiskSummary | null
   selectedTask: Task | null
   taskComments: TaskCommentPage
   taskTimeLogs: TaskTimeLogPage
   taskTimeSummary: TaskTimeSummary | null
   taskImportResult: TaskImportResult | null
+  taskDependencies: TaskDependency[]
+  taskRisk: TaskRisk | null
+  onAddDependency: (taskId: string, dependsOnTaskId: string) => void
+  onRemoveDependency: (taskId: string, dependencyId: string) => void
+  onUnblockTask: (taskId: string, targetStatus: TaskStatus) => void
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -100,7 +104,7 @@ interface Props {
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -294,11 +298,14 @@ export function ProjectWorkspaceView({
   sprintHealth,
   sprintRisks,
   sprintProgress,
+  sprintTaskRiskSummary,
   selectedTask,
   taskComments,
   taskTimeLogs,
   taskTimeSummary,
   taskImportResult,
+  taskDependencies,
+  taskRisk,
   candidateUsers,
   unreadCount,
   filters,
@@ -355,6 +362,9 @@ export function ProjectWorkspaceView({
   onAssignTask,
   onOpenTask,
   onCloseTask,
+  onAddDependency,
+  onRemoveDependency,
+  onUnblockTask,
   onCreateTaskComment,
   onUpdateTaskComment,
   onDeleteTaskComment,
@@ -673,11 +683,12 @@ export function ProjectWorkspaceView({
               <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
               <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
               <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
+              <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
             </div>
           </div>
 
           <div className={`p-5 ${detailLoading ? 'opacity-50' : ''}`}>
-            {activeTab === 'dashboard' && <ProjectDashboardTab projectId={selectedProject.id} sprints={sprints} />}
+            {activeTab === 'dashboard' && <ProjectDashboardTab projectId={selectedProject.id} sprints={sprints} onOpenTask={onOpenTask} />}
             {activeTab === 'board' && <ScrumBoardView
               projectId={selectedProject.id}
               backlogItems={backlogItems}
@@ -691,11 +702,14 @@ export function ProjectWorkspaceView({
               sprintHealth={sprintHealth}
               sprintRisks={sprintRisks}
               sprintProgress={sprintProgress}
+              sprintTaskRiskSummary={sprintTaskRiskSummary}
               selectedTask={selectedTask}
               taskComments={taskComments}
               taskTimeLogs={taskTimeLogs}
               taskTimeSummary={taskTimeSummary}
               taskImportResult={taskImportResult}
+              taskDependencies={taskDependencies}
+              taskRisk={taskRisk}
               members={members}
               loading={detailLoading}
               taskDetailLoading={taskDetailLoading}
@@ -722,6 +736,9 @@ export function ProjectWorkspaceView({
               onAssignTask={onAssignTask}
               onOpenTask={onOpenTask}
               onCloseTask={onCloseTask}
+              onAddDependency={onAddDependency}
+              onRemoveDependency={onRemoveDependency}
+              onUnblockTask={onUnblockTask}
               onCreateTaskComment={onCreateTaskComment}
               onUpdateTaskComment={onUpdateTaskComment}
               onDeleteTaskComment={onDeleteTaskComment}
@@ -882,6 +899,10 @@ export function ProjectWorkspaceView({
               ))}
               {!notifications.content.length && <p className="py-10 text-center text-sm text-muted">Chưa có thông báo.</p>}
             </div>}
+
+            {activeTab === 'timesheet' && (
+              <TimesheetView mode="project" projectId={selectedProject.id} members={members} />
+            )}
           </div>
         </>}
       </section>

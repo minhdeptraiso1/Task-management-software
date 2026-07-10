@@ -84,8 +84,12 @@ public class TaskTimeLogController {
     @Operation(
             summary = "Cập nhật time log"
     )
-    @PatchMapping(
-            "/time-logs/{timeLogId}"
+    @RequestMapping(
+            value = "/time-logs/{timeLogId}",
+            method = {
+                    RequestMethod.PUT,
+                    RequestMethod.PATCH
+            }
     )
     public ApiResponseSever<TaskTimeLogResponse>
     update(

@@ -21,7 +21,10 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.task.TaskViewHelper;
+import com.project.taskmanagement.service.validation.TaskStatusTransitionValidator;
 import com.project.taskmanagement.service.validation.TaskValidator;
+import com.project.taskmanagement.service.validation.TaskWorkflowValidator;
 import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +63,7 @@ public class TaskServiceImpl
 
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
+    TaskViewHelper taskViewHelper;
 
     SprintRepository sprintRepository;
 
@@ -553,7 +557,9 @@ public class TaskServiceImpl
                         taskId
                 );
 
-        TaskValidator.validateEditable(task);
+        TaskWorkflowValidator.validateNotCancelled(task.getStatus());
+
+        TaskValidator.validateMainInfoEditable(task);
 
         Map<String, Object> oldValue =
                 taskSnapshot(task);
@@ -723,6 +729,10 @@ public class TaskServiceImpl
                         taskId
                 );
 
+        TaskWorkflowValidator.validateNotCancelled(task.getStatus());
+
+        TaskValidator.validateEditable(task);
+
         UUID oldAssigneeId =
                 task.getAssigneeUserId();
 
@@ -862,6 +872,10 @@ public class TaskServiceImpl
                         projectId,
                         taskId
                 );
+
+        TaskWorkflowValidator.validateNotCancelled(task.getStatus());
+
+        TaskValidator.validateEditable(task);
 
         UUID oldAssigneeId =
                 task.getAssigneeUserId();
@@ -1027,6 +1041,8 @@ public class TaskServiceImpl
                         taskId
                 );
 
+        TaskValidator.validateEditable(task);
+
         Map<String, Object> oldValue =
                 taskSnapshot(task);
 
@@ -1152,6 +1168,11 @@ public class TaskServiceImpl
                         createColumn(
                                 TaskStatus.DONE,
                                 "Hoàn thành",
+                                tasksByStatus
+                        ),
+                        createColumn(
+                                TaskStatus.CANCELLED,
+                                "Đã hủy",
                                 tasksByStatus
                         )
                 );
@@ -1303,12 +1324,16 @@ public class TaskServiceImpl
                         task
                 );
 
+        TaskWorkflowValidator.validateNotCancelled(
+                task.getStatus()
+        );
+
         UUID sprintId =
                 task.getCurrentSprintId();
 
         if (sprintId == null) {
             throw new BusinessException(
-                    ErrorCode.TASK_NOT_IN_ACTIVE_SPRINT
+                    ErrorCode.TASK_KANBAN_SPRINT_INVALID
             );
         }
 
@@ -1324,7 +1349,8 @@ public class TaskServiceImpl
                                 )
                         );
 
-        TaskValidator.validateSprintActive(
+        TaskValidator.validateTaskInActiveSprint(
+                task,
                 sprint
         );
 
@@ -1333,6 +1359,12 @@ public class TaskServiceImpl
 
         TaskStatus newStatus =
                 request.status();
+
+        if (newStatus == TaskStatus.BLOCKED) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_PARAMETER
+            );
+        }
 
         if (oldStatus == newStatus) {
             if (request.position() == null) {
@@ -1347,7 +1379,7 @@ public class TaskServiceImpl
             );
         }
 
-        TaskValidator.validateStatusTransition(
+        TaskStatusTransitionValidator.validate(
                 oldStatus,
                 newStatus
         );
@@ -1400,6 +1432,14 @@ public class TaskServiceImpl
             );
         } else {
             task.setCompletedAt(null);
+        }
+
+        if (oldStatus == TaskStatus.BLOCKED
+                && newStatus != TaskStatus.BLOCKED) {
+
+            task.setBlockReason(null);
+            task.setBlockedAt(null);
+            task.setBlockedByUserId(null);
         }
 
         Task savedTask =
@@ -1641,6 +1681,12 @@ public class TaskServiceImpl
                 task.getStartDate(),
                 task.getDueDate(),
                 task.getCompletedAt(),
+                task.getBlockReason(),
+                task.getBlockedAt(),
+                task.getBlockedByUserId(),
+                taskViewHelper.isOverdue(task),
+                taskViewHelper.isBlocked(task),
+                taskViewHelper.targetUrl(task),
                 task.getPosition(),
                 task.getCreatedAt(),
                 task.getUpdatedAt()
@@ -1829,15 +1875,7 @@ public class TaskServiceImpl
             return;
         }
 
-        NotificationType type =
-                newStatus == TaskStatus.BLOCKED
-                        ? NotificationType.TASK_BLOCKED
-                        : NotificationType.TASK_STATUS_CHANGED;
-
-        String title =
-                newStatus == TaskStatus.BLOCKED
-                        ? "Task đang bị chặn"
-                        : "Trạng thái Task đã thay đổi";
+        String title = resolveStatusNotificationTitle(oldStatus, newStatus);
 
         String content =
                 "Task "
@@ -1849,7 +1887,7 @@ public class TaskServiceImpl
 
         notificationService.create(
                 new NotificationCommand(
-                        type,
+                        NotificationType.TASK_STATUS_CHANGED,
                         title,
                         content,
                         actorUserId,
@@ -1859,6 +1897,27 @@ public class TaskServiceImpl
                         List.of(recipientUserId)
                 )
         );
+    }
+
+    private String resolveStatusNotificationTitle(
+            TaskStatus oldStatus,
+            TaskStatus newStatus
+    ) {
+        if (newStatus == TaskStatus.BLOCKED) {
+            return "Task đang bị chặn";
+        }
+
+        if (newStatus == TaskStatus.CANCELLED) {
+            return "Task đã bị hủy";
+        }
+
+        if (oldStatus == TaskStatus.DONE
+                && newStatus != TaskStatus.DONE) {
+
+            return "Task đã được mở lại";
+        }
+
+        return "Trạng thái Task đã thay đổi";
     }
 
     private Map<String, Object> taskSnapshot(
@@ -1918,6 +1977,21 @@ public class TaskServiceImpl
         );
 
         value.put(
+                "blockReason",
+                task.getBlockReason()
+        );
+
+        value.put(
+                "blockedAt",
+                task.getBlockedAt()
+        );
+
+        value.put(
+                "blockedByUserId",
+                task.getBlockedByUserId()
+        );
+
+        value.put(
                 "position",
                 task.getPosition()
         );
@@ -1946,4 +2020,585 @@ public class TaskServiceImpl
         );
     }
 
+    // ===================== BLOCK / REOPEN =====================
+
+    @Override
+    @Transactional
+    @Caching(
+            evict = {
+                    @CacheEvict(
+                            value = CacheNames.TASK_DETAIL,
+                            key = "#projectId.toString() + ':' + #taskId.toString()"
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.TASK_SEARCH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_KANBAN,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_TASK_STATISTICS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_BURNDOWN,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_CAPACITY,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_HEALTH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_RISKS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_PROGRESS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_CLOSING_REPORT,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.MY_DASHBOARD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.MY_TASK_SEARCH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_DASHBOARD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_SPRINT,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_MEMBER,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_TIME,
+                            allEntries = true
+                    )
+            }
+    )
+    public TaskResponse block(
+            UUID projectId,
+            UUID taskId,
+            BlockTaskRequest request
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(
+                                projectId
+                        );
+
+        TaskValidator.validateProjectEditable(
+                project
+        );
+
+        Task task =
+                getTaskOrThrow(
+                        projectId,
+                        taskId
+                );
+
+        projectAccessService
+                .requireTaskStatusUpdateAccess(
+                        projectId,
+                        currentUser,
+                        task
+                );
+
+        if (request.reason() == null
+                || request.reason().isBlank()) {
+            throw new BusinessException(
+                    ErrorCode.TASK_BLOCK_REASON_REQUIRED
+            );
+        }
+
+        UUID sprintId =
+                task.getCurrentSprintId();
+
+        if (sprintId == null) {
+            throw new BusinessException(
+                    ErrorCode.TASK_KANBAN_SPRINT_INVALID
+            );
+        }
+
+        Sprint sprint =
+                sprintRepository
+                        .findByIdAndProjectId(
+                                sprintId,
+                                projectId
+                        )
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        ErrorCode.SPRINT_NOT_FOUND
+                                )
+                        );
+
+        TaskValidator.validateTaskInActiveSprint(
+                task,
+                sprint
+        );
+
+        TaskStatus oldStatus =
+                task.getStatus();
+
+        TaskStatus newStatus =
+                TaskStatus.BLOCKED;
+
+        TaskStatusTransitionValidator.validate(
+                oldStatus,
+                newStatus
+        );
+
+        Long oldPosition =
+                task.getPosition();
+
+        taskRepository.shiftPositionsDown(
+                projectId,
+                sprintId,
+                oldStatus,
+                oldPosition
+        );
+
+        long newColumnCount =
+                taskRepository
+                        .countByProjectIdAndCurrentSprintIdAndStatus(
+                                projectId,
+                                sprintId,
+                                newStatus
+                        );
+
+        long newPosition = newColumnCount + 1L;
+
+        task.setStatus(newStatus);
+        task.setPosition(newPosition);
+        task.setCompletedAt(null);
+        task.setBlockReason(request.reason());
+        task.setBlockedAt(Instant.now());
+        task.setBlockedByUserId(currentUser.getId());
+
+        Task savedTask =
+                taskRepository.save(task);
+
+        Map<String, Object> oldValue =
+                new LinkedHashMap<>();
+
+        oldValue.put(
+                "status",
+                oldStatus
+        );
+
+        oldValue.put(
+                "position",
+                oldPosition
+        );
+
+        Map<String, Object> newValue =
+                new LinkedHashMap<>();
+
+        newValue.put(
+                "status",
+                newStatus
+        );
+
+        newValue.put(
+                "position",
+                newPosition
+        );
+
+        newValue.put(
+                "reason",
+                request.reason()
+        );
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.TASK,
+                        savedTask.getId(),
+                        ProjectActivityAction.TASK_BLOCKED,
+                        currentUser.getId(),
+                        oldValue,
+                        newValue
+                )
+        );
+
+        sendBlockedNotification(
+                projectId,
+                savedTask,
+                currentUser.getId(),
+                request.reason()
+        );
+
+        return toResponse(savedTask);
+    }
+
+    @Override
+    @Transactional
+    @Caching(
+            evict = {
+                    @CacheEvict(
+                            value = CacheNames.TASK_DETAIL,
+                            key = "#projectId.toString() + ':' + #taskId.toString()"
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.TASK_SEARCH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_KANBAN,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_TASK_STATISTICS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_BURNDOWN,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_CAPACITY,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_HEALTH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_RISKS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_PROGRESS,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.SPRINT_CLOSING_REPORT,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.MY_DASHBOARD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.MY_TASK_SEARCH,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_DASHBOARD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_SPRINT,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_MEMBER,
+                            allEntries = true
+                    ),
+                    @CacheEvict(
+                            value = CacheNames.PROJECT_REPORT_TIME,
+                            allEntries = true
+                    )
+            }
+    )
+    public TaskResponse reopen(
+            UUID projectId,
+            UUID taskId,
+            ReopenTaskRequest request
+    ) {
+        User currentUser =
+                currentUserService
+                        .getActiveCurrentUser();
+
+        Project project =
+                projectAccessService
+                        .getProjectOrThrow(
+                                projectId
+                        );
+
+        TaskValidator.validateProjectEditable(
+                project
+        );
+
+        Task task =
+                getTaskOrThrow(
+                        projectId,
+                        taskId
+                );
+
+        projectAccessService
+                .requireTaskStatusUpdateAccess(
+                        projectId,
+                        currentUser,
+                        task
+                );
+
+        TaskStatus targetStatus =
+                request.targetStatus();
+
+        TaskWorkflowValidator.validateReopenTarget(
+                targetStatus
+        );
+
+        UUID sprintId =
+                task.getCurrentSprintId();
+
+        if (sprintId == null) {
+            throw new BusinessException(
+                    ErrorCode.TASK_KANBAN_SPRINT_INVALID
+            );
+        }
+
+        Sprint sprint =
+                sprintRepository
+                        .findByIdAndProjectId(
+                                sprintId,
+                                projectId
+                        )
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        ErrorCode.SPRINT_NOT_FOUND
+                                )
+                        );
+
+        TaskValidator.validateTaskInActiveSprint(
+                task,
+                sprint
+        );
+
+        TaskStatus oldStatus =
+                task.getStatus();
+
+        if (oldStatus != TaskStatus.DONE) {
+            throw new BusinessException(
+                    ErrorCode.TASK_STATUS_TRANSITION_INVALID
+            );
+        }
+
+        TaskStatusTransitionValidator.validate(
+                oldStatus,
+                targetStatus
+        );
+
+        Long oldPosition =
+                task.getPosition();
+
+        taskRepository.shiftPositionsDown(
+                projectId,
+                sprintId,
+                oldStatus,
+                oldPosition
+        );
+
+        long newColumnCount =
+                taskRepository
+                        .countByProjectIdAndCurrentSprintIdAndStatus(
+                                projectId,
+                                sprintId,
+                                targetStatus
+                        );
+
+        long newPosition = newColumnCount + 1L;
+
+        task.setStatus(targetStatus);
+        task.setPosition(newPosition);
+        task.setCompletedAt(null);
+        task.setBlockReason(null);
+        task.setBlockedAt(null);
+        task.setBlockedByUserId(null);
+
+        Task savedTask =
+                taskRepository.save(task);
+
+        Map<String, Object> oldValue =
+                new LinkedHashMap<>();
+
+        oldValue.put(
+                "status",
+                oldStatus
+        );
+
+        oldValue.put(
+                "position",
+                oldPosition
+        );
+
+        Map<String, Object> newValue =
+                new LinkedHashMap<>();
+
+        newValue.put(
+                "status",
+                targetStatus
+        );
+
+        newValue.put(
+                "position",
+                newPosition
+        );
+
+        if (request.reason() != null) {
+            newValue.put(
+                    "reason",
+                    request.reason()
+            );
+        }
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.TASK,
+                        savedTask.getId(),
+                        ProjectActivityAction.TASK_REOPENED,
+                        currentUser.getId(),
+                        oldValue,
+                        newValue
+                )
+        );
+
+        sendReopenedNotification(
+                projectId,
+                savedTask,
+                currentUser.getId(),
+                request.reason()
+        );
+
+        return toResponse(savedTask);
+    }
+
+    private ProjectActivityAction resolveStatusActivityAction(
+            TaskStatus oldStatus,
+            TaskStatus newStatus
+    ) {
+        if (newStatus == TaskStatus.BLOCKED) {
+            return ProjectActivityAction.TASK_BLOCKED;
+        }
+
+        if (newStatus == TaskStatus.CANCELLED) {
+            return ProjectActivityAction.TASK_CANCELLED;
+        }
+
+        if (oldStatus == TaskStatus.DONE
+                && newStatus != TaskStatus.DONE) {
+
+            return ProjectActivityAction.TASK_REOPENED;
+        }
+
+        return ProjectActivityAction.TASK_STATUS_CHANGED;
+    }
+
+    private NotificationType resolveStatusNotificationType(
+            TaskStatus oldStatus,
+            TaskStatus newStatus
+    ) {
+        if (newStatus == TaskStatus.BLOCKED) {
+            return NotificationType.TASK_BLOCKED;
+        }
+
+        if (newStatus == TaskStatus.CANCELLED) {
+            return NotificationType.TASK_CANCELLED;
+        }
+
+        if (oldStatus == TaskStatus.DONE
+                && newStatus != TaskStatus.DONE) {
+
+            return NotificationType.TASK_REOPENED;
+        }
+
+        return NotificationType.TASK_STATUS_CHANGED;
+    }
+
+    private void sendBlockedNotification(
+            UUID projectId,
+            Task task,
+            UUID actorUserId,
+            String reason
+    ) {
+        UUID recipientUserId =
+                task.getAssigneeUserId();
+
+        if (recipientUserId == null) {
+            return;
+        }
+
+        notificationService.create(
+                new NotificationCommand(
+                        NotificationType.TASK_BLOCKED,
+                        "Task đang bị chặn",
+                        "Task "
+                                + task.getTitle()
+                                + " đang bị chặn. Lý do: "
+                                + reason,
+                        actorUserId,
+                        projectId,
+                        ActivityEntityType.TASK,
+                        task.getId(),
+                        List.of(recipientUserId)
+                )
+        );
+    }
+
+    private void sendReopenedNotification(
+            UUID projectId,
+            Task task,
+            UUID actorUserId,
+            String reason
+    ) {
+        UUID recipientUserId =
+                task.getAssigneeUserId();
+
+        if (recipientUserId == null) {
+            return;
+        }
+
+        String content =
+                "Task "
+                        + task.getTitle()
+                        + " đã được mở lại";
+
+        if (reason != null
+                && !reason.isBlank()) {
+            content += ". Lý do: " + reason;
+        }
+
+        notificationService.create(
+                new NotificationCommand(
+                        NotificationType.TASK_REOPENED,
+                        "Task đã được mở lại",
+                        content,
+                        actorUserId,
+                        projectId,
+                        ActivityEntityType.TASK,
+                        task.getId(),
+                        List.of(recipientUserId)
+                )
+        );
+    }
 }

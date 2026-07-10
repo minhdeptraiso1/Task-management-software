@@ -1,8 +1,8 @@
 import { Button } from '../../../components/ui'
-import { ChevronLeft, RefreshCcw, Bell, AlertTriangle, AlertCircle, Play, BarChart3, Clock, Lock } from 'lucide-react'
+import { ChevronLeft, RefreshCcw, Bell, AlertTriangle, AlertCircle, Clock, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ComposedChart
+  Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, ComposedChart
 } from 'recharts'
 import type { SprintProgress } from '../models/scrum.model'
 import { remindSprintEnding, remindSprintOverdueTasks, remindSprintBlockedTasks } from '../services/scrum.service'
@@ -31,14 +31,14 @@ export function SprintProgressView({
   }
 
   const handleRemind = async (
-    type: 'ending' | 'overdue' | 'blocked', 
-    apiCall: (projectId: string, sprintId: string) => Promise<{ message: string }>
+    _type: 'ending' | 'overdue' | 'blocked', 
+    apiCall: (projectId: string, sprintId: string) => Promise<any>
   ) => {
     setIsReminding(true)
     setReminderMessage(null)
     try {
       const res = await apiCall(progress.projectId, progress.sprintId)
-      setReminderMessage({ text: res.message || 'Gửi nhắc nhở thành công', type: 'success' })
+      setReminderMessage({ text: res?.message || 'Gửi nhắc nhở thành công', type: 'success' })
       setTimeout(() => setReminderMessage(null), 5000)
     } catch (err: any) {
       setReminderMessage({ text: err.message || 'Có lỗi xảy ra khi gửi nhắc nhở', type: 'error' })

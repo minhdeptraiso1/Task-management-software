@@ -14,6 +14,12 @@ public enum ActivityEntityType {
 
     BUG,
 
+    BUG_COMMENT,
+
+    BUG_EVIDENCE,
+
+    BUG_ATTACHMENT,
+
     COMMENT,
 
     TIME_LOG,

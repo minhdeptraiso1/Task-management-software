@@ -158,12 +158,12 @@ public enum ErrorCode {
     TASK_STATUS_INVALID(
             400966,
             HttpStatus.BAD_REQUEST,
-            "Trang thai Task khong hop le"
+            "Trạng thái Task không hợp lệ"
     ),
     TASK_DONE_CANNOT_BE_UPDATED_EXCEPT_REOPEN(
             400967,
             HttpStatus.BAD_REQUEST,
-            "Task da hoan thanh chi co the reopen hoac cap nhat du lieu phu tro"
+            "Task đã hoàn thành chỉ có thể reopen hoặc cập nhật dữ liệu phụ trợ"
     ),
 
     TASK_DONE_REOPEN_TARGET_INVALID(
@@ -842,6 +842,132 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "Tổng thời gian trong ngày không được vượt quá 24 giờ"
     ),
+
+    BUG_COMMENT_NOT_FOUND(
+            404985,
+            HttpStatus.NOT_FOUND,
+            "Khong tim thay binh luan Bug"
+    ),
+
+    BUG_COMMENT_ACCESS_DENIED(
+            403985,
+            HttpStatus.FORBIDDEN,
+            "Ban khong co quyen thao tac binh luan Bug nay"
+    ),
+
+    BUG_EVIDENCE_NOT_FOUND(
+            404986,
+            HttpStatus.NOT_FOUND,
+            "Khong tim thay bang chung Bug"
+    ),
+
+    BUG_EVIDENCE_ACCESS_DENIED(
+            403986,
+            HttpStatus.FORBIDDEN,
+            "Ban khong co quyen thao tac bang chung Bug nay"
+    ),
+
+    BUG_ATTACHMENT_NOT_FOUND(
+            404987,
+            HttpStatus.NOT_FOUND,
+            "Khong tim thay file dinh kem Bug"
+    ),
+
+    BUG_ATTACHMENT_ACCESS_DENIED(
+            403987,
+            HttpStatus.FORBIDDEN,
+            "Ban khong co quyen thao tac file dinh kem Bug nay"
+    ),
+
+    BUG_ATTACHMENT_INVALID(
+            400987,
+            HttpStatus.BAD_REQUEST,
+            "File dinh kem Bug khong hop le"
+    ),
+
+    BUG_ATTACHMENT_TOO_LARGE(
+            400988,
+            HttpStatus.BAD_REQUEST,
+            "File dinh kem Bug vuot qua dung luong cho phep"
+    ),
+
+    BUG_NOT_FOUND(
+            404903,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy Bug"
+    ),
+
+    BUG_ACCESS_DENIED(
+            403903,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền thao tác Bug này"
+    ),
+
+    BUG_ASSIGNEE_NOT_PROJECT_MEMBER(
+            400981,
+            HttpStatus.BAD_REQUEST,
+            "Người được gán Bug phải là thành viên Project"
+    ),
+
+    BUG_TASK_NOT_IN_PROJECT(
+            400982,
+            HttpStatus.BAD_REQUEST,
+            "Task liên kết không thuộc Project"
+    ),
+
+    BUG_BACKLOG_ITEM_NOT_IN_PROJECT(
+            400983,
+            HttpStatus.BAD_REQUEST,
+            "Backlog Item liên kết không thuộc Project"
+    ),
+
+    BUG_STATUS_TRANSITION_INVALID(
+            400984,
+            HttpStatus.BAD_REQUEST,
+            "Không thể chuyển trạng thái Bug theo luồng hiện tại"
+    ),
+
+    BUG_STATUS_INVALID(
+            400992,
+            HttpStatus.BAD_REQUEST,
+            "Trạng thái Bug không hợp lệ"
+    ),
+
+    BUG_CLOSED_CANNOT_BE_UPDATED(
+            400993,
+            HttpStatus.BAD_REQUEST,
+            "Không thể cập nhật Bug đã đóng hoặc đã hủy"
+    ),
+    BUG_REPORT_DATE_RANGE_INVALID(
+            400989,
+            HttpStatus.BAD_REQUEST,
+            "Khoảng thời gian báo cáo Bug không hợp lệ"
+    ),
+
+    BUG_REPORT_DATE_RANGE_TOO_LARGE(
+            400990,
+            HttpStatus.BAD_REQUEST,
+            "Khoang thoi gian bao cao Bug qua lon"
+    ),
+
+    BUG_SPRINT_NOT_IN_PROJECT(
+            400991,
+            HttpStatus.BAD_REQUEST,
+            "Sprint không thuộc Project hiện tại"
+    ),
+
+    BUG_EXPORT_FAILED(
+            500981,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Xuất báo cáo Bug thất bại"
+    ),
+
+    EXCEL_EXPORT_FAILED(
+            500982,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Xuất file Excel thất bại"
+    ),
+
     DASHBOARD_TASK_FILTER_INVALID(
             400901,
             HttpStatus.BAD_REQUEST,

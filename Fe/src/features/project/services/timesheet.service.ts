@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../services/apiClient'
+import { apiRequest, downloadExcelFile } from '../../../services/apiClient'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
 
 export interface TimesheetSearchParams {
@@ -34,3 +34,16 @@ export const getProjectTimesheet = (projectId: string, params: TimesheetSearchPa
 
 export const getProjectTimesheetSummary = (projectId: string, params: TimesheetSearchParams) =>
   apiRequest<TimesheetSummary>(`/projects/${projectId}/timesheets/summary${buildQueryString(params)}`)
+
+function buildExcelQueryString(params: TimesheetSearchParams): string {
+  const query = new URLSearchParams()
+  if (params.fromDate) query.append('fromDate', params.fromDate)
+  if (params.toDate) query.append('toDate', params.toDate)
+  if (params.userId) query.append('userId', params.userId)
+  if (params.taskId) query.append('taskId', params.taskId)
+  const str = query.toString()
+  return str ? `?${str}` : ''
+}
+
+export const exportProjectTimeLogsExcel = (projectId: string, params: TimesheetSearchParams) =>
+  downloadExcelFile(`/projects/${projectId}/exports/time-logs/excel${buildExcelQueryString(params)}`, 'time-logs.xlsx')

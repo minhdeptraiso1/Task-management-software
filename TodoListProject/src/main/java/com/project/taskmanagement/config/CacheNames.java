@@ -63,4 +63,14 @@ public final class CacheNames {
     public static final String PROJECT_REPORT_SPRINT = "project_report_sprint";
     public static final String PROJECT_REPORT_MEMBER = "project_report_member";
     public static final String PROJECT_REPORT_TIME = "project_report_time";
+
+    public static final String BUG_DETAIL = "bug_detail";
+    public static final String BUG_SEARCH = "bug_search";
+    public static final String BUG_SUMMARY = "bug_summary";
+    public static final String BUG_COMMENT_LIST = "bug_comment_list";
+    public static final String BUG_EVIDENCE_LIST = "bug_evidence_list";
+    public static final String BUG_ATTACHMENT_LIST = "bug_attachment_list";
+    public static final String BUG_DASHBOARD = "bug_dashboard";
+    public static final String BUG_REPORT = "bug_report";
+    public static final String BUG_QA_METRICS = "bug_qa_metrics";
 }

@@ -2,6 +2,7 @@ package com.project.taskmanagement.repository;
 
 import com.project.taskmanagement.entity.Task;
 import com.project.taskmanagement.enums.TaskStatus;
+import com.project.taskmanagement.repository.projection.taskexport.SprintTaskExportRowView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.domain.Page;
@@ -552,6 +553,56 @@ public interface TaskRepository
 
             @Param("excludedStatuses")
             List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT t.id AS id,
+                   t.title AS title,
+                   t.description AS description,
+                   t.type AS type,
+                   t.status AS status,
+                   t.priority AS priority,
+                   p.id AS projectId,
+                   p.code AS projectCode,
+                   p.name AS projectName,
+                   s.id AS sprintId,
+                   s.name AS sprintName,
+                   bi.id AS backlogItemId,
+                   bi.title AS backlogItemTitle,
+                   assignee.id AS assigneeUserId,
+                   assignee.username AS assigneeUsername,
+                   assignee.email AS assigneeEmail,
+                   reporter.id AS reporterUserId,
+                   reporter.username AS reporterUsername,
+                   reporter.email AS reporterEmail,
+                   t.estimatedMinutes AS estimatedMinutes,
+                   COALESCE(SUM(tl.minutes), 0) AS loggedMinutes,
+                   t.startDate AS startDate,
+                   t.dueDate AS dueDate,
+                   t.completedAt AS completedAt,
+                   t.position AS position,
+                   t.createdAt AS createdAt,
+                   t.updatedAt AS updatedAt
+            FROM Task t
+            JOIN Project p ON p.id = t.projectId
+            LEFT JOIN Sprint s ON s.id = t.currentSprintId
+            LEFT JOIN BacklogItem bi ON bi.id = t.backlogItemId
+            LEFT JOIN User assignee ON assignee.id = t.assigneeUserId
+            LEFT JOIN User reporter ON reporter.id = t.reporterUserId
+            LEFT JOIN TaskTimeLog tl ON tl.taskId = t.id
+            WHERE t.projectId = :projectId
+              AND t.currentSprintId = :sprintId
+            GROUP BY t.id, t.title, t.description, t.type, t.status, t.priority,
+                     p.id, p.code, p.name, s.id, s.name, bi.id, bi.title,
+                     assignee.id, assignee.username, assignee.email,
+                     reporter.id, reporter.username, reporter.email,
+                     t.estimatedMinutes, t.startDate, t.dueDate, t.completedAt,
+                     t.position, t.createdAt, t.updatedAt
+            ORDER BY t.status ASC, t.position ASC, t.createdAt DESC
+            """)
+    List<SprintTaskExportRowView> findSprintTaskExportRows(
+            @Param("projectId") UUID projectId,
+            @Param("sprintId") UUID sprintId
     );
 
 }

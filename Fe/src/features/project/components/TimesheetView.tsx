@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Clock3, FolderKanban, Users2, AlertTriangle, FileSpreadsheet, ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react'
+import { Clock3, FolderKanban, Users2, AlertTriangle, FileSpreadsheet, ChevronLeft, ChevronRight, RefreshCcw, Download } from 'lucide-react'
 import { Button, Input, Select } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
-import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary } from '../services/timesheet.service'
+import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary, exportProjectTimeLogsExcel } from '../services/timesheet.service'
 
 interface TimesheetViewProps {
   mode: 'personal' | 'project'
@@ -79,6 +79,22 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
     void loadTimesheet()
   }, [loadTimesheet])
 
+  const handleExportExcel = async () => {
+    if (mode === 'project' && projectId) {
+      setError('')
+      try {
+        await exportProjectTimeLogsExcel(projectId, {
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          userId: selectedUserId || undefined,
+          taskId: selectedTaskId || undefined
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Không xuất được file Excel')
+      }
+    }
+  }
+
   const handleResetFilters = () => {
     setFromDate(firstDayOfMonth())
     setToDate(lastDayOfMonth())
@@ -125,6 +141,16 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
             <Button variant="secondary" className="flex-1" onClick={handleResetFilters}>
               Đặt lại
             </Button>
+            {mode === 'project' && projectId && (
+              <Button 
+                variant="outline-teal" 
+                onClick={handleExportExcel}
+                title="Xuất Excel"
+                leadingIcon={<Download size={16} />}
+              >
+                Xuất Excel
+              </Button>
+            )}
             <Button variant="secondary" className="px-3" onClick={() => void loadTimesheet()} title="Tải lại">
               <RefreshCcw size={16} />
             </Button>

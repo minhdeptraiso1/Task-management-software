@@ -3,7 +3,13 @@ package com.project.taskmanagement.service.notification;
 import com.project.taskmanagement.entity.TaskComment;
 import com.project.taskmanagement.entity.TaskImportBatch;
 import com.project.taskmanagement.entity.TaskTimeLog;
+import com.project.taskmanagement.entity.BugAttachment;
+import com.project.taskmanagement.entity.BugComment;
+import com.project.taskmanagement.entity.BugEvidence;
 import com.project.taskmanagement.enums.ActivityEntityType;
+import com.project.taskmanagement.repository.BugAttachmentRepository;
+import com.project.taskmanagement.repository.BugCommentRepository;
+import com.project.taskmanagement.repository.BugEvidenceRepository;
 import com.project.taskmanagement.repository.TaskCommentRepository;
 import com.project.taskmanagement.repository.TaskImportBatchRepository;
 import com.project.taskmanagement.repository.TaskTimeLogRepository;
@@ -25,6 +31,9 @@ public class NotificationTargetUrlResolver {
     TaskCommentRepository taskCommentRepository;
     TaskTimeLogRepository taskTimeLogRepository;
     TaskImportBatchRepository taskImportBatchRepository;
+    BugCommentRepository bugCommentRepository;
+    BugEvidenceRepository bugEvidenceRepository;
+    BugAttachmentRepository bugAttachmentRepository;
 
     public String resolve(
             UUID projectId,
@@ -54,12 +63,32 @@ public class NotificationTargetUrlResolver {
                     : "/projects/" + projectId
                       + "/backlog-items/" + entityId;
 
-            case TASK, BUG -> entityId == null
+            case TASK -> entityId == null
                     ? "/projects/" + projectId + "/tasks"
                     : "/projects/" + projectId
                       + "/tasks/" + entityId;
 
+            case BUG -> entityId == null
+                    ? "/projects/" + projectId + "/bugs"
+                    : "/projects/" + projectId
+                      + "/bugs/" + entityId;
+
             case COMMENT -> resolveCommentUrl(
+                    projectId,
+                    entityId
+            );
+
+            case BUG_COMMENT -> resolveBugCommentUrl(
+                    projectId,
+                    entityId
+            );
+
+            case BUG_EVIDENCE -> resolveBugEvidenceUrl(
+                    projectId,
+                    entityId
+            );
+
+            case BUG_ATTACHMENT -> resolveBugAttachmentUrl(
                     projectId,
                     entityId
             );
@@ -96,6 +125,71 @@ public class NotificationTargetUrlResolver {
                 )
                 .orElse(
                         "/projects/" + projectId + "/tasks"
+                );
+    }
+
+    // ===================== BUG =====================
+
+    private String resolveBugCommentUrl(
+            UUID projectId,
+            UUID commentId
+    ) {
+        if (commentId == null) {
+            return "/projects/" + projectId + "/bugs";
+        }
+
+        return bugCommentRepository
+                .findById(commentId)
+                .map(BugComment::getBugId)
+                .map(bugId ->
+                        "/projects/" + projectId
+                                + "/bugs/" + bugId
+                                + "?commentId=" + commentId
+                )
+                .orElse(
+                        "/projects/" + projectId + "/bugs"
+                );
+    }
+
+    private String resolveBugEvidenceUrl(
+            UUID projectId,
+            UUID evidenceId
+    ) {
+        if (evidenceId == null) {
+            return "/projects/" + projectId + "/bugs";
+        }
+
+        return bugEvidenceRepository
+                .findById(evidenceId)
+                .map(BugEvidence::getBugId)
+                .map(bugId ->
+                        "/projects/" + projectId
+                                + "/bugs/" + bugId
+                                + "?tab=evidences"
+                )
+                .orElse(
+                        "/projects/" + projectId + "/bugs"
+                );
+    }
+
+    private String resolveBugAttachmentUrl(
+            UUID projectId,
+            UUID attachmentId
+    ) {
+        if (attachmentId == null) {
+            return "/projects/" + projectId + "/bugs";
+        }
+
+        return bugAttachmentRepository
+                .findById(attachmentId)
+                .map(BugAttachment::getBugId)
+                .map(bugId ->
+                        "/projects/" + projectId
+                                + "/bugs/" + bugId
+                                + "?tab=attachments"
+                )
+                .orElse(
+                        "/projects/" + projectId + "/bugs"
                 );
     }
 

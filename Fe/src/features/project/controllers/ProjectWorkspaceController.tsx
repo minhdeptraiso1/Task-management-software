@@ -78,6 +78,7 @@ import {
   unblockTask,
   getTaskRisk,
   getSprintRiskSummary,
+  exportSprintTasksExcel,
 } from '../services/task.service'
 import {
   deleteNotification,
@@ -133,7 +134,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskImportResult, setTaskImportResult] = useState<TaskImportResult | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -920,6 +921,15 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     }
   }
 
+  const handleExportSprintTasks = async (sprintId: string) => {
+    if (!selectedProject) return
+    try {
+      await exportSprintTasksExcel(selectedProject.id, sprintId)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không xuất được file Excel')
+    }
+  }
+
   const handleImportTasks = async (sprintId: string, file: File) => {
     if (!selectedProject) return
     setSaving(true)
@@ -1062,6 +1072,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       onImportTasks={handleImportTasks}
       onClearTaskImportResult={() => setTaskImportResult(null)}
       onRefreshSprintStats={loadSprintStatistics}
+      onExportSprintTasks={handleExportSprintTasks}
     />
     <ConfirmDialog
       open={Boolean(confirmRemoveMember)}

@@ -1,4 +1,4 @@
-import { ApiRequestError, apiFetch, apiRequest } from '../../../services/apiClient'
+import { ApiRequestError, apiFetch, apiRequest, downloadExcelFile } from '../../../services/apiClient'
 import { endpoints } from '../../../services/endpoints'
 import type {
   KanbanBoard,
@@ -232,3 +232,6 @@ export const getSprintRiskSummary = (projectId: string, sprintId: string) =>
 
 export const scanProjectRisks = (projectId: string) =>
   apiRequest<TaskRiskScan>(`${projectPath(projectId)}/task-risks/scan`, { method: 'POST' })
+
+export const exportSprintTasksExcel = (projectId: string, sprintId: string) =>
+  downloadExcelFile(`/projects/${projectId}/exports/sprints/${sprintId}/tasks/excel`, 'sprint-tasks.xlsx')

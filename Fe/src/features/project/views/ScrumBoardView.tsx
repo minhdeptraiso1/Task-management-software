@@ -110,6 +110,7 @@ interface ScrumBoardViewProps {
   onImportTasks: (sprintId: string, file: File) => void
   onClearTaskImportResult: () => void
   onRefreshStatistics?: (sprintId: string) => void
+  onExportSprintTasks: (sprintId: string) => void
 }
 
 function taskPriorityClass(priority: TaskPriority) {
@@ -896,6 +897,7 @@ function SprintTaskKanban({
   onOpenStatistics,
   onOpenProgress,
   onOpenClosing,
+  onExportSprintTasks,
 }: {
   sprints: Sprint[]
   selectedSprintId: string | null
@@ -916,6 +918,7 @@ function SprintTaskKanban({
   onOpenStatistics: () => void
   onOpenProgress?: () => void
   onOpenClosing: () => void
+  onExportSprintTasks: (sprintId: string) => void
 }) {
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
   const [selectedBacklogItemId, setSelectedBacklogItemId] = useState<string>('')
@@ -1002,6 +1005,15 @@ function SprintTaskKanban({
         {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="solid-blue" onClick={onOpenStatistics}>Thống kê</Button>}
         {selectedSprintId && onOpenProgress && <Button leadingIcon={<Target size={17} />} variant="outline-amber" onClick={onOpenProgress}>Tiến độ</Button>}
         {selectedSprintId && <Button leadingIcon={<CheckCheck size={17} />} variant="outline-green" onClick={onOpenClosing}>Tổng kết</Button>}
+        {selectedSprintId && (
+          <Button 
+            variant="outline-teal" 
+            leadingIcon={<Download size={17} />}
+            onClick={() => onExportSprintTasks(selectedSprintId)}
+          >
+            Xuất Excel Task
+          </Button>
+        )}
         {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
         {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
           <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
@@ -1168,6 +1180,7 @@ export function ScrumBoardView({
   onImportTasks,
   onClearTaskImportResult,
   onRefreshStatistics,
+  onExportSprintTasks,
 }: ScrumBoardViewProps) {
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [sprintOpen, setSprintOpen] = useState(false)
@@ -1255,6 +1268,7 @@ export function ScrumBoardView({
          onOpenStatistics={() => setStatisticsOpen(true)}
          onOpenProgress={() => setProgressOpen(true)}
          onOpenClosing={() => setClosingOpen(true)}
+         onExportSprintTasks={onExportSprintTasks}
        />
       )
     ) : <>

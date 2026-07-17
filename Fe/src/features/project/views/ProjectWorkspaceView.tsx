@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Activity,
   Bell,
+  Bug,
   CalendarDays,
   CheckCheck,
   ChevronLeft,
@@ -44,6 +45,7 @@ import { ScrumBoardView } from './ScrumBoardView'
 import { PersonalDashboardController } from '../../dashboard/controllers/PersonalDashboardController'
 import { ProjectDashboardTab } from './ProjectDashboardTab'
 import { TimesheetView } from '../components/TimesheetView'
+import { BugView } from '../components/BugView'
 import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
 import { searchProjects } from '../services/project.service'
 
@@ -82,7 +84,7 @@ interface Props {
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -104,7 +106,7 @@ interface Props {
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -145,6 +147,7 @@ interface Props {
   onImportTasks: (sprintId: string, file: File) => void
   onClearTaskImportResult: () => void
   onRefreshSprintStats?: (sprintId: string) => void
+  onExportSprintTasks: (sprintId: string) => void
 }
 
 function statusClass(status: ProjectStatus) {
@@ -375,6 +378,7 @@ export function ProjectWorkspaceView({
   onImportTasks,
   onClearTaskImportResult,
   onRefreshSprintStats,
+  onExportSprintTasks,
 }: Props) {
   const [createOpen, setCreateOpen] = useState(false)
   const [projectEditOpen, setProjectEditOpen] = useState(false)
@@ -684,6 +688,7 @@ export function ProjectWorkspaceView({
               <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
               <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
               <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
+              <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
             </div>
           </div>
 
@@ -749,6 +754,7 @@ export function ProjectWorkspaceView({
               onImportTasks={onImportTasks}
               onClearTaskImportResult={onClearTaskImportResult}
               onRefreshStatistics={onRefreshSprintStats}
+              onExportSprintTasks={onExportSprintTasks}
             />}
 
             {activeTab === 'members' && <>
@@ -902,6 +908,16 @@ export function ProjectWorkspaceView({
 
             {activeTab === 'timesheet' && (
               <TimesheetView mode="project" projectId={selectedProject.id} members={members} />
+            )}
+
+            {activeTab === 'bugs' && (
+              <BugView 
+                projectId={selectedProject.id} 
+                members={members} 
+                backlogItems={backlogItems} 
+                tasks={Object.values(kanbanBoards).flatMap(board => board?.columns.flatMap(col => col.tasks) ?? [])} 
+                sprints={sprints}
+              />
             )}
           </div>
         </>}

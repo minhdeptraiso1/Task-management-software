@@ -161,4 +161,30 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, ret
   return (await parse<T>(response)).data
 }
 
+export async function downloadExcelFile(path: string, defaultFileName: string) {
+  const response = await apiFetch(path, { method: 'GET' })
+  if (!response.ok) {
+    throw new Error('Không thể xuất file Excel')
+  }
+  const blob = await response.blob()
+  let filename = defaultFileName
+  const disposition = response.headers.get('Content-Disposition')
+  if (disposition) {
+    const filenameRegex = /filename\*?=(?:UTF-8'')?((['"]).*?\2|[^;\n]*)/i
+    const matches = filenameRegex.exec(disposition)
+    if (matches != null && matches[1]) { 
+      filename = decodeURIComponent(matches[1].replace(/['"]/g, ''))
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 export { tokenStore }

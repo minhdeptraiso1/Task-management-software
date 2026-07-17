@@ -225,19 +225,74 @@ public class ProjectActivityMessageResolver {
                     + " da bo chan Task";
 
             case TASK_DEPENDENCY_ADDED -> actor
-                    + " da them dependency cho Task";
+                    + " đã thêm dependency cho Task";
 
             case TASK_DEPENDENCY_REMOVED -> actor
-                    + " da xoa dependency cua Task";
+                    + " đã xóa dependency của Task";
 
             case TASK_RISK_SCANNED -> actor
-                    + " da quet Task risk";
+                    + " đã quét độ rủi ro của Task";
 
             case TASK_RISK_LEVEL_CHANGED -> actor
-                    + " da cap nhat muc risk cua Task";
+                    + " đã cập nhật mức độ rủi ro của Task";
 
             case BUG_CREATED -> actor
                     + " đã tạo Bug";
+
+            case BUG_UPDATED -> actor
+                    + " đã cập nhật Bug";
+
+            case BUG_ASSIGNED -> actor
+                    + " đã gán người xử lý Bug";
+
+            case BUG_UNASSIGNED -> actor
+                    + " đã bỏ gán người xử lý Bug";
+
+            case BUG_STATUS_CHANGED -> actor
+                    + " đã chuyển Bug từ "
+                    + value(oldValue, "status")
+                    + " sang "
+                    + value(newValue, "status");
+
+            case BUG_SEVERITY_CHANGED -> actor
+                    + " đã đổi mức độ nghiêm trọng Bug";
+
+            case BUG_PRIORITY_CHANGED -> actor
+                    + " đã đổi độ ưu tiên Bug";
+
+            case BUG_DELETED -> actor
+                    + " đã xóa Bug "
+                    + quoted(
+                    firstNonNull(
+                            oldValue,
+                            "title",
+                            "bugTitle"
+                    )
+            );
+
+            case BUG_COMMENT_CREATED -> actor
+                    + " đã thêm bình luận Bug";
+
+            case BUG_COMMENT_UPDATED -> actor
+                    + " đã cập nhật bình luận Bug";
+
+            case BUG_COMMENT_DELETED -> actor
+                    + " đã xóa bình luận Bug";
+
+            case BUG_EVIDENCE_CREATED -> actor
+                    + " đã thêm bằng chứng Bug";
+
+            case BUG_EVIDENCE_UPDATED -> actor
+                    + " đã cập nhật bằng chứng Bug";
+
+            case BUG_EVIDENCE_DELETED -> actor
+                    + " đã xóa bằng chứng Bug";
+
+            case BUG_ATTACHMENT_UPLOADED -> actor
+                    + " đã tải tệp đính kèm Bug";
+
+            case BUG_ATTACHMENT_DELETED -> actor
+                    + " đã xóa tệp đính kèm Bug";
 
             case COMMENT_CREATED -> actor
                     + " đã thêm bình luận";

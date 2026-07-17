@@ -18,6 +18,7 @@ import {
   CheckSquare,
   Download
 } from 'lucide-react'
+import { downloadExcelFile } from '../../../services/apiClient'
 import { 
   ActionMenu, 
   ActionItem, 
@@ -1313,8 +1314,11 @@ function BugDetailModal({
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'comments' | 'evidences' | 'attachments'>('info')
   const [comments, setComments] = useState<BugComment[]>([])
   const [evidences, setEvidences] = useState<BugEvidence[]>([])
+  const [attachments, setAttachments] = useState<BugAttachment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [evidencesLoading, setEvidencesLoading] = useState(false)
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   // Comments state
   const [commentInput, setCommentInput] = useState('')
@@ -1361,10 +1365,46 @@ function BugDetailModal({
     }
   }, [projectId, bug.id])
 
+  const handleLoadAttachments = useCallback(async () => {
+    setAttachmentsLoading(true)
+    try {
+      const data = await getBugAttachments(projectId, bug.id)
+      setAttachments(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setAttachmentsLoading(false)
+    }
+  }, [projectId, bug.id])
+
+  const handleUploadAttachment = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      await uploadBugAttachment(projectId, bug.id, file)
+      handleLoadAttachments()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      await deleteBugAttachment(projectId, bug.id, attachmentId)
+      handleLoadAttachments()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
     handleLoadComments()
     handleLoadEvidences()
-  }, [handleLoadComments, handleLoadEvidences])
+    handleLoadAttachments()
+  }, [handleLoadComments, handleLoadEvidences, handleLoadAttachments])
 
   // Nesting replies helper (1 level of nesting maximum)
   const nestedComments = useMemo(() => {
@@ -1953,14 +1993,85 @@ function BugDetailModal({
             </div>
           )}
 
-          {/* Tab 4: Attachments placeholder */}
+          {/* Tab 4: Attachments */}
           {activeSubTab === 'attachments' && (
-            <div className="rounded-xl border border-line bg-white p-6 text-center space-y-2">
-              <Paperclip size={32} className="mx-auto text-muted" />
-              <h5 className="font-bold text-ink text-sm">Quản lý tệp đính kèm Bug</h5>
-              <p className="text-xs text-muted max-w-md mx-auto">
-                Tập tin đính kèm hiện đang lưu trữ Metadata trong Database. Giao diện tải vật lý (Upload) sẽ hoạt động sau khi cấu hình FileStorageService ở Backend hoàn tất.
-              </p>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h5 className="text-sm font-bold text-ink flex items-center gap-2">
+                  <Paperclip size={16} className="text-brand" />
+                  Tệp đính kèm lỗi ({attachments.length})
+                </h5>
+                
+                {bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
+                  <label className={`inline-flex items-center gap-2 cursor-pointer rounded-lg bg-brand px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-brand/90 transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploading ? 'Đang tải lên...' : 'Tải lên tệp'}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      onChange={handleUploadAttachment} 
+                      disabled={uploading} 
+                    />
+                  </label>
+                )}
+              </div>
+
+              {attachmentsLoading ? (
+                <div className="text-center py-10">
+                  <p className="text-xs text-muted animate-pulse">Đang tải danh sách tài liệu...</p>
+                </div>
+              ) : attachments.length === 0 ? (
+                <div className="rounded-xl border border-line bg-white p-8 text-center space-y-2">
+                  <Paperclip size={32} className="mx-auto text-muted/65" />
+                  <h6 className="font-bold text-ink text-xs">Chưa có tệp đính kèm</h6>
+                  <p className="text-[11px] text-muted max-w-xs mx-auto">
+                    Hỗ trợ hình ảnh chụp lỗi, video mô tả các bước tái hiện tệp zip, log hoặc testcase đặc tả liên quan.
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-line rounded-xl overflow-hidden bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-line bg-canvas text-muted font-bold">
+                          <th className="p-3">Tên File</th>
+                          <th className="p-3">Định dạng</th>
+                          <th className="p-3">Kích thước</th>
+                          <th className="p-3">Người tải lên</th>
+                          <th className="p-3 text-right">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attachments.map(att => (
+                          <tr key={att.id} className="border-b border-line last:border-0 hover:bg-canvas">
+                            <td className="p-3 font-semibold text-ink break-all max-w-[200px]">{att.originalFileName}</td>
+                            <td className="p-3 text-muted">{att.contentType}</td>
+                            <td className="p-3 text-muted">{(att.sizeBytes / 1024).toFixed(1)} KB</td>
+                            <td className="p-3 text-muted">{att.uploadedByUsername || 'Chưa rõ'}</td>
+                            <td className="p-3 text-right space-x-2">
+                              <button 
+                                type="button" 
+                                onClick={() => downloadExcelFile(att.downloadUrl, att.originalFileName)}
+                                className="text-brand hover:underline font-bold"
+                              >
+                                Tải về
+                              </button>
+                              {att.canDelete && bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteAttachment(att.id)}
+                                  className="text-rose-600 hover:underline font-bold ml-2"
+                                >
+                                  Xóa
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

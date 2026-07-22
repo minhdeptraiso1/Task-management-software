@@ -3,12 +3,12 @@ package com.project.taskmanagement.controller;
 import com.project.taskmanagement.dto.request.report.TimeLogExportRequest;
 import com.project.taskmanagement.service.ProjectExcelExportService;
 import com.project.taskmanagement.service.model.GeneratedExcelFile;
+import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @RestController
@@ -47,11 +46,12 @@ public class ProjectExcelExportController {
     }
 
     private ResponseEntity<byte[]> toResponse(GeneratedExcelFile file) {
-        ContentDisposition contentDisposition = ContentDisposition.attachment()
-                .filename(file.fileName(), StandardCharsets.UTF_8)
-                .build();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        DownloadHeaderUtils.attachmentContentDisposition(file.fileName())
+                )
+                .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)
                 .contentType(MediaType.parseMediaType(file.contentType()))
                 .body(file.content());
     }

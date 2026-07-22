@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ConfirmDialog, Modal, Button } from '../../../components/ui'
+import { downloadExcelFile } from '../../../services/apiClient'
 import type { User } from '../../user/models/user.model'
 import type {
   Project,
@@ -88,6 +89,7 @@ import {
   markNotificationRead,
 } from '../services/notification.service'
 import { ProjectWorkspaceView } from '../views/ProjectWorkspaceView'
+import type { SearchResultItem } from '../models/search.model'
 import { searchProjectCandidateUsers } from '../../user/services/user.service'
 import type { ProjectActivityFilters } from '../services/project.service'
 import type { UserPage } from '../../user/models/user.model'
@@ -134,7 +136,8 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskImportResult, setTaskImportResult] = useState<TaskImportResult | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs'>('dashboard')
+  const [openBugId, setOpenBugId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -951,6 +954,65 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     }
   }
 
+  const handleSelectSearchResult = async (result: SearchResultItem) => {
+    let project = selectedProject
+    if (!selectedProject || selectedProject.id !== result.projectId) {
+      try {
+        const projData = await getProject(result.projectId)
+        setSelectedProject(projData)
+        project = projData
+      } catch (err) {
+        console.error(err)
+        setError('Không thể truy cập dự án của kết quả tìm kiếm')
+        return
+      }
+    }
+
+    if (!project) return
+
+    switch (result.entityType) {
+      case 'PROJECT':
+        setActiveTab('dashboard')
+        setSelectedSprintId(null)
+        break
+      case 'SPRINT':
+        setActiveTab('board')
+        setSelectedSprintId(result.entityId)
+        break
+      case 'BACKLOG_ITEM':
+        setActiveTab('board')
+        break
+      case 'TASK':
+        setActiveTab('board')
+        void loadSelectedTask(result.entityId)
+        break
+      case 'COMMENT':
+        if (result.targetUrl.includes('/tasks/')) {
+          setActiveTab('board')
+          const taskId = result.targetUrl.split('/tasks/')[1]?.split('?')[0]
+          if (taskId) {
+            void loadSelectedTask(taskId)
+          }
+        } else if (result.targetUrl.includes('/bugs/')) {
+          setActiveTab('bugs')
+          const bugId = result.targetUrl.split('/bugs/')[1]?.split('?')[0]
+          if (bugId) {
+            setOpenBugId(bugId)
+          }
+        }
+        break
+      case 'BUG':
+        setActiveTab('bugs')
+        setOpenBugId(result.entityId)
+        break
+      case 'ATTACHMENT':
+        setActiveTab('attachments')
+        void downloadExcelFile(`/projects/${result.projectId}/attachments/${result.entityId}/download`, result.title)
+        break
+    }
+  }
+
+
   return <>
     <ProjectWorkspaceView
       user={user}
@@ -1023,6 +1085,9 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       onDeleteProject={handleDeleteProject}
       onStatusChange={handleStatusChange}
       onTabChange={setActiveTab}
+      openBugId={openBugId}
+      onCloseBug={() => setOpenBugId(null)}
+      onSelectSearchResult={handleSelectSearchResult}
       onAddMember={handleAddMember}
       onCandidateSearch={handleCandidateSearch}
       onRoleChange={handleRoleChange}

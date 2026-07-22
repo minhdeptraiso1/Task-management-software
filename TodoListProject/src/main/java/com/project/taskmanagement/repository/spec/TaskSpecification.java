@@ -6,6 +6,7 @@ import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.enums.TaskType;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Locale;
@@ -98,6 +99,21 @@ public final class TaskSpecification {
             return cb.equal(
                     root.get("assigneeUserId"),
                     assigneeUserId
+            );
+        };
+    }
+
+    public static Specification<Task> hasReporter(
+            UUID reporterUserId
+    ) {
+        return (root, query, cb) -> {
+            if (reporterUserId == null) {
+                return cb.conjunction();
+            }
+
+            return cb.equal(
+                    root.get("reporterUserId"),
+                    reporterUserId
             );
         };
     }
@@ -201,18 +217,44 @@ public final class TaskSpecification {
     ) {
         return (root, query, cb) -> {
 
-            if (fromDate == null
-                    || toDate == null) {
-
+            if (fromDate == null && toDate == null) {
                 return cb.conjunction();
             }
 
-            return cb.between(
+            if (fromDate != null && toDate != null) {
+                return cb.between(
+                        root.get("dueDate"),
+                        fromDate,
+                        toDate
+                );
+            }
+
+            if (fromDate != null) {
+                return cb.greaterThanOrEqualTo(
+                        root.get("dueDate"),
+                        fromDate
+                );
+            }
+
+            return cb.lessThanOrEqualTo(
                     root.get("dueDate"),
-                    fromDate,
                     toDate
             );
         };
+    }
+
+    public static Specification<Task> startDateBetween(
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+        return localDateBetween("startDate", fromDate, toDate);
+    }
+
+    public static Specification<Task> createdAtBetween(
+            Instant from,
+            Instant to
+    ) {
+        return instantBetween("createdAt", from, to);
     }
 
     public static Specification<Task> overdueOnly(
@@ -272,6 +314,44 @@ public final class TaskSpecification {
                                     )
                     )
             );
+        };
+    }
+
+    private static Specification<Task> localDateBetween(
+            String fieldName,
+            LocalDate from,
+            LocalDate to
+    ) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) {
+                return cb.conjunction();
+            }
+            if (from != null && to != null) {
+                return cb.between(root.get(fieldName), from, to);
+            }
+            if (from != null) {
+                return cb.greaterThanOrEqualTo(root.get(fieldName), from);
+            }
+            return cb.lessThanOrEqualTo(root.get(fieldName), to);
+        };
+    }
+
+    private static Specification<Task> instantBetween(
+            String fieldName,
+            Instant from,
+            Instant to
+    ) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) {
+                return cb.conjunction();
+            }
+            if (from != null && to != null) {
+                return cb.between(root.get(fieldName), from, to);
+            }
+            if (from != null) {
+                return cb.greaterThanOrEqualTo(root.get(fieldName), from);
+            }
+            return cb.lessThanOrEqualTo(root.get(fieldName), to);
         };
     }
 

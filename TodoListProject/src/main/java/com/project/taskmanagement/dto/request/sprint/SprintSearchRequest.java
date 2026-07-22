@@ -3,6 +3,9 @@ package com.project.taskmanagement.dto.request.sprint;
 import com.project.taskmanagement.enums.SprintStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Instant;
+import java.time.LocalDate;
+
 public record SprintSearchRequest(
 
         @Schema(
@@ -15,7 +18,19 @@ public record SprintSearchRequest(
                 description = "Lọc theo trạng thái",
                 example = "PLANNING"
         )
-        SprintStatus status
+        SprintStatus status,
+
+        LocalDate startDateFrom,
+
+        LocalDate startDateTo,
+
+        LocalDate endDateFrom,
+
+        LocalDate endDateTo,
+
+        Instant createdFrom,
+
+        Instant createdTo
 
 ) {
 }

@@ -13,14 +13,16 @@ import {
   Trash2,
   UserX,
   UsersRound,
+  HardDrive,
   type LucideIcon,
 } from 'lucide-react'
 import { Button, Input, Select, ToolbarActions } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
 import { roleLabels, type User, type UserFilters, type UserPage, type UserRole } from '../models/user.model'
 import { AuditLogView } from './AuditLogView'
+import { AdminFileCleanupView } from './AdminFileCleanupView'
 
-type AdminSection = 'members' | 'audit'
+type AdminSection = 'members' | 'audit' | 'files'
 
 interface Props {
   me: User
@@ -113,6 +115,14 @@ export function DashboardView({
         >
           Hoạt động
         </Button>
+        <Button
+          variant="ghost"
+          className={`relative w-full !justify-start ${activeSection === 'files' ? '!bg-brand/10 !text-brand before:absolute before:bottom-1 before:left-0 before:top-1 before:w-0.5 before:bg-brand' : '!text-white/65 hover:!bg-white/5 hover:!text-white'}`}
+          leadingIcon={<HardDrive size={18} />}
+          onClick={() => onSectionChange('files')}
+        >
+          Quản lý File
+        </Button>
         <Button variant="ghost" className="w-full !justify-start !text-white/65 hover:!bg-white/5 hover:!text-white" leadingIcon={<Settings size={18} />}>Cài đặt</Button>
       </nav>
       <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4 text-white">
@@ -126,8 +136,8 @@ export function DashboardView({
     <main className="min-w-0 flex-1">
       <header className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6">
         <div>
-          <p className="text-xs text-white/45">Quản trị / {activeSection === 'members' ? 'Thành viên' : 'Hoạt động'}</p>
-          <h1 className="text-base font-semibold">{activeSection === 'members' ? 'Quản lý thành viên' : 'Quản lý hoạt động'}</h1>
+          <p className="text-xs text-white/45">Quản trị / {activeSection === 'members' ? 'Thành viên' : activeSection === 'audit' ? 'Hoạt động' : 'Quản lý File'}</p>
+          <h1 className="text-base font-semibold">{activeSection === 'members' ? 'Quản lý thành viên' : activeSection === 'audit' ? 'Quản lý hoạt động' : 'Quản lý File & Dọn dẹp'}</h1>
         </div>
         <div className="flex items-center gap-3">
           <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-white/10 transition" onClick={onOpenSettings}>
@@ -157,7 +167,7 @@ export function DashboardView({
           ))}
         </section>
 
-        {activeSection === 'members' ? <section className="mt-6 overflow-hidden rounded-xl border border-line bg-white">
+        {activeSection === 'members' && <section className="mt-6 overflow-hidden rounded-xl border border-line bg-white">
           <div className="flex flex-col gap-4 border-b border-line p-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <h2 className="font-bold">Danh sách thành viên</h2>
@@ -241,7 +251,9 @@ export function DashboardView({
               <Button variant="secondary" size="sm" disabled={page + 1 >= users.totalPages} trailingIcon={<ChevronRight size={16} />} onClick={() => onPageChange(page + 1)}>Sau</Button>
             </div>
           </footer>
-        </section> : (
+        </section>}
+
+        {activeSection === 'audit' && (
           <div className="mt-6">
             <AuditLogView
               logs={auditLogs}
@@ -252,6 +264,12 @@ export function DashboardView({
               onPageChange={onAuditPageChange}
               onRefresh={onAuditRefresh}
             />
+          </div>
+        )}
+
+        {activeSection === 'files' && (
+          <div className="mt-6">
+            <AdminFileCleanupView />
           </div>
         )}
       </div>

@@ -7,6 +7,11 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  servlet:
+    multipart:
+      max-file-size: ${MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:10MB}
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -33,6 +38,12 @@ springdoc:
     path: /swagger
 
 app:
+  file-storage:
+    root-path: ${FILE_STORAGE_ROOT_PATH:uploads}
+    max-file-size-bytes: ${FILE_STORAGE_MAX_SIZE_BYTES:10485760} # 10MB in bytes
+    max-files-per-entity: ${FILE_STORAGE_MAX_FILES_PER_ENTITY:20}
+    max-project-storage-bytes: ${FILE_STORAGE_MAX_PROJECT_STORAGE_BYTES:524288000} # 500MB in bytes
+    keep-deleted-file-days: ${FILE_STORAGE_KEEP_DELETED_FILE_DAYS:30}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   cache:
@@ -41,3 +52,8 @@ app:
       user_detail: ${CACHE_TTL_USER_DETAIL}
       user_current: ${CACHE_TTL_USER_CURRENT}
       user_search: ${CACHE_TTL_USER_SEARCH}
+      global_search: ${CACHE_TTL_GLOBAL_SEARCH:PT2M}
+      attachment_list: ${CACHE_TTL_ATTACHMENT_LIST:PT5M}
+      attachment_usage: ${CACHE_TTL_ATTACHMENT_USAGE:PT5M}
+      attachment_security_summary: ${CACHE_TTL_ATTACHMENT_SECURITY_SUMMARY:PT30M}
+      file_cleanup_result: ${CACHE_TTL_FILE_CLEANUP_RESULT:PT1M}

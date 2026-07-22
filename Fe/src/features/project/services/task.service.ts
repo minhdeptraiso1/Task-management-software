@@ -30,10 +30,19 @@ export interface TaskSearchOptions {
   backlogItemId?: string
   sprintId?: string
   assigneeUserId?: string
+  reporterUserId?: string
   status?: TaskStatus
   priority?: TaskPriority
   type?: TaskType
   unassignedOnly?: boolean
+  overdueOnly?: boolean
+  dueSoonOnly?: boolean
+  startDateFrom?: string
+  startDateTo?: string
+  dueDateFrom?: string
+  dueDateTo?: string
+  createdFrom?: string
+  createdTo?: string
   page?: number
   size?: number
   sort?: string
@@ -76,6 +85,15 @@ export function searchTasks(projectId: string, options: TaskSearchOptions = {}) 
     priority: options.priority,
     type: options.type,
     unassignedOnly: options.unassignedOnly,
+    reporterUserId: options.reporterUserId,
+    overdueOnly: options.overdueOnly,
+    dueSoonOnly: options.dueSoonOnly,
+    startDateFrom: options.startDateFrom,
+    startDateTo: options.startDateTo,
+    dueDateFrom: options.dueDateFrom,
+    dueDateTo: options.dueDateTo,
+    createdFrom: options.createdFrom,
+    createdTo: options.createdTo,
   })
   return apiRequest<TaskPage>(`${projectPath(projectId)}/tasks?${params}`)
 }

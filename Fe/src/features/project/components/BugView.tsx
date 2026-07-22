@@ -16,9 +16,10 @@ import {
   FileText,
   Paperclip,
   CheckSquare,
-  Download
+  Download,
+  Filter
 } from 'lucide-react'
-import { downloadExcelFile } from '../../../services/apiClient'
+import AttachmentSection from './AttachmentSection'
 import { 
   ActionMenu, 
   ActionItem, 
@@ -43,8 +44,7 @@ import type {
   BugDashboard,
   BugReport,
   QaMetrics,
-  BugReportFilters,
-  BugAttachment
+  BugReportFilters
 } from '../models/bug.model'
 import { 
   bugSeverityLabels, 
@@ -58,6 +58,7 @@ import {
   updateBugStatus, 
   deleteBug, 
   getBugSummary,
+  getBugById,
   getBugComments,
   createBugComment,
   updateBugComment,
@@ -73,10 +74,7 @@ import {
   exportBugReportExcel,
   unassignBug,
   updateBugSeverity,
-  updateBugPriority,
-  getBugAttachments,
-  uploadBugAttachment,
-  deleteBugAttachment
+  updateBugPriority
 } from '../services/bug.service'
 
 interface BugViewProps {
@@ -85,6 +83,8 @@ interface BugViewProps {
   backlogItems: BacklogItem[]
   tasks: (Task | KanbanTask)[]
   sprints: Sprint[]
+  openBugId?: string
+  onCloseBug?: () => void
 }
 
 const emptyBugPage: BugPage = {
@@ -156,7 +156,7 @@ export const getStatusBadgeClass = (status: BugStatus) => {
   }
 }
 
-export function BugView({ projectId, members, backlogItems, tasks, sprints }: BugViewProps) {
+export function BugView({ projectId, members, backlogItems, tasks, sprints, openBugId, onCloseBug }: BugViewProps) {
   const [bugs, setBugs] = useState<BugPage>(emptyBugPage)
   const [summary, setSummary] = useState<BugSummary | null>(null)
   const [loading, setLoading] = useState(false)
@@ -195,6 +195,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
     taskId: '',
     backlogItemId: ''
   })
+  const [showBugAdvancedFilters, setShowBugAdvancedFilters] = useState(false)
 
   // Modals state
   const [createOpen, setCreateOpen] = useState(false)
@@ -256,6 +257,23 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
     }
   }, [activeSubTab, loadDashboard])
 
+  // Load bug details when openBugId is passed from outside
+  useEffect(() => {
+    if (openBugId) {
+      setLoading(true)
+      getBugById(projectId, openBugId)
+        .then(bug => {
+          setSelectedBugDetails(bug)
+        })
+        .catch(err => {
+          console.error(err)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    }
+  }, [projectId, openBugId])
+
   const handleClearFilters = () => {
     setFilters({
       keyword: '',
@@ -265,7 +283,15 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
       assigneeUserId: '',
       reporterUserId: '',
       taskId: '',
-      backlogItemId: ''
+      backlogItemId: '',
+      sprintId: '',
+      linkedTaskId: '',
+      reopenedOnly: false,
+      overdueOnly: false,
+      dueDateFrom: '',
+      dueDateTo: '',
+      createdFrom: '',
+      createdTo: ''
     })
     setPage(0)
   }
@@ -543,7 +569,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
               </Button>
             </div>
 
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
               <Select 
                 aria-label="Trạng thái"
                 value={filters.status} 
@@ -593,6 +619,14 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
                 ]}
               />
               <Button 
+                variant="secondary"
+                onClick={() => setShowBugAdvancedFilters(!showBugAdvancedFilters)}
+                className={`w-full !px-3 ${showBugAdvancedFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+                leadingIcon={<Filter size={15} />}
+              >
+                Lọc nâng cao
+              </Button>
+              <Button 
                 variant="secondary" 
                 leadingIcon={<X size={15} />} 
                 onClick={handleClearFilters}
@@ -601,6 +635,110 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
                 Xóa lọc
               </Button>
             </div>
+
+            {showBugAdvancedFilters && (
+              <div className="p-4 bg-slate-50 border border-line rounded-xl space-y-4 text-xs animate-enter">
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Sprint</label>
+                    <Select
+                      aria-label="Chọn Sprint"
+                      value={filters.sprintId || ''}
+                      onChange={e => setFilters(prev => ({ ...prev, sprintId: e.target.value || undefined }))}
+                      options={[
+                        { label: 'Tất cả Sprint', value: '' },
+                        ...sprints.map(s => ({ label: s.name, value: s.id }))
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Yêu cầu (Backlog Item)</label>
+                    <Select
+                      aria-label="Chọn Yêu cầu"
+                      value={filters.backlogItemId || ''}
+                      onChange={e => setFilters(prev => ({ ...prev, backlogItemId: e.target.value || undefined }))}
+                      options={[
+                        { label: 'Tất cả Yêu cầu', value: '' },
+                        ...backlogItems.map(item => ({ label: item.title, value: item.id }))
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Nhiệm vụ (Task)</label>
+                    <Select
+                      aria-label="Chọn Nhiệm vụ"
+                      value={filters.taskId || ''}
+                      onChange={e => setFilters(prev => ({ ...prev, taskId: e.target.value || undefined }))}
+                      options={[
+                        { label: 'Tất cả Nhiệm vụ', value: '' },
+                        ...tasks.map(t => ({ label: t.title, value: t.id }))
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Nhiệm vụ liên kết (Linked Task)</label>
+                    <Select
+                      aria-label="Chọn Linked Task"
+                      value={filters.linkedTaskId || ''}
+                      onChange={e => setFilters(prev => ({ ...prev, linkedTaskId: e.target.value || undefined }))}
+                      options={[
+                        { label: 'Tất cả Linked Task', value: '' },
+                        ...tasks.map(t => ({ label: t.title, value: t.id }))
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Hạn chót từ ngày</label>
+                    <Input type="date" value={filters.dueDateFrom || ''} onChange={e => setFilters(prev => ({ ...prev, dueDateFrom: e.target.value || undefined }))} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+                    <Input type="date" value={filters.dueDateTo || ''} onChange={e => setFilters(prev => ({ ...prev, dueDateTo: e.target.value || undefined }))} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+                    <Input type="date" value={filters.createdFrom || ''} onChange={e => setFilters(prev => ({ ...prev, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined }))} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+                    <Input type="date" value={filters.createdTo || ''} onChange={e => setFilters(prev => ({ ...prev, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined }))} />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-line/60">
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 font-bold text-muted-dark select-none cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.reopenedOnly || false}
+                        onChange={e => setFilters(prev => ({ ...prev, reopenedOnly: e.target.checked }))}
+                        className="rounded border-line text-brand focus:ring-brand"
+                      />
+                      Đã mở lại (Reopened)
+                    </label>
+                    <label className="flex items-center gap-1.5 font-bold text-muted-dark select-none cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.overdueOnly || false}
+                        onChange={e => setFilters(prev => ({ ...prev, overdueOnly: e.target.checked }))}
+                        className="rounded border-line text-brand focus:ring-brand"
+                      />
+                      Quá hạn (Overdue)
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="text-brand hover:text-brand-dark font-extrabold"
+                  >
+                    Đặt lại bộ lọc
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bugs List Grid */}
@@ -1261,7 +1399,10 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints }: Bu
           members={members}
           backlogItems={backlogItems}
           tasks={tasks}
-          onClose={() => setSelectedBugDetails(null)}
+          onClose={() => {
+            setSelectedBugDetails(null)
+            onCloseBug?.()
+          }}
           onStatusChange={handleStatusChange}
           onSeverityChange={handleSeverityChange}
           onPriorityChange={handlePriorityChange}
@@ -1314,11 +1455,8 @@ function BugDetailModal({
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'comments' | 'evidences' | 'attachments'>('info')
   const [comments, setComments] = useState<BugComment[]>([])
   const [evidences, setEvidences] = useState<BugEvidence[]>([])
-  const [attachments, setAttachments] = useState<BugAttachment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [evidencesLoading, setEvidencesLoading] = useState(false)
-  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
 
   // Comments state
   const [commentInput, setCommentInput] = useState('')
@@ -1365,46 +1503,10 @@ function BugDetailModal({
     }
   }, [projectId, bug.id])
 
-  const handleLoadAttachments = useCallback(async () => {
-    setAttachmentsLoading(true)
-    try {
-      const data = await getBugAttachments(projectId, bug.id)
-      setAttachments(data)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setAttachmentsLoading(false)
-    }
-  }, [projectId, bug.id])
-
-  const handleUploadAttachment = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      await uploadBugAttachment(projectId, bug.id, file)
-      handleLoadAttachments()
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleDeleteAttachment = async (attachmentId: string) => {
-    try {
-      await deleteBugAttachment(projectId, bug.id, attachmentId)
-      handleLoadAttachments()
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
   useEffect(() => {
     handleLoadComments()
     handleLoadEvidences()
-    handleLoadAttachments()
-  }, [handleLoadComments, handleLoadEvidences, handleLoadAttachments])
+  }, [handleLoadComments, handleLoadEvidences])
 
   // Nesting replies helper (1 level of nesting maximum)
   const nestedComments = useMemo(() => {
@@ -1995,84 +2097,12 @@ function BugDetailModal({
 
           {/* Tab 4: Attachments */}
           {activeSubTab === 'attachments' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h5 className="text-sm font-bold text-ink flex items-center gap-2">
-                  <Paperclip size={16} className="text-brand" />
-                  Tệp đính kèm lỗi ({attachments.length})
-                </h5>
-                
-                {bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
-                  <label className={`inline-flex items-center gap-2 cursor-pointer rounded-lg bg-brand px-3.5 py-2 text-xs font-bold text-white shadow hover:bg-brand/90 transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {uploading ? 'Đang tải lên...' : 'Tải lên tệp'}
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleUploadAttachment} 
-                      disabled={uploading} 
-                    />
-                  </label>
-                )}
-              </div>
-
-              {attachmentsLoading ? (
-                <div className="text-center py-10">
-                  <p className="text-xs text-muted animate-pulse">Đang tải danh sách tài liệu...</p>
-                </div>
-              ) : attachments.length === 0 ? (
-                <div className="rounded-xl border border-line bg-white p-8 text-center space-y-2">
-                  <Paperclip size={32} className="mx-auto text-muted/65" />
-                  <h6 className="font-bold text-ink text-xs">Chưa có tệp đính kèm</h6>
-                  <p className="text-[11px] text-muted max-w-xs mx-auto">
-                    Hỗ trợ hình ảnh chụp lỗi, video mô tả các bước tái hiện tệp zip, log hoặc testcase đặc tả liên quan.
-                  </p>
-                </div>
-              ) : (
-                <div className="border border-line rounded-xl overflow-hidden bg-white">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-line bg-canvas text-muted font-bold">
-                          <th className="p-3">Tên File</th>
-                          <th className="p-3">Định dạng</th>
-                          <th className="p-3">Kích thước</th>
-                          <th className="p-3">Người tải lên</th>
-                          <th className="p-3 text-right">Thao tác</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {attachments.map(att => (
-                          <tr key={att.id} className="border-b border-line last:border-0 hover:bg-canvas">
-                            <td className="p-3 font-semibold text-ink break-all max-w-[200px]">{att.originalFileName}</td>
-                            <td className="p-3 text-muted">{att.contentType}</td>
-                            <td className="p-3 text-muted">{(att.sizeBytes / 1024).toFixed(1)} KB</td>
-                            <td className="p-3 text-muted">{att.uploadedByUsername || 'Chưa rõ'}</td>
-                            <td className="p-3 text-right space-x-2">
-                              <button 
-                                type="button" 
-                                onClick={() => downloadExcelFile(att.downloadUrl, att.originalFileName)}
-                                className="text-brand hover:underline font-bold"
-                              >
-                                Tải về
-                              </button>
-                              {att.canDelete && bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
-                                <button 
-                                  type="button"
-                                  onClick={() => handleDeleteAttachment(att.id)}
-                                  className="text-rose-600 hover:underline font-bold ml-2"
-                                >
-                                  Xóa
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
+            <AttachmentSection
+              projectId={projectId}
+              entityType="BUG"
+              entityId={bug.id}
+              isEditable={bug.status !== 'CLOSED' && bug.status !== 'CANCELLED'}
+            />
           )}
 
         </div>

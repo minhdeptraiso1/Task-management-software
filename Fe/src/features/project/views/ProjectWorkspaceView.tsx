@@ -20,8 +20,9 @@ import {
   UserPlus,
   UsersRound,
   X,
+  Paperclip,
 } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, ToolbarActions } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import {
   entityTypeLabels,
@@ -44,10 +45,13 @@ import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
 import { PersonalDashboardController } from '../../dashboard/controllers/PersonalDashboardController'
 import { ProjectDashboardTab } from './ProjectDashboardTab'
+import { ProjectAttachmentsTab } from './ProjectAttachmentsTab'
 import { TimesheetView } from '../components/TimesheetView'
 import { BugView } from '../components/BugView'
 import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
 import { searchProjects } from '../services/project.service'
+import GlobalSearchModal from '../components/GlobalSearchModal'
+import type { SearchResultItem } from '../models/search.model'
 
 const statuses: ProjectStatus[] = ['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'ARCHIVED']
 const memberRoles: ProjectMemberRole[] = ['OWNER', 'PROJECT_MANAGER', 'SCRUM_MASTER', 'PRODUCT_OWNER', 'DEVELOPER', 'TESTER', 'VIEWER']
@@ -84,7 +88,7 @@ interface Props {
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -106,7 +110,7 @@ interface Props {
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -148,6 +152,9 @@ interface Props {
   onClearTaskImportResult: () => void
   onRefreshSprintStats?: (sprintId: string) => void
   onExportSprintTasks: (sprintId: string) => void
+  openBugId?: string | null
+  onCloseBug?: () => void
+  onSelectSearchResult: (result: SearchResultItem) => void
 }
 
 function statusClass(status: ProjectStatus) {
@@ -379,7 +386,12 @@ export function ProjectWorkspaceView({
   onClearTaskImportResult,
   onRefreshSprintStats,
   onExportSprintTasks,
+  openBugId,
+  onCloseBug,
+  onSelectSearchResult,
 }: Props) {
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false)
+  const [showProjectAdvancedFilters, setShowProjectAdvancedFilters] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [projectEditOpen, setProjectEditOpen] = useState(false)
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false)
@@ -410,6 +422,18 @@ export function ProjectWorkspaceView({
         // ignore
       }
     }
+  }, [])
+
+  // Listen for Ctrl+K / Cmd+K to open global search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setGlobalSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   useEffect(() => {
@@ -477,7 +501,28 @@ export function ProjectWorkspaceView({
         <span className="h-6 w-px bg-white/20" />
         <span className="text-sm text-white/55">PROJECT</span>
       </div>
+      
+      <div className="flex-1 max-w-md mx-6 hidden sm:block">
+        <button
+          type="button"
+          onClick={() => setGlobalSearchOpen(true)}
+          className="w-full flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3.5 py-2 text-left text-xs text-white/50 hover:bg-white/15 hover:text-white/80 transition-all cursor-pointer"
+        >
+          <Search size={14} className="shrink-0 text-white/50" />
+          <span>Tìm kiếm dự án, task, bug... (Ctrl + K)</span>
+          <kbd className="ml-auto rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold text-white/40 border border-white/5">Ctrl K</kbd>
+        </button>
+      </div>
+
       <div className="flex items-center gap-3">
+        <button 
+          type="button" 
+          onClick={() => setGlobalSearchOpen(true)}
+          className="sm:hidden grid size-8 place-items-center rounded-full hover:bg-white/10 text-white/80 transition mr-1 cursor-pointer"
+          title="Tìm kiếm"
+        >
+          <Search size={18} />
+        </button>
         <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-white/10 transition" onClick={onOpenSettings}>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand font-bold text-white uppercase text-sm">
             {user.username.charAt(0)}
@@ -496,14 +541,28 @@ export function ProjectWorkspaceView({
             {!sidebarCollapsed && <div>
               <h1 className="text-xl font-bold">Dự án của tôi</h1>
             </div>}
-            <Button
-              variant="secondary"
-              size="sm"
-              iconOnly
-              leadingIcon={sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-              aria-label={sidebarCollapsed ? 'Mở rộng danh sách dự án' : 'Thu gọn danh sách dự án'}
-              onClick={() => setSidebarCollapsed(value => !value)}
-            />
+            <div className="flex items-center gap-1.5">
+              {!sidebarCollapsed && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconOnly
+                  onClick={() => setShowProjectAdvancedFilters(!showProjectAdvancedFilters)}
+                  className={`${showProjectAdvancedFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+                  title="Bộ lọc nâng cao"
+                  aria-label="Bộ lọc nâng cao"
+                  leadingIcon={<Filter size={16} />}
+                />
+              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                iconOnly
+                leadingIcon={sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                aria-label={sidebarCollapsed ? 'Mở rộng danh sách dự án' : 'Thu gọn danh sách dự án'}
+                onClick={() => setSidebarCollapsed(value => !value)}
+              />
+            </div>
           </div>
           {!sidebarCollapsed && <div className="mt-4 grid gap-3">
             <div className="relative" ref={searchContainerRef}>
@@ -583,8 +642,71 @@ export function ProjectWorkspaceView({
             </div>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <Select aria-label="Trạng thái" value={filters.status} onChange={event => onFiltersChange({ ...filters, status: event.target.value as ProjectFilters['status'] })} options={[{ label: 'Mọi trạng thái', value: '' }, ...statuses.map(status => ({ label: projectStatusLabels[status], value: status }))]} />
-              <ToolbarActions loading={loading} canCreate={canCreateProject} createLabel="Tạo dự án" createIcon={<Plus size={18} />} onFilter={handleSearch} onCreate={() => setCreateOpen(true)} />
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="secondary" loading={loading} leadingIcon={<Search size={17} />} onClick={() => handleSearch()}>Tìm</Button>
+                {canCreateProject && <Button type="button" leadingIcon={<Plus size={17} />} onClick={() => setCreateOpen(true)}>Tạo</Button>}
+              </div>
             </div>
+
+            {showProjectAdvancedFilters && (
+              <div className="mt-3 p-3.5 bg-canvas border border-line rounded-xl space-y-3.5 text-xs animate-enter">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Bắt đầu từ ngày</label>
+                    <Input type="date" value={filters.startDateFrom || ''} onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                    <Input type="date" value={filters.startDateTo || ''} onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })} />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Kết thúc từ ngày</label>
+                    <Input type="date" value={filters.endDateFrom || ''} onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                    <Input type="date" value={filters.endDateTo || ''} onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })} />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+                    <Input type="date" value={filters.createdFrom || ''} onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                    <Input type="date" value={filters.createdTo || ''} onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2.5 border-t border-line/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onFiltersChange({
+                        keyword: filters.keyword,
+                        status: filters.status
+                      })
+                      setTimeout(() => handleSearch(), 50)
+                    }}
+                    className="text-muted hover:text-ink font-semibold"
+                  >
+                    Đặt lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSearch()}
+                    className="text-brand hover:text-brand-dark font-bold"
+                  >
+                    Áp dụng
+                  </button>
+                </div>
+              </div>
+            )}
           </div>}
         </div>
 
@@ -689,6 +811,7 @@ export function ProjectWorkspaceView({
               <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
               <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
               <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
+              <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
             </div>
           </div>
 
@@ -917,7 +1040,13 @@ export function ProjectWorkspaceView({
                 backlogItems={backlogItems} 
                 tasks={Object.values(kanbanBoards).flatMap(board => board?.columns.flatMap(col => col.tasks) ?? [])} 
                 sprints={sprints}
+                openBugId={openBugId || undefined}
+                onCloseBug={onCloseBug}
               />
+            )}
+
+            {activeTab === 'attachments' && (
+              <ProjectAttachmentsTab projectId={selectedProject.id} />
             )}
           </div>
         </>}
@@ -936,6 +1065,14 @@ export function ProjectWorkspaceView({
         onClose={() => setSelectedActivityId(null)}
       />
     )}
+
+    <GlobalSearchModal
+      open={globalSearchOpen}
+      onClose={() => setGlobalSearchOpen(false)}
+      currentProjectId={selectedProject?.id}
+      currentProjectCode={selectedProject?.code}
+      onSelectResult={onSelectSearchResult}
+    />
   </div>
 }
 

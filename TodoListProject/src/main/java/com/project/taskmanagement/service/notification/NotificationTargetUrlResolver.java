@@ -13,6 +13,8 @@ import com.project.taskmanagement.repository.BugEvidenceRepository;
 import com.project.taskmanagement.repository.TaskCommentRepository;
 import com.project.taskmanagement.repository.TaskImportBatchRepository;
 import com.project.taskmanagement.repository.TaskTimeLogRepository;
+import com.project.taskmanagement.entity.Attachment;
+import com.project.taskmanagement.repository.AttachmentRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +36,7 @@ public class NotificationTargetUrlResolver {
     BugCommentRepository bugCommentRepository;
     BugEvidenceRepository bugEvidenceRepository;
     BugAttachmentRepository bugAttachmentRepository;
+    AttachmentRepository attachmentRepository;
 
     public String resolve(
             UUID projectId,
@@ -99,6 +102,11 @@ public class NotificationTargetUrlResolver {
             );
 
             case TASK_IMPORT -> resolveTaskImportUrl(
+                    projectId,
+                    entityId
+            );
+
+            case ATTACHMENT -> resolveAttachmentUrl(
                     projectId,
                     entityId
             );
@@ -239,5 +247,41 @@ public class NotificationTargetUrlResolver {
                         "/projects/" + projectId
                                 + "/task-imports"
                 );
+    }
+
+    private String resolveAttachmentUrl(UUID projectId, UUID attachmentId) {
+        if (attachmentId == null) {
+            return "/projects/" + projectId + "/tasks";
+        }
+        return attachmentRepository.findById(attachmentId)
+                .map(attachment -> {
+                    switch (attachment.getEntityType()) {
+                        case TASK -> {
+                            return "/projects/" + projectId + "/tasks/" + attachment.getEntityId() + "?tab=attachments";
+                        }
+                        case COMMENT -> {
+                            return taskCommentRepository.findById(attachment.getEntityId())
+                                    .map(comment -> "/projects/" + projectId + "/tasks/" + comment.getTaskId() + "?tab=comments")
+                                    .orElse("/projects/" + projectId + "/tasks");
+                        }
+                        case BUG -> {
+                            return "/projects/" + projectId + "/bugs/" + attachment.getEntityId() + "?tab=attachments";
+                        }
+                        case BUG_COMMENT -> {
+                            return bugCommentRepository.findById(attachment.getEntityId())
+                                    .map(comment -> "/projects/" + projectId + "/bugs/" + comment.getBugId() + "?tab=comments")
+                                    .orElse("/projects/" + projectId + "/bugs");
+                        }
+                        case BUG_EVIDENCE -> {
+                            return bugEvidenceRepository.findById(attachment.getEntityId())
+                                    .map(evidence -> "/projects/" + projectId + "/bugs/" + evidence.getBugId() + "?tab=evidences")
+                                    .orElse("/projects/" + projectId + "/bugs");
+                        }
+                        default -> {
+                            return "/projects/" + projectId;
+                        }
+                    }
+                })
+                .orElse("/projects/" + projectId);
     }
 }

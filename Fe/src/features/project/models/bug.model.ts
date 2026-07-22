@@ -68,6 +68,14 @@ export interface BugSearchFilters {
   reporterUserId?: string
   taskId?: string
   backlogItemId?: string
+  sprintId?: string
+  linkedTaskId?: string
+  reopenedOnly?: boolean
+  overdueOnly?: boolean
+  dueDateFrom?: string
+  dueDateTo?: string
+  createdFrom?: string
+  createdTo?: string
 }
 
 export const bugSeverityLabels: Record<BugSeverity, string> = {

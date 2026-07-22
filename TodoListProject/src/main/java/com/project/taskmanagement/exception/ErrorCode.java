@@ -947,7 +947,7 @@ public enum ErrorCode {
     BUG_REPORT_DATE_RANGE_TOO_LARGE(
             400990,
             HttpStatus.BAD_REQUEST,
-            "Khoang thoi gian bao cao Bug qua lon"
+            "Khoảng thời gian báo cáo Bug quá lớn"
     ),
 
     BUG_SPRINT_NOT_IN_PROJECT(
@@ -972,6 +972,114 @@ public enum ErrorCode {
             400901,
             HttpStatus.BAD_REQUEST,
             "Không thể lọc đồng thời Task quá hạn và Task sắp đến hạn"
+    ),
+
+    FILE_EMPTY(
+            400981,
+            HttpStatus.BAD_REQUEST,
+            "Tệp tin không được để trống"
+    ),
+
+    FILE_TOO_LARGE(
+            400982,
+            HttpStatus.BAD_REQUEST,
+            "Tệp tin vượt quá dung lượng cho phép"
+    ),
+
+    FILE_NAME_INVALID(
+            400983,
+            HttpStatus.BAD_REQUEST,
+            "Tên tệp tin không hợp lệ"
+    ),
+
+    FILE_EXTENSION_NOT_ALLOWED(
+            400984,
+            HttpStatus.BAD_REQUEST,
+            "Định dạng tệp tin không được hỗ trợ"
+    ),
+
+    FILE_STORAGE_INVALID_PATH(
+            400985,
+            HttpStatus.BAD_REQUEST,
+            "Đường dẫn lưu tệp tin không hợp lệ"
+    ),
+
+    FILE_ENTITY_TYPE_NOT_SUPPORTED(
+            400986,
+            HttpStatus.BAD_REQUEST,
+            "Loại đối tượng đính kèm không được hỗ trợ"
+    ),
+
+    FILE_MIME_TYPE_NOT_ALLOWED(
+            400994,
+            HttpStatus.BAD_REQUEST,
+            "MIME type của tệp tin không được hỗ trợ"
+    ),
+
+    FILE_SIGNATURE_INVALID(
+            400995,
+            HttpStatus.BAD_REQUEST,
+            "Nội dung tệp tin không khớp với định dạng khai báo"
+    ),
+
+    ATTACHMENT_ENTITY_LIMIT_EXCEEDED(
+            400996,
+            HttpStatus.BAD_REQUEST,
+            "Số lượng tệp đính kèm của đối tượng đã vượt giới hạn"
+    ),
+
+    PROJECT_STORAGE_LIMIT_EXCEEDED(
+            400997,
+            HttpStatus.BAD_REQUEST,
+            "Dung lượng lưu trữ tệp tin của dự án đã vượt giới hạn"
+    ),
+
+    FILE_NOT_FOUND(
+            404981,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy tệp tin"
+    ),
+
+    ATTACHMENT_NOT_FOUND(
+            404982,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy tài liệu đính kèm"
+    ),
+
+    ATTACHMENT_ACCESS_DENIED(
+            403981,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền thao tác tài liệu đính kèm này"
+    ),
+
+    FILE_STORAGE_FAILED(
+            500981,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Lưu tệp tin thất bại"
+    ),
+
+    FILE_CLEANUP_FAILED(
+            500983,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Cleanup tệp tin thất bại"
+    ),
+
+    FILTER_DATE_RANGE_INVALID(
+            400991,
+            HttpStatus.BAD_REQUEST,
+            "Khoảng thời gian lọc không hợp lệ"
+    ),
+
+    FILTER_SORT_FIELD_INVALID(
+            400992,
+            HttpStatus.BAD_REQUEST,
+            "Trường sắp xếp không hợp lệ"
+    ),
+
+    FILTER_PAGE_SIZE_INVALID(
+            400993,
+            HttpStatus.BAD_REQUEST,
+            "Kích thước trang không hợp lệ"
     ),
 
     // ============================================================

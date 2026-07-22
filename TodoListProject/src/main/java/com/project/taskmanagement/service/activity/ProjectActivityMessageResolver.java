@@ -294,6 +294,26 @@ public class ProjectActivityMessageResolver {
             case BUG_ATTACHMENT_DELETED -> actor
                     + " đã xóa tệp đính kèm Bug";
 
+            case ATTACHMENT_UPLOADED -> actor
+                    + " đã tải lên tài liệu đính kèm "
+                    + quoted(
+                    firstNonNull(
+                            newValue,
+                            "originalFileName",
+                            "storedFileName"
+                    )
+            );
+
+            case ATTACHMENT_DELETED -> actor
+                    + " đã xóa tài liệu đính kèm "
+                    + quoted(
+                    firstNonNull(
+                            oldValue,
+                            "originalFileName",
+                            "storedFileName"
+                    )
+            );
+
             case COMMENT_CREATED -> actor
                     + " đã thêm bình luận";
 

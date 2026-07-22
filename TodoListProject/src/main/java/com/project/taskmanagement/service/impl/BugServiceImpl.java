@@ -38,8 +38,10 @@ import com.project.taskmanagement.service.bug.BugViewHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.BugStatusTransitionValidator;
 import com.project.taskmanagement.service.validation.BugValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -166,8 +169,32 @@ public class BugServiceImpl implements BugService {
 
         BugSearchRequest safeRequest =
                 request == null
-                        ? new BugSearchRequest(null, null, null, null, null, null, null, null, null)
+                        ? new BugSearchRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
                         : request;
+
+        DateRangeValidator.validate(
+                safeRequest.dueDateFrom(),
+                safeRequest.dueDateTo()
+        );
+        DateRangeValidator.validate(
+                safeRequest.createdFrom(),
+                safeRequest.createdTo()
+        );
+        PageableValidator.validate(
+                pageable,
+                Set.of(
+                        "createdAt",
+                        "updatedAt",
+                        "title",
+                        "status",
+                        "priority",
+                        "severity",
+                        "dueDate",
+                        "reopenedCount"
+                )
+        );
+
+        LocalDate today = LocalDate.now();
 
         Specification<Bug> specification =
                 Specification.where(BugSpecification.belongsToProject(projectId))
@@ -178,8 +205,19 @@ public class BugServiceImpl implements BugService {
                         .and(BugSpecification.hasAssignee(safeRequest.assigneeUserId()))
                         .and(BugSpecification.hasReporter(safeRequest.reporterUserId()))
                         .and(BugSpecification.hasTask(safeRequest.taskId()))
+                        .and(BugSpecification.hasLinkedTask(safeRequest.linkedTaskId()))
                         .and(BugSpecification.hasBacklogItem(safeRequest.backlogItemId()))
-                        .and(BugSpecification.hasSprint(safeRequest.sprintId()));
+                        .and(BugSpecification.hasSprint(safeRequest.sprintId()))
+                        .and(BugSpecification.reopenedOnly(safeRequest.reopenedOnly()))
+                        .and(BugSpecification.overdueOnly(safeRequest.overdueOnly(), today))
+                        .and(BugSpecification.dueDateBetween(
+                                safeRequest.dueDateFrom(),
+                                safeRequest.dueDateTo()
+                        ))
+                        .and(BugSpecification.createdAtBetween(
+                                safeRequest.createdFrom(),
+                                safeRequest.createdTo()
+                        ));
 
         Page<BugResponse> page =
                 bugRepository

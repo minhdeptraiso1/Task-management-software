@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../services/apiClient'
 import { endpoints } from '../../../services/endpoints'
-import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress, SprintReminderResponse, SprintReviewResponse, SprintRetrospectiveResponse, SprintClosingReportResponse } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress, SprintReminderResponse, SprintReviewResponse, SprintRetrospectiveResponse, SprintClosingReportResponse, SprintFilters } from '../models/scrum.model'
 
 const projectPath = (projectId: string) => `${endpoints.projects}/${projectId}`
 
@@ -32,8 +32,18 @@ export const deleteBacklogItem = (projectId: string, itemId: string) =>
 export const updateBacklogItemPosition = (projectId: string, itemId: string, position: number) =>
   apiRequest<BacklogItem>(`${projectPath(projectId)}/backlog-items/${itemId}/position`, { method: 'PATCH', body: JSON.stringify({ position }) })
 
-export function getSprints(projectId: string) {
-  const params = new URLSearchParams({ page: '0', size: '50', sort: 'createdAt,desc' })
+export function getSprints(projectId: string, filters?: SprintFilters, page = 0, size = 50) {
+  const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'createdAt,desc' })
+  if (filters) {
+    if (filters.keyword) params.set('keyword', filters.keyword)
+    if (filters.status) params.set('status', filters.status)
+    if (filters.startDateFrom) params.set('startDateFrom', filters.startDateFrom)
+    if (filters.startDateTo) params.set('startDateTo', filters.startDateTo)
+    if (filters.endDateFrom) params.set('endDateFrom', filters.endDateFrom)
+    if (filters.endDateTo) params.set('endDateTo', filters.endDateTo)
+    if (filters.createdFrom) params.set('createdFrom', filters.createdFrom)
+    if (filters.createdTo) params.set('createdTo', filters.createdTo)
+  }
   return apiRequest<SprintPage>(`${projectPath(projectId)}/sprints?${params}`)
 }
 

@@ -15,6 +15,7 @@ import com.project.taskmanagement.service.TaskExcelImportService;
 import com.project.taskmanagement.service.TaskExcelTemplateService;
 import com.project.taskmanagement.service.TaskService;
 import com.project.taskmanagement.service.model.GeneratedExcelFile;
+import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -22,11 +23,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @RestController
@@ -85,6 +87,10 @@ public class SprintController {
             @ParameterObject
             SprintSearchRequest request,
 
+            @PageableDefault(
+                    sort = "createdAt",
+                    direction = Sort.Direction.DESC
+            )
             @ParameterObject
             Pageable pageable
     ) {
@@ -341,20 +347,13 @@ public class SprintController {
                                 sprintId
                         );
 
-        ContentDisposition contentDisposition =
-                ContentDisposition
-                        .attachment()
-                        .filename(
-                                generatedFile.fileName(),
-                                StandardCharsets.UTF_8
-                        )
-                        .build();
-
         return ResponseEntity
                 .ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        contentDisposition.toString()
+                        DownloadHeaderUtils.attachmentContentDisposition(
+                                generatedFile.fileName()
+                        )
                 )
                 .header(
                         HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,

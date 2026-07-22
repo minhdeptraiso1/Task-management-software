@@ -73,4 +73,10 @@ public final class CacheNames {
     public static final String BUG_DASHBOARD = "bug_dashboard";
     public static final String BUG_REPORT = "bug_report";
     public static final String BUG_QA_METRICS = "bug_qa_metrics";
+
+    public static final String GLOBAL_SEARCH = "global_search";
+    public static final String ATTACHMENT_LIST = "attachment_list";
+    public static final String ATTACHMENT_USAGE = "attachment_usage";
+    public static final String ATTACHMENT_SECURITY_SUMMARY = "attachment_security_summary";
+    public static final String FILE_CLEANUP_RESULT = "file_cleanup_result";
 }

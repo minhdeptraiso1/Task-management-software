@@ -12,7 +12,7 @@ const emptyPage: UserPage = { content: [], totalElements: 0, totalPages: 0, numb
 const emptyAuditPage: AuditLogPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 12, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: UserFilters = { keyword: '', role: '', enabled: '' }
 const fallbackRoles: UserRole[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
-type AdminSection = 'members' | 'audit'
+type AdminSection = 'members' | 'audit' | 'files'
 
 export function DashboardController({ me, onLogout, onOpenSettings }: { me: User; onLogout: () => void; onOpenSettings: () => void }) {
   const [users, setUsers] = useState(emptyPage)

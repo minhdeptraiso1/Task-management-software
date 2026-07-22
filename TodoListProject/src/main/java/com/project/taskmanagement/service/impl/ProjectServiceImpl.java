@@ -25,6 +25,8 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.service.validation.ProjectValidator;
 import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
@@ -44,6 +46,7 @@ import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -196,8 +199,7 @@ public class ProjectServiceImpl
     @Cacheable(
             value = CacheNames.PROJECT_SEARCH,
             key = "T(com.project.taskmanagement.security.CurrentUser).username() " +
-                    "+ '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword()) " +
-                    "+ '|status=' + (#request == null || #request.status() == null ? '' : #request.status()) " +
+                    "+ '|request=' + (#request == null ? '' : #request.toString()) " +
                     "+ '|page=' + #pageable.pageNumber " +
                     "+ '|size=' + #pageable.pageSize " +
                     "+ '|sort=' + #pageable.sort.toString()"
@@ -220,6 +222,31 @@ public class ProjectServiceImpl
                         ? request.status()
                         : null;
 
+        DateRangeValidator.validate(
+                request == null ? null : request.startDateFrom(),
+                request == null ? null : request.startDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.endDateFrom(),
+                request == null ? null : request.endDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.createdFrom(),
+                request == null ? null : request.createdTo()
+        );
+        PageableValidator.validate(
+                pageable,
+                Set.of(
+                        "createdAt",
+                        "updatedAt",
+                        "code",
+                        "name",
+                        "status",
+                        "startDate",
+                        "endDate"
+                )
+        );
+
         Specification<Project> specification =
                 Specification.allOf(
                         ProjectSpecification.search(
@@ -227,6 +254,18 @@ public class ProjectServiceImpl
                         ),
                         ProjectSpecification.hasStatus(
                                 status
+                        ),
+                        ProjectSpecification.startDateBetween(
+                                request == null ? null : request.startDateFrom(),
+                                request == null ? null : request.startDateTo()
+                        ),
+                        ProjectSpecification.endDateBetween(
+                                request == null ? null : request.endDateFrom(),
+                                request == null ? null : request.endDateTo()
+                        ),
+                        ProjectSpecification.createdAtBetween(
+                                request == null ? null : request.createdFrom(),
+                                request == null ? null : request.createdTo()
                         )
                 );
 

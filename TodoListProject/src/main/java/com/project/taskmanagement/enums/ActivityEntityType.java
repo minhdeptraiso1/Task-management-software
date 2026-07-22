@@ -20,6 +20,8 @@ public enum ActivityEntityType {
 
     BUG_ATTACHMENT,
 
+    ATTACHMENT,
+
     COMMENT,
 
     TIME_LOG,

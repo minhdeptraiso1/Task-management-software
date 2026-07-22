@@ -39,6 +39,12 @@ export interface ProjectPage {
 export interface ProjectFilters {
   keyword: string
   status: '' | ProjectStatus
+  startDateFrom?: string
+  startDateTo?: string
+  endDateFrom?: string
+  endDateTo?: string
+  createdFrom?: string
+  createdTo?: string
 }
 
 export interface CreateProjectData {

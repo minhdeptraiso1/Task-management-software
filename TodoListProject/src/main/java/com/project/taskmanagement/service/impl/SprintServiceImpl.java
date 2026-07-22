@@ -26,6 +26,8 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.service.validation.SprintValidator;
 import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
@@ -269,8 +271,7 @@ public class SprintServiceImpl
             value = CacheNames.SPRINT_SEARCH,
             key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
                     " + '|project=' + #projectId" +
-                    " + '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword())" +
-                    " + '|status=' + (#request == null || #request.status() == null ? '' : #request.status())" +
+                    " + '|request=' + (#request == null ? '' : #request.toString())" +
                     " + '|page=' + #pageable.pageNumber" +
                     " + '|size=' + #pageable.pageSize" +
                     " + '|sort=' + #pageable.sort.toString()"
@@ -304,6 +305,30 @@ public class SprintServiceImpl
                         ? request.status()
                         : null;
 
+        DateRangeValidator.validate(
+                request == null ? null : request.startDateFrom(),
+                request == null ? null : request.startDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.endDateFrom(),
+                request == null ? null : request.endDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.createdFrom(),
+                request == null ? null : request.createdTo()
+        );
+        PageableValidator.validate(
+                pageable,
+                Set.of(
+                        "createdAt",
+                        "updatedAt",
+                        "name",
+                        "status",
+                        "startDate",
+                        "endDate"
+                )
+        );
+
         Specification<Sprint> specification =
                 Specification.allOf(
                         SprintSpecification
@@ -311,7 +336,22 @@ public class SprintServiceImpl
                         SprintSpecification
                                 .search(keyword),
                         SprintSpecification
-                                .hasStatus(status)
+                                .hasStatus(status),
+                        SprintSpecification
+                                .startDateBetween(
+                                        request == null ? null : request.startDateFrom(),
+                                        request == null ? null : request.startDateTo()
+                                ),
+                        SprintSpecification
+                                .endDateBetween(
+                                        request == null ? null : request.endDateFrom(),
+                                        request == null ? null : request.endDateTo()
+                                ),
+                        SprintSpecification
+                                .createdAtBetween(
+                                        request == null ? null : request.createdFrom(),
+                                        request == null ? null : request.createdTo()
+                                )
                 );
 
         Page<SprintResponse> responsePage =

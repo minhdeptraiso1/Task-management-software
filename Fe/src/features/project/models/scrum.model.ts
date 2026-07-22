@@ -316,3 +316,14 @@ export interface SprintReminderResponse {
   recipientUserIds: string[]
   sentAt: string
 }
+
+export interface SprintFilters {
+  keyword?: string
+  status?: '' | SprintStatus
+  startDateFrom?: string
+  startDateTo?: string
+  endDateFrom?: string
+  endDateTo?: string
+  createdFrom?: string
+  createdTo?: string
+}

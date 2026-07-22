@@ -22,6 +22,8 @@ import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.task.TaskViewHelper;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.service.validation.TaskStatusTransitionValidator;
 import com.project.taskmanagement.service.validation.TaskValidator;
 import com.project.taskmanagement.service.validation.TaskWorkflowValidator;
@@ -303,12 +305,7 @@ public class TaskServiceImpl
             value = CacheNames.TASK_SEARCH,
             key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
                     " + '|project=' + #projectId" +
-                    " + '|sprint=' + (#request == null || #request.sprintId() == null ? '' : #request.sprintId())" +
-                    " + '|backlog=' + (#request == null || #request.backlogItemId() == null ? '' : #request.backlogItemId())" +
-                    " + '|assignee=' + (#request == null || #request.assigneeUserId() == null ? '' : #request.assigneeUserId())" +
-                    " + '|status=' + (#request == null || #request.status() == null ? '' : #request.status())" +
-                    " + '|priority=' + (#request == null || #request.priority() == null ? '' : #request.priority())" +
-                    " + '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword())" +
+                    " + '|request=' + (#request == null ? '' : #request.toString())" +
                     " + '|page=' + #pageable.pageNumber" +
                     " + '|size=' + #pageable.pageSize" +
                     " + '|sort=' + #pageable.sort.toString()"
@@ -331,6 +328,33 @@ public class TaskServiceImpl
                         project,
                         currentUser
                 );
+
+        DateRangeValidator.validate(
+                request == null ? null : request.startDateFrom(),
+                request == null ? null : request.startDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.dueDateFrom(),
+                request == null ? null : request.dueDateTo()
+        );
+        DateRangeValidator.validate(
+                request == null ? null : request.createdFrom(),
+                request == null ? null : request.createdTo()
+        );
+        PageableValidator.validate(
+                pageable,
+                Set.of(
+                        "createdAt",
+                        "updatedAt",
+                        "title",
+                        "status",
+                        "priority",
+                        "dueDate",
+                        "position"
+                )
+        );
+
+        LocalDate today = LocalDate.now();
 
         Specification<Task> specification =
                 Specification.allOf(
@@ -364,6 +388,12 @@ public class TaskServiceImpl
                                                 ? request.assigneeUserId()
                                                 : null
                                 ),
+                        TaskSpecification
+                                .hasReporter(
+                                        request != null
+                                                ? request.reporterUserId()
+                                                : null
+                                ),
 
                         TaskSpecification
                                 .hasStatus(
@@ -390,6 +420,48 @@ public class TaskServiceImpl
                                 .unassignedOnly(
                                         request != null
                                                 ? request.unassignedOnly()
+                                                : null
+                                ),
+                        TaskSpecification
+                                .overdueOnly(
+                                        request != null
+                                                ? request.overdueOnly()
+                                                : null,
+                                        today
+                                ),
+                        TaskSpecification
+                                .dueSoonOnly(
+                                        request != null
+                                                ? request.dueSoonOnly()
+                                                : null,
+                                        today,
+                                        today.plusDays(3)
+                                ),
+                        TaskSpecification
+                                .startDateBetween(
+                                        request != null
+                                                ? request.startDateFrom()
+                                                : null,
+                                        request != null
+                                                ? request.startDateTo()
+                                                : null
+                                ),
+                        TaskSpecification
+                                .dueDateBetween(
+                                        request != null
+                                                ? request.dueDateFrom()
+                                                : null,
+                                        request != null
+                                                ? request.dueDateTo()
+                                                : null
+                                ),
+                        TaskSpecification
+                                .createdAtBetween(
+                                        request != null
+                                                ? request.createdFrom()
+                                                : null,
+                                        request != null
+                                                ? request.createdTo()
                                                 : null
                                 )
                 );

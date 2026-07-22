@@ -1,9 +1,10 @@
 import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
-import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle } from 'lucide-react'
+import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
 import { SprintProgressView } from '../components/SprintProgressView'
+import AttachmentSection from '../components/AttachmentSection'
 import { BacklogCard, priorityClass, typeClass, statusClass } from '../components/BacklogCard'
 
 function UserStoryHorizontalCard({
@@ -38,11 +39,12 @@ function UserStoryHorizontalCard({
     </button>
   )
 }
-import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
+import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress, SprintFilters } from '../models/scrum.model'
 import { backlogPriorityLabels, backlogStatusLabels, backlogTypeLabels, sprintStatusLabels } from '../models/scrum.model'
 import type { KanbanBoard, KanbanTask, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import { taskPriorityLabels, taskStatusLabels, taskTypeLabels, taskRiskLevelLabels } from '../models/task.model'
 import type { ProjectMember } from '../models/project.model'
+import type { TaskSearchOptions } from '../services/task.service'
 
 const itemTypes: BacklogItemType[] = ['USER_STORY', 'FEATURE', 'TECHNICAL', 'EPIC']
 const priorities: BacklogPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -289,6 +291,7 @@ function CreateTaskModal({
 }
 
 function TaskDetailModal({
+  projectId,
   task,
   comments,
   timeLogs,
@@ -315,6 +318,7 @@ function TaskDetailModal({
   onDeleteTimeLog,
   onAskConfirm,
 }: {
+  projectId: string
   task: Task | null
   comments: TaskCommentPage
   timeLogs: TaskTimeLogPage
@@ -716,6 +720,15 @@ function TaskDetailModal({
           {!timeLogs.content.length && <p className="rounded-xl bg-canvas p-4 text-center text-sm text-muted">Chưa có time log.</p>}
         </div>
       </section>
+
+      <section className="rounded-xl border border-line bg-canvas p-4">
+        <AttachmentSection
+          projectId={projectId}
+          entityType="TASK"
+          entityId={task.id}
+          isEditable={task.status !== 'CANCELLED'}
+        />
+      </section>
       <Modal open={Boolean(textAction)} title={textAction?.title ?? ''} onClose={() => { setTextAction(null); setShowMentionDropdown(false) }} showClose={false}>
         <form className="space-y-4" onSubmit={event => {
           event.preventDefault()
@@ -898,6 +911,7 @@ function SprintTaskKanban({
   onOpenProgress,
   onOpenClosing,
   onExportSprintTasks,
+  members,
 }: {
   sprints: Sprint[]
   selectedSprintId: string | null
@@ -919,11 +933,31 @@ function SprintTaskKanban({
   onOpenProgress?: () => void
   onOpenClosing: () => void
   onExportSprintTasks: (sprintId: string) => void
+  members: ProjectMember[]
 }) {
   const [dragOver, setDragOver] = useState<TaskStatus | null>(null)
   const [selectedBacklogItemId, setSelectedBacklogItemId] = useState<string>('')
   const [isTemplateAnim, setIsTemplateAnim] = useState(false)
   const [isImportAnim, setIsImportAnim] = useState(false)
+
+  const [taskFilters, setTaskFilters] = useState<TaskSearchOptions>({
+    keyword: '',
+    assigneeUserId: '',
+    reporterUserId: '',
+    status: undefined,
+    priority: undefined,
+    type: undefined,
+    unassignedOnly: false,
+    overdueOnly: false,
+    dueSoonOnly: false,
+    startDateFrom: '',
+    startDateTo: '',
+    dueDateFrom: '',
+    dueDateTo: '',
+    createdFrom: '',
+    createdTo: ''
+  })
+  const [showTaskFilters, setShowTaskFilters] = useState(false)
 
   useEffect(() => {
     if (userStories.length > 0) {
@@ -971,9 +1005,52 @@ function SprintTaskKanban({
         columns: columnOrder
           .map(status => {
             const existingColumn = board.columns.find(c => c.status === status)
-            const tasks = existingColumn 
+            let tasks = existingColumn 
               ? (activeBacklogItemId ? existingColumn.tasks.filter(task => task.backlogItemId === activeBacklogItemId) : [])
               : []
+
+            if (tasks.length > 0) {
+              tasks = tasks.filter(task => {
+                if (taskFilters.keyword && !task.title.toLowerCase().includes(taskFilters.keyword.toLowerCase())) {
+                  return false
+                }
+                if (taskFilters.assigneeUserId && task.assigneeUserId !== taskFilters.assigneeUserId) {
+                  return false
+                }
+                if (taskFilters.priority && task.priority !== taskFilters.priority) {
+                  return false
+                }
+                if (taskFilters.type && task.type !== taskFilters.type) {
+                  return false
+                }
+                if (taskFilters.unassignedOnly && task.assigneeUserId) {
+                  return false
+                }
+                if (taskFilters.overdueOnly) {
+                  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE' && task.status !== 'CANCELLED'
+                  if (!isOverdue) return false
+                }
+                if (taskFilters.dueSoonOnly) {
+                  if (!task.dueDate || task.status === 'DONE' || task.status === 'CANCELLED') return false
+                  const diffTime = new Date(task.dueDate).getTime() - new Date().getTime()
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                  if (diffDays < 0 || diffDays > 3) return false
+                }
+                if (taskFilters.startDateFrom && (!task.startDate || task.startDate < taskFilters.startDateFrom)) {
+                  return false
+                }
+                if (taskFilters.startDateTo && (!task.startDate || task.startDate > taskFilters.startDateTo)) {
+                  return false
+                }
+                if (taskFilters.dueDateFrom && (!task.dueDate || task.dueDate < taskFilters.dueDateFrom)) {
+                  return false
+                }
+                if (taskFilters.dueDateTo && (!task.dueDate || task.dueDate > taskFilters.dueDateTo)) {
+                  return false
+                }
+                return true
+              })
+            }
 
             return {
               status,
@@ -1001,6 +1078,17 @@ function SprintTaskKanban({
       </div>
       <div className="flex flex-wrap gap-2">
         <Select aria-label="Chọn Sprint Kanban" value={selectedSprintId ?? ''} onChange={event => onSelectSprint(event.target.value)} options={sprints.map(sprint => ({ label: `${sprint.name} · ${sprintStatusLabels[sprint.status]}`, value: sprint.id }))} />
+        {selectedSprintId && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowTaskFilters(!showTaskFilters)}
+            className={`!px-3 ${showTaskFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+            leadingIcon={<Filter size={16} />}
+          >
+            Lọc Task
+          </Button>
+        )}
         {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
         {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="solid-blue" onClick={onOpenStatistics}>Thống kê</Button>}
         {selectedSprintId && onOpenProgress && <Button leadingIcon={<Target size={17} />} variant="outline-amber" onClick={onOpenProgress}>Tiến độ</Button>}
@@ -1021,6 +1109,156 @@ function SprintTaskKanban({
         </Button>}
       </div>
     </div>
+
+    {showTaskFilters && (
+      <div className="p-4 bg-white border border-line rounded-xl space-y-4 text-sm shadow-sm animate-enter">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa (Tiêu đề/Mô tả)</label>
+            <Input
+              placeholder="Tìm tiêu đề hoặc mô tả..."
+              value={taskFilters.keyword || ''}
+              onChange={e => setTaskFilters({ ...taskFilters, keyword: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Người được giao</label>
+            <Select
+              aria-label="Người được giao"
+              value={taskFilters.assigneeUserId || ''}
+              onChange={e => setTaskFilters({ ...taskFilters, assigneeUserId: e.target.value })}
+              options={[
+                { label: 'Tất cả', value: '' },
+                ...members.map(m => ({ label: m.username, value: m.userId }))
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Người báo cáo</label>
+            <Select
+              aria-label="Người báo cáo"
+              value={taskFilters.reporterUserId || ''}
+              onChange={e => setTaskFilters({ ...taskFilters, reporterUserId: e.target.value })}
+              options={[
+                { label: 'Tất cả', value: '' },
+                ...members.map(m => ({ label: m.username, value: m.userId }))
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Loại Task</label>
+            <Select
+              aria-label="Loại Task"
+              value={taskFilters.type || ''}
+              onChange={e => setTaskFilters({ ...taskFilters, type: e.target.value as any || undefined })}
+              options={[
+                { label: 'Tất cả', value: '' },
+                ...taskTypes.map(type => ({ label: taskTypeLabels[type], value: type }))
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Độ ưu tiên</label>
+            <Select
+              aria-label="Độ ưu tiên"
+              value={taskFilters.priority || ''}
+              onChange={e => setTaskFilters({ ...taskFilters, priority: e.target.value as any || undefined })}
+              options={[
+                { label: 'Tất cả', value: '' },
+                ...taskPriorities.map(p => ({ label: taskPriorityLabels[p], value: p }))
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Bắt đầu từ ngày</label>
+            <Input type="date" value={taskFilters.startDateFrom || ''} onChange={e => setTaskFilters({ ...taskFilters, startDateFrom: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={taskFilters.startDateTo || ''} onChange={e => setTaskFilters({ ...taskFilters, startDateTo: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Hạn chót từ ngày</label>
+            <Input type="date" value={taskFilters.dueDateFrom || ''} onChange={e => setTaskFilters({ ...taskFilters, dueDateFrom: e.target.value || undefined })} />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={taskFilters.dueDateTo || ''} onChange={e => setTaskFilters({ ...taskFilters, dueDateTo: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+            <Input type="date" value={taskFilters.createdFrom || ''} onChange={e => setTaskFilters({ ...taskFilters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={taskFilters.createdTo || ''} onChange={e => setTaskFilters({ ...taskFilters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
+          </div>
+          <div className="flex flex-col justify-end gap-2 pt-2 sm:pt-0">
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={taskFilters.unassignedOnly || false}
+                  onChange={e => setTaskFilters({ ...taskFilters, unassignedOnly: e.target.checked })}
+                  className="rounded border-line text-brand focus:ring-brand"
+                />
+                Chưa gán
+              </label>
+              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={taskFilters.overdueOnly || false}
+                  onChange={e => setTaskFilters({ ...taskFilters, overdueOnly: e.target.checked })}
+                  className="rounded border-line text-brand focus:ring-brand"
+                />
+                Quá hạn
+              </label>
+              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={taskFilters.dueSoonOnly || false}
+                  onChange={e => setTaskFilters({ ...taskFilters, dueSoonOnly: e.target.checked })}
+                  className="rounded border-line text-brand focus:ring-brand"
+                />
+                Sắp hạn (≤3 ngày)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
+          <button
+            type="button"
+            onClick={() => setTaskFilters({
+              keyword: '',
+              assigneeUserId: '',
+              reporterUserId: '',
+              status: undefined,
+              priority: undefined,
+              type: undefined,
+              unassignedOnly: false,
+              overdueOnly: false,
+              dueSoonOnly: false,
+              startDateFrom: '',
+              startDateTo: '',
+              dueDateFrom: '',
+              dueDateTo: '',
+              createdFrom: '',
+              createdTo: ''
+            })}
+            className="text-muted hover:text-ink font-semibold animate-enter"
+          >
+            Đặt lại bộ lọc
+          </button>
+        </div>
+      </div>
+    )}
 
     {importResult && <div className="fixed inset-0 z-[100] grid place-items-center bg-brand-black/55 p-4 animate-enter">
       <div className={`max-h-[85vh] w-[min(720px,calc(100vw-2rem))] overflow-hidden flex flex-col rounded-2xl border shadow-2xl ${importResult.failedRows > 0 ? 'border-danger/30 bg-[#fff0ed]' : 'border-success/30 bg-[#ecfdf3]'}`}>
@@ -1194,6 +1432,40 @@ export function ScrumBoardView({
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [taskBoardOpen, setTaskBoardOpen] = useState(false)
 
+  const [sprintFilters, setSprintFilters] = useState<SprintFilters>({
+    keyword: '',
+    status: ''
+  })
+  const [showSprintFilters, setShowSprintFilters] = useState(false)
+
+  const filteredSprints = sprints.filter(sprint => {
+    if (sprintFilters.keyword && !sprint.name.toLowerCase().includes(sprintFilters.keyword.toLowerCase()) && !(sprint.goal || '').toLowerCase().includes(sprintFilters.keyword.toLowerCase())) {
+      return false
+    }
+    if (sprintFilters.status && sprint.status !== sprintFilters.status) {
+      return false
+    }
+    if (sprintFilters.startDateFrom && (!sprint.startDate || sprint.startDate < sprintFilters.startDateFrom)) {
+      return false
+    }
+    if (sprintFilters.startDateTo && (!sprint.startDate || sprint.startDate > sprintFilters.startDateTo)) {
+      return false
+    }
+    if (sprintFilters.endDateFrom && (!sprint.endDate || sprint.endDate < sprintFilters.endDateFrom)) {
+      return false
+    }
+    if (sprintFilters.endDateTo && (!sprint.endDate || sprint.endDate > sprintFilters.endDateTo)) {
+      return false
+    }
+    if (sprintFilters.createdFrom && sprint.createdAt < sprintFilters.createdFrom) {
+      return false
+    }
+    if (sprintFilters.createdTo && sprint.createdAt > sprintFilters.createdTo) {
+      return false
+    }
+    return true
+  })
+
   const hasActiveSprint = sprints.some(s => s.status === 'ACTIVE')
   const currentBoard = selectedSprintId ? kanbanBoards[selectedSprintId] : undefined
   const sprintTasks = currentBoard ? currentBoard.columns.flatMap(col => col.tasks) : []
@@ -1249,27 +1521,28 @@ export function ScrumBoardView({
         />
       ) : (
         <SprintTaskKanban
-          sprints={sprints}
-      selectedSprintId={selectedSprintId}
-      board={selectedSprintId ? kanbanBoards[selectedSprintId] : undefined}
-      userStories={selectedSprintBacklogItems}
-      statistics={sprintStatistics}
-      burndown={sprintBurndown}
-      importResult={taskImportResult}
-      canManage={canManage}
-      onSelectSprint={onSelectSprint}
-      onTaskStatusChange={onTaskStatusChange}
-      onOpenTask={onOpenTask}
-      onCreateTaskClick={() => setTaskOpen(true)}
-      onDownloadTemplate={onDownloadTaskTemplate}
-      onImportTasks={onImportTasks}
-         onClearImportResult={onClearTaskImportResult}
-         onBack={() => setTaskBoardOpen(false)}
-         onOpenStatistics={() => setStatisticsOpen(true)}
-         onOpenProgress={() => setProgressOpen(true)}
-         onOpenClosing={() => setClosingOpen(true)}
-         onExportSprintTasks={onExportSprintTasks}
-       />
+          sprints={filteredSprints}
+          selectedSprintId={selectedSprintId}
+          board={selectedSprintId ? kanbanBoards[selectedSprintId] : undefined}
+          userStories={selectedSprintBacklogItems}
+          statistics={sprintStatistics}
+          burndown={sprintBurndown}
+          importResult={taskImportResult}
+          canManage={canManage}
+          onSelectSprint={onSelectSprint}
+          onTaskStatusChange={onTaskStatusChange}
+          onOpenTask={onOpenTask}
+          onCreateTaskClick={() => setTaskOpen(true)}
+          onDownloadTemplate={onDownloadTaskTemplate}
+          onImportTasks={onImportTasks}
+          onClearImportResult={onClearTaskImportResult}
+          onBack={() => setTaskBoardOpen(false)}
+          onOpenStatistics={() => setStatisticsOpen(true)}
+          onOpenProgress={() => setProgressOpen(true)}
+          onOpenClosing={() => setClosingOpen(true)}
+          onExportSprintTasks={onExportSprintTasks}
+          members={members}
+        />
       )
     ) : <>
     <div className="flex flex-col gap-3 rounded-xl border border-brand-line/70 bg-brand-cream p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1277,11 +1550,86 @@ export function ScrumBoardView({
         <h3 className="font-bold">Sprint Board</h3>
         <p className="mt-1 text-sm text-muted">Kéo backlog item vào Sprint để lập kế hoạch; kéo về Product Backlog để gỡ khỏi Sprint.</p>
       </div>
-      {canManage && <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" leadingIcon={<ListPlus size={17} />} onClick={() => setBacklogOpen(true)}>Tạo item</Button>
-        <Button leadingIcon={<Plus size={17} />} onClick={() => setSprintOpen(true)}>Tạo Sprint</Button>
-      </div>}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setShowSprintFilters(!showSprintFilters)}
+          className={`!px-3 ${showSprintFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+          leadingIcon={<Filter size={16} />}
+        >
+          Lọc Sprint
+        </Button>
+        {canManage && <>
+          <Button variant="secondary" leadingIcon={<ListPlus size={17} />} onClick={() => setBacklogOpen(true)}>Tạo item</Button>
+          <Button leadingIcon={<Plus size={17} />} onClick={() => setSprintOpen(true)}>Tạo Sprint</Button>
+        </>}
+      </div>
     </div>
+
+    {showSprintFilters && (
+      <div className="p-4 bg-white border border-line rounded-xl space-y-4 text-sm shadow-sm animate-enter">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa (tên/mục tiêu)</label>
+            <Input
+              placeholder="Tìm tên hoặc mục tiêu..."
+              value={sprintFilters.keyword || ''}
+              onChange={e => setSprintFilters({ ...sprintFilters, keyword: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Trạng thái Sprint</label>
+            <Select
+              aria-label="Trạng thái"
+              value={sprintFilters.status || ''}
+              onChange={e => setSprintFilters({ ...sprintFilters, status: e.target.value as any })}
+              options={[
+                { label: 'Tất cả trạng thái', value: '' },
+                ...Object.entries(sprintStatusLabels).map(([key, label]) => ({ label, value: key }))
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Bắt đầu từ ngày</label>
+            <Input type="date" value={sprintFilters.startDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateFrom: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={sprintFilters.startDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateTo: e.target.value || undefined })} />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Kết thúc từ ngày</label>
+            <Input type="date" value={sprintFilters.endDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateFrom: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={sprintFilters.endDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateTo: e.target.value || undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+            <Input type="date" value={sprintFilters.createdFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+            <Input type="date" value={sprintFilters.createdTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
+          <button
+            type="button"
+            onClick={() => setSprintFilters({ keyword: '', status: '' })}
+            className="text-muted hover:text-ink font-semibold animate-enter"
+          >
+            Đặt lại bộ lọc
+          </button>
+        </div>
+      </div>
+    )}
 
     <div className={`flex gap-4 overflow-x-auto pb-3 ${loading ? 'opacity-50' : ''}`}>
       <div
@@ -1305,7 +1653,7 @@ export function ScrumBoardView({
         </div>
       </div>
 
-      {sprints.map(sprint => (
+      {filteredSprints.map(sprint => (
         <div
           key={sprint.id}
           onDragOver={event => { event.preventDefault(); setDragOver(sprint.id) }}
@@ -1429,6 +1777,7 @@ export function ScrumBoardView({
     </Modal>
     <CreateTaskModal open={taskOpen} saving={saving} backlogItems={selectedSprintBacklogItems} members={members} onClose={() => setTaskOpen(false)} onSave={data => { onCreateTask(data); setTaskOpen(false) }} />
     <TaskDetailModal
+      projectId={projectId}
       task={selectedTask}
       comments={taskComments}
       timeLogs={taskTimeLogs}

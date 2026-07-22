@@ -4,6 +4,8 @@ import com.project.taskmanagement.entity.Project;
 import com.project.taskmanagement.enums.ProjectStatus;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
@@ -39,6 +41,12 @@ public final class ProjectSpecification {
                     criteriaBuilder.like(
                             criteriaBuilder.lower(
                                     root.get("name")
+                            ),
+                            normalizedKeyword
+                    ),
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(
+                                    root.get("description")
                             ),
                             normalizedKeyword
                     )
@@ -78,6 +86,48 @@ public final class ProjectSpecification {
             return root
                     .get("id")
                     .in(projectIds);
+        };
+    }
+
+    public static Specification<Project> startDateBetween(LocalDate from, LocalDate to) {
+        return localDateBetween("startDate", from, to);
+    }
+
+    public static Specification<Project> endDateBetween(LocalDate from, LocalDate to) {
+        return localDateBetween("endDate", from, to);
+    }
+
+    public static Specification<Project> createdAtBetween(Instant from, Instant to) {
+        return instantBetween("createdAt", from, to);
+    }
+
+    private static Specification<Project> localDateBetween(String fieldName, LocalDate from, LocalDate to) {
+        return (root, query, criteriaBuilder) -> {
+            if (from == null && to == null) {
+                return criteriaBuilder.conjunction();
+            }
+            if (from != null && to != null) {
+                return criteriaBuilder.between(root.get(fieldName), from, to);
+            }
+            if (from != null) {
+                return criteriaBuilder.greaterThanOrEqualTo(root.get(fieldName), from);
+            }
+            return criteriaBuilder.lessThanOrEqualTo(root.get(fieldName), to);
+        };
+    }
+
+    private static Specification<Project> instantBetween(String fieldName, Instant from, Instant to) {
+        return (root, query, criteriaBuilder) -> {
+            if (from == null && to == null) {
+                return criteriaBuilder.conjunction();
+            }
+            if (from != null && to != null) {
+                return criteriaBuilder.between(root.get(fieldName), from, to);
+            }
+            if (from != null) {
+                return criteriaBuilder.greaterThanOrEqualTo(root.get(fieldName), from);
+            }
+            return criteriaBuilder.lessThanOrEqualTo(root.get(fieldName), to);
         };
     }
 }

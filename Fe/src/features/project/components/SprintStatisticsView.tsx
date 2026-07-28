@@ -128,22 +128,54 @@ export function SprintStatisticsView({
     )
   }
 
-  const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent }: any) => {
-    if (!percent || percent <= 0) return null
-    const RADIAN = Math.PI / 180
-    const radius = outerRadius + 18
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+  const RADIAN = Math.PI / 180
+
+  const renderCustomizedPieLabelLine = (props: any) => {
+    const { cx, cy, midAngle, outerRadius, value, stroke } = props
+    if (!value || value <= 0) return <path d="" />
+
+    const sx = cx + outerRadius * Math.cos(-midAngle * RADIAN)
+    const sy = cy + outerRadius * Math.sin(-midAngle * RADIAN)
+
+    const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+    const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+    const isRight = Math.cos(-midAngle * RADIAN) >= 0
+    const ex = mx + (isRight ? 18 : -18)
+    const ey = my
+
+    return (
+      <path
+        d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+        stroke={stroke || props.fill || '#94a3b8'}
+        strokeWidth={1.5}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    )
+  }
+
+  const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value }: any) => {
+    if (!value || value <= 0 || !percent) return null
+
+    const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+    const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+    const isRight = Math.cos(-midAngle * RADIAN) >= 0
+    const ex = mx + (isRight ? 22 : -22)
+    const ey = my
+
     const percentStr = `${(percent * 100).toFixed(0)}%`
 
     return (
       <text
-        x={x}
-        y={y}
-        fill="#475569"
-        textAnchor={x > cx ? 'start' : 'end'}
+        x={ex}
+        y={ey}
+        fill="#1e293b"
+        textAnchor={isRight ? 'start' : 'end'}
         dominantBaseline="central"
-        style={{ fontSize: '11px', fontWeight: 800 }}
+        style={{ fontSize: '12px', fontWeight: 800 }}
       >
         {percentStr}
       </text>
@@ -423,7 +455,7 @@ export function SprintStatisticsView({
                       animationDuration={800}
                       animationEasing="ease-in-out"
                       animationBegin={0}
-                      labelLine={true}
+                      labelLine={renderCustomizedPieLabelLine}
                       label={renderCustomizedPieLabel}
                       onClick={(data: any) => data && data.payload && data.payload.status && toggleStatusVisibility(data.payload.status)}
                       cursor="pointer"
@@ -519,7 +551,7 @@ export function SprintStatisticsView({
           <div className="mt-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="font-bold text-md text-slate-800">Quản lý tải & Công suất thành viên (Capacity)</h4>
+                <h4 className="font-bold text-md text-slate-800">Quản lý tải & Công suất thành viên</h4>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Tải dự kiến: <span className="font-bold">{formatMinsToHours(capacity.totalEstimatedMinutes)}</span> / Quỹ công suất tối đa: <span className="font-bold">{formatMinsToHours(capacity.totalCapacityMinutes)}</span> ({capacity.utilizationRate.toFixed(1)}% hiệu suất sử dụng)
                 </p>

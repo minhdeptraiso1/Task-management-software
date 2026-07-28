@@ -172,10 +172,10 @@ export const getPriorityBadgeClass = (priority: TaskPriority | string) => {
 }
 
 export const priorityLabels: Record<string, string> = {
-  LOW: 'Thấp (LOW)',
-  MEDIUM: 'Vừa (MEDIUM)',
-  HIGH: 'Cao (HIGH)',
-  URGENT: 'Khẩn cấp (URGENT)'
+  LOW: 'Thấp',
+  MEDIUM: 'Vừa',
+  HIGH: 'Cao',
+  URGENT: 'Khẩn cấp'
 }
 
 export const getStatusCardStyle = (status: BugStatus, isCurrent: boolean) => {
@@ -1176,22 +1176,54 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                   )
                 }
 
-                const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent }: any) => {
-                  if (!percent || percent <= 0) return null
-                  const RADIAN = Math.PI / 180
-                  const radius = outerRadius + 18
-                  const x = cx + radius * Math.cos(-midAngle * RADIAN)
-                  const y = cy + radius * Math.sin(-midAngle * RADIAN)
+                const RADIAN = Math.PI / 180
+
+                const renderCustomizedPieLabelLine = (props: any) => {
+                  const { cx, cy, midAngle, outerRadius, value, stroke } = props
+                  if (!value || value <= 0) return <path d="" />
+
+                  const sx = cx + outerRadius * Math.cos(-midAngle * RADIAN)
+                  const sy = cy + outerRadius * Math.sin(-midAngle * RADIAN)
+
+                  const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+                  const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+                  const isRight = Math.cos(-midAngle * RADIAN) >= 0
+                  const ex = mx + (isRight ? 18 : -18)
+                  const ey = my
+
+                  return (
+                    <path
+                      d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+                      stroke={stroke || props.fill || '#94a3b8'}
+                      strokeWidth={1.5}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )
+                }
+
+                const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value }: any) => {
+                  if (!value || value <= 0 || !percent) return null
+
+                  const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+                  const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+                  const isRight = Math.cos(-midAngle * RADIAN) >= 0
+                  const ex = mx + (isRight ? 22 : -22)
+                  const ey = my
+
                   const percentStr = `${(percent * 100).toFixed(0)}%`
 
                   return (
                     <text
-                      x={x}
-                      y={y}
-                      fill="#475569"
-                      textAnchor={x > cx ? 'start' : 'end'}
+                      x={ex}
+                      y={ey}
+                      fill="#1e293b"
+                      textAnchor={isRight ? 'start' : 'end'}
                       dominantBaseline="central"
-                      style={{ fontSize: '11px', fontWeight: 800 }}
+                      style={{ fontSize: '12px', fontWeight: 800 }}
                     >
                       {percentStr}
                     </text>
@@ -1270,7 +1302,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                                     animationDuration={800}
                                     animationEasing="ease-in-out"
                                     animationBegin={0}
-                                    labelLine={true}
+                                    labelLine={renderCustomizedPieLabelLine}
                                     label={renderCustomizedPieLabel}
                                     onClick={(data: any) => data && data.payload && data.payload.statusKey && toggleStatusVisibility(data.payload.statusKey)}
                                     cursor="pointer"
@@ -1521,10 +1553,10 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
               value={formPriority}
               onChange={e => setFormPriority(e.target.value as any)}
               options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
+                { label: 'Thấp', value: 'LOW' },
+                { label: 'Trung bình', value: 'MEDIUM' },
+                { label: 'Cao', value: 'HIGH' },
+                { label: 'Khẩn cấp', value: 'URGENT' }
               ]}
             />
           </div>
@@ -1632,10 +1664,10 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
               value={formPriority}
               onChange={e => setFormPriority(e.target.value as any)}
               options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
+                { label: 'Thấp', value: 'LOW' },
+                { label: 'Trung bình', value: 'MEDIUM' },
+                { label: 'Cao', value: 'HIGH' },
+                { label: 'Khẩn cấp', value: 'URGENT' }
               ]}
             />
           </div>

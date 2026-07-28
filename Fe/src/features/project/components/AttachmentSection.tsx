@@ -3,6 +3,7 @@ import { Paperclip, Trash2, Download, FileText, Image as ImageIcon, Video, FileA
 import { getAttachments, uploadAttachment, deleteAttachment } from '../services/attachment.service'
 import type { Attachment, AttachmentEntityType } from '../models/attachment.model'
 import { downloadExcelFile } from '../../../services/apiClient'
+import { ConfirmDialog } from '../../../components/ui'
 
 interface AttachmentSectionProps {
   projectId: string
@@ -21,6 +22,7 @@ export default function AttachmentSection({
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; attachmentId: string | null; fileName?: string }>({ open: false, attachmentId: null })
 
   const handleLoadAttachments = useCallback(async () => {
     setLoading(true)
@@ -59,13 +61,12 @@ export default function AttachmentSection({
     }
   }
 
-  const handleDeleteFile = async (attachmentId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa tài liệu đính kèm này?')) {
-      return
-    }
-
+  const handleConfirmDeleteFile = async () => {
+    if (!deleteConfirm.attachmentId) return
+    const id = deleteConfirm.attachmentId
+    setDeleteConfirm({ open: false, attachmentId: null })
     try {
-      await deleteAttachment(projectId, attachmentId)
+      await deleteAttachment(projectId, id)
       handleLoadAttachments()
     } catch (err: any) {
       console.error(err)
@@ -173,7 +174,7 @@ export default function AttachmentSection({
                       {att.canDelete && isEditable && (
                         <button
                           type="button"
-                          onClick={() => handleDeleteFile(att.id)}
+                          onClick={() => setDeleteConfirm({ open: true, attachmentId: att.id, fileName: att.originalFileName })}
                           className="text-rose-600 hover:underline font-bold inline-flex items-center gap-1 ml-2"
                         >
                           <Trash2 size={13} />
@@ -188,6 +189,19 @@ export default function AttachmentSection({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Xóa tệp tin đính kèm?"
+        description={
+          deleteConfirm.fileName
+            ? `Tệp tin "${deleteConfirm.fileName}" sẽ bị xóa khỏi hệ thống. Bạn có chắc chắn muốn tiếp tục?`
+            : 'Tệp tin đính kèm này sẽ bị xóa khỏi hệ thống. Bạn có chắc chắn muốn tiếp tục?'
+        }
+        confirmLabel="Xóa tệp tin"
+        onCancel={() => setDeleteConfirm({ open: false, attachmentId: null })}
+        onConfirm={handleConfirmDeleteFile}
+      />
     </div>
   )
 }

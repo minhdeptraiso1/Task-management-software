@@ -1,4 +1,5 @@
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
+import { DatePicker } from '../DatePicker/DatePicker'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -9,6 +10,28 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ label, error, hint, leadingIcon, trailing, className = '', id, ...props }, ref) {
+  if (props.type === 'date') {
+    return (
+      <DatePicker
+        ref={ref}
+        id={id}
+        label={label}
+        error={error}
+        hint={hint}
+        leadingIcon={leadingIcon}
+        className={className}
+        value={String(props.value ?? props.defaultValue ?? '')}
+        onChange={props.onChange as any}
+        name={props.name}
+        required={props.required}
+        disabled={props.disabled}
+        placeholder={props.placeholder}
+        min={props.min ? String(props.min) : undefined}
+        max={props.max ? String(props.max) : undefined}
+      />
+    )
+  }
+
   const inputId = id ?? props.name
   return (
     <div className="w-full">

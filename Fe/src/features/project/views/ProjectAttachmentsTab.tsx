@@ -2,8 +2,42 @@ import { useEffect, useState, useCallback } from 'react'
 import { getProjectAttachmentUsage, getFileSecuritySummary, getAllProjectAttachments, deleteAttachment } from '../services/attachment.service'
 import type { AttachmentUsage, FileSecuritySummary, AttachmentPage } from '../models/attachment.model'
 import { AlertCircle, ShieldCheck, Database, FileCode, Check, Ban, RefreshCcw, Download, Trash2, FileText, Image as ImageIcon, Video, FileArchive, FileSpreadsheet, File, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
-import { Button } from '../../../components/ui'
+import { Button, ConfirmDialog, toast } from '../../../components/ui'
 import { downloadExcelFile } from '../../../services/apiClient'
+
+function AnimatedNumber({ value, duration = 1000, formatter }: { value: number; duration?: number; formatter?: (val: number) => string }) {
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    let startTimestamp: number | null = null
+    const startValue = 0
+    const endValue = value
+
+    if (endValue === 0) {
+      setCurrent(0)
+      return
+    }
+
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1)
+      const easeOut = 1 - Math.pow(1 - progress, 3)
+      const currentValue = startValue + (endValue - startValue) * easeOut
+      setCurrent(currentValue)
+
+      if (progress < 1) {
+        requestAnimationFrame(step)
+      } else {
+        setCurrent(endValue)
+      }
+    }
+
+    const animId = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(animId)
+  }, [value, duration])
+
+  return <>{formatter ? formatter(current) : Math.round(current)}</>
+}
 
 export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
   const [usage, setUsage] = useState<AttachmentUsage | null>(null)
@@ -13,6 +47,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true)
   const [fileLoading, setFileLoading] = useState(false)
   const [error, setError] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; attachmentId: string | null; fileName?: string }>({ open: false, attachmentId: null })
 
   const loadFiles = useCallback(async (pageNum: number) => {
     setFileLoading(true)
@@ -54,13 +89,19 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
     void loadFiles(newPage)
   }
 
-  const handleDeleteFile = async (attachmentId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa tệp tin này khỏi dự án?')) return
+  const askDeleteFile = (attachmentId: string, fileName?: string) => {
+    setDeleteConfirm({ open: true, attachmentId, fileName })
+  }
+
+  const handleConfirmDeleteFile = async () => {
+    if (!deleteConfirm.attachmentId) return
+    const id = deleteConfirm.attachmentId
+    setDeleteConfirm({ open: false, attachmentId: null })
     try {
-      await deleteAttachment(projectId, attachmentId)
+      await deleteAttachment(projectId, id)
       void loadData(false)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Xóa tệp tin thất bại')
+      toast.error(err instanceof Error ? err.message : 'Xóa tệp tin thất bại')
     }
   }
 
@@ -131,8 +172,15 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
     }
   }
 
+  // Calculate dynamic storage usage metrics from attachments list if API cache returns 0
+  const attachmentListBytes = (attachments?.content ?? []).reduce((acc, curr) => acc + (curr.sizeBytes || 0), 0)
+  const maxStorageBytes = usage?.maxBytes || 524288000 // default 500MB
+  const effectiveUsedBytes = Math.max(usage?.usedBytes || 0, attachmentListBytes)
+  const effectiveRemainingBytes = Math.max(0, maxStorageBytes - effectiveUsedBytes)
+  const effectiveUsageRate = maxStorageBytes > 0 ? (effectiveUsedBytes * 100) / maxStorageBytes : 0
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-enter">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-ink">Lưu trữ & Bảo mật File</h3>
@@ -150,45 +198,46 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left Column: Storage Usage */}
-        {usage && (
-          <div className="rounded-2xl border border-brand-line/70 bg-white p-6 shadow-sm space-y-6 transition hover:shadow-md">
-            <div className="flex items-center gap-3 border-b border-line/60 pb-4">
-              <div className="rounded-lg bg-indigo-50 p-2 text-indigo-500">
-                <Database size={20} />
-              </div>
-              <div>
-                <h4 className="font-bold text-ink text-sm">Dung lượng lưu trữ dự án</h4>
-                <p className="text-xs text-muted">Tổng dung lượng tệp đính kèm đã tải lên dự án này.</p>
-              </div>
+        <div className="rounded-2xl border border-brand-line/70 bg-white p-6 shadow-sm space-y-6 transition hover:shadow-md">
+          <div className="flex items-center gap-3 border-b border-line/60 pb-4">
+            <div className="rounded-lg bg-indigo-50 p-2 text-indigo-500">
+              <Database size={20} />
             </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-muted-dark">
-                <span>Dung lượng đã dùng</span>
-                <span className={`font-bold ${getProgressTextColor(usage.usageRate)}`}>
-                  {usage.usageRate.toFixed(1)}% ({formatBytes(usage.usedBytes)} / {formatBytes(usage.maxBytes)})
-                </span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${getProgressColor(usage.usageRate)}`}
-                  style={{ width: `${Math.min(usage.usageRate, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2 text-xs">
-              <div className="rounded-xl bg-slate-50 p-3 border border-line/40">
-                <span className="block text-muted mb-0.5">Dung lượng còn trống</span>
-                <strong className="text-sm font-bold text-ink">{formatBytes(usage.remainingBytes)}</strong>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 border border-line/40">
-                <span className="block text-muted mb-0.5">Giới hạn tối đa</span>
-                <strong className="text-sm font-bold text-ink">{formatBytes(usage.maxBytes)}</strong>
-              </div>
+            <div>
+              <h4 className="font-bold text-ink text-sm">Dung lượng lưu trữ dự án</h4>
+              <p className="text-xs text-muted">Tổng dung lượng tệp đính kèm đã tải lên dự án này.</p>
             </div>
           </div>
-        )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-muted-dark">
+              <span>Dung lượng đã dùng</span>
+              <span className={`font-bold ${getProgressTextColor(effectiveUsageRate)}`}>
+                <AnimatedNumber value={effectiveUsageRate} formatter={val => (val === 0 ? '0.0%' : val < 0.1 ? '< 0.1%' : `${val.toFixed(1)}%`)} /> (
+                <AnimatedNumber value={effectiveUsedBytes} formatter={val => formatBytes(val)} /> / {formatBytes(maxStorageBytes)})
+              </span>
+            </div>
+            <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ease-out ${getProgressColor(effectiveUsageRate)}`}
+                style={{ width: `${Math.min(Math.max(effectiveUsageRate, effectiveUsedBytes > 0 ? 1 : 0), 100)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-2 text-xs">
+            <div className="rounded-xl bg-slate-50 p-3 border border-line/40">
+              <span className="block text-muted mb-0.5">Dung lượng còn trống</span>
+              <strong className="text-sm font-bold text-ink">
+                <AnimatedNumber value={effectiveRemainingBytes} formatter={val => formatBytes(val)} />
+              </strong>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-3 border border-line/40">
+              <span className="block text-muted mb-0.5">Giới hạn tối đa</span>
+              <strong className="text-sm font-bold text-ink">{formatBytes(maxStorageBytes)}</strong>
+            </div>
+          </div>
+        </div>
 
         {/* Right Column: File Security Summary */}
         {security && (
@@ -268,7 +317,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
             <Paperclip className="text-brand" size={18} />
             <h4 className="font-bold text-ink text-sm">Danh sách tệp tin đính kèm trong Dự án</h4>
             <span className="rounded-full bg-brand-soft text-brand-dark px-2.5 py-0.5 text-xs font-extrabold">
-              {attachments?.totalElements || 0}
+              <AnimatedNumber value={attachments?.totalElements || 0} />
             </span>
           </div>
         </div>
@@ -343,7 +392,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
                               leadingIcon={<Trash2 size={15} />}
                               title="Xóa tệp tin"
                               aria-label="Xóa tệp tin"
-                              onClick={() => handleDeleteFile(att.id)}
+                              onClick={() => askDeleteFile(att.id, att.originalFileName)}
                             />
                           )}
                         </div>
@@ -394,6 +443,19 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
           </p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Xóa tệp tin đính kèm?"
+        description={
+          deleteConfirm.fileName
+            ? `Tệp tin "${deleteConfirm.fileName}" sẽ bị xóa khỏi dự án. Bạn có chắc chắn muốn tiếp tục?`
+            : 'Tệp tin đính kèm này sẽ bị xóa khỏi dự án. Bạn có chắc chắn muốn tiếp tục?'
+        }
+        confirmLabel="Xóa tệp tin"
+        onCancel={() => setDeleteConfirm({ open: false, attachmentId: null })}
+        onConfirm={handleConfirmDeleteFile}
+      />
     </div>
   )
 }

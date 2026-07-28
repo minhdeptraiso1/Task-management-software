@@ -9,7 +9,7 @@ import { sprintRiskTypeLabels } from '../models/scrum.model'
 import { taskStatusLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../models/task.model'
 import {
   PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line, ResponsiveContainer
 } from 'recharts'
 import { formatShortDate } from '../../../utils/format'
@@ -27,12 +27,18 @@ interface SprintStatisticsViewProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a855f7', '#ef4444']
 const STATUS_COLORS: Record<string, string> = {
-  TODO: '#64748b',
-  IN_PROGRESS: '#3b82f6',
-  IN_REVIEW: '#a855f7',
-  DONE: '#22c55e',
+  TODO: '#3b82f6',
+  IN_PROGRESS: '#f59e0b',
+  IN_REVIEW: '#8b5cf6',
+  DONE: '#10b981',
   BLOCKED: '#ef4444',
-  CANCELLED: '#94a3b8'
+  OPEN: '#3b82f6',
+  ASSIGNED: '#6366f1',
+  RESOLVED: '#10b981',
+  VERIFIED: '#14b8a6',
+  REOPENED: '#a855f7',
+  CLOSED: '#64748b',
+  CANCELLED: '#f43f5e'
 }
 
 export function SprintStatisticsView({
@@ -77,18 +83,24 @@ export function SprintStatisticsView({
     return `${(mins / 60).toFixed(1)}h`
   }
 
+  const [hiddenStatuses, setHiddenStatuses] = useState<string[]>([])
+  const [hiddenBarSeries, setHiddenBarSeries] = useState<string[]>([])
+  const [hiddenBurndownLines, setHiddenBurndownLines] = useState<string[]>([])
+
   // Prepare Pie Chart Data
-  const pieData = statistics.byStatus.map(s => ({
-    name: taskStatusLabels[s.status] || s.status,
-    value: s.count || 0,
-    status: s.status
-  })).filter(d => d.value > 0)
+  const pieData = statistics.byStatus
+    .filter(s => (s.count || 0) > 0)
+    .map(s => ({
+      name: taskStatusLabels[s.status] || s.status,
+      value: hiddenStatuses.includes(s.status) ? 0 : (s.count || 0),
+      status: s.status
+    }))
 
   // Prepare Bar Chart Data (Workload by Assignee)
   const barData = statistics.byAssignee.map(a => ({
     name: a.username || 'Chưa giao',
-    Tasks: a.totalTasks || 0,
-    'Log (h)': Math.round(((a.spentMinutes || 0) / 60) * 10) / 10
+    Tasks: hiddenBarSeries.includes('Tasks') ? 0 : (a.totalTasks || 0),
+    'Log (h)': hiddenBarSeries.includes('Log (h)') ? 0 : (Math.round(((a.spentMinutes || 0) / 60) * 10) / 10)
   }))
 
   // Prepare Line Chart Data (Burndown)
@@ -97,6 +109,46 @@ export function SprintStatisticsView({
     'Thực tế': p.actualRemainingTasks,
     'Lý tưởng': p.idealRemainingTasks
   })) ?? []
+
+  const toggleStatusVisibility = (statusKey: string) => {
+    setHiddenStatuses(prev => 
+      prev.includes(statusKey) ? prev.filter(s => s !== statusKey) : [...prev, statusKey]
+    )
+  }
+
+  const toggleBarSeriesVisibility = (key: string) => {
+    setHiddenBarSeries(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
+
+  const toggleBurndownLineVisibility = (key: string) => {
+    setHiddenBurndownLines(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
+
+  const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent }: any) => {
+    if (!percent || percent <= 0) return null
+    const RADIAN = Math.PI / 180
+    const radius = outerRadius + 18
+    const x = cx + radius * Math.cos(-midAngle * RADIAN)
+    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+    const percentStr = `${(percent * 100).toFixed(0)}%`
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#475569"
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        style={{ fontSize: '11px', fontWeight: 800 }}
+      >
+        {percentStr}
+      </text>
+    )
+  }
 
   const printRef = useRef<HTMLDivElement>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -175,115 +227,6 @@ export function SprintStatisticsView({
         </div>
       </div>
 
-      {/* Risks warning section */}
-      {risks && risks.length > 0 && (
-        <div className="rounded-xl border border-red-200 bg-red-50/20 p-4">
-          <div className="flex items-center gap-2 text-red-800 font-bold mb-3">
-            <ShieldAlert size={18} className="text-red-600" />
-            <span className="text-sm">Cảnh báo rủi ro Sprint ({risks.length})</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {risks.map((risk, index) => (
-              <div key={index} className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-white p-3 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold border ${getSeverityBadgeClass(risk.severity)}`}>
-                    {risk.severity === 'CRITICAL' ? 'Khẩn cấp' : risk.severity === 'HIGH' ? 'Cao' : risk.severity === 'MEDIUM' ? 'Vừa' : 'Thấp'}
-                  </span>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {sprintRiskTypeLabels[risk.type] || risk.type}
-                  </span>
-                </div>
-                <p className="text-xs font-semibold text-slate-700">{risk.message}</p>
-                {risk.taskTitle && (
-                  <div className="text-[10px] text-slate-500 bg-slate-50 p-1.5 rounded">
-                    <span className="font-bold">Task:</span> {risk.taskTitle}
-                  </div>
-                )}
-                {risk.username && (
-                  <div className="text-[10px] text-slate-500">
-                    <span className="font-bold">Người chịu trách nhiệm:</span> {risk.username}
-                  </div>
-                )}
-                {risk.suggestedAction && (
-                  <div className="mt-0.5 text-[10px] text-emerald-700 bg-emerald-50/50 border border-emerald-100 p-1.5 rounded">
-                    <span className="font-bold">Gợi ý:</span> {risk.suggestedAction}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sprint Task Risk Summary Section */}
-      {taskRiskSummary && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2 text-slate-800 font-bold">
-              <ShieldAlert size={18} className="text-rose-600" />
-              <span>Phân tích Rủi ro Công việc trong Sprint ({taskRiskSummary.totalRiskTasks} rủi ro)</span>
-            </div>
-          </div>
-
-          {/* Quick Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs">
-            <div className="bg-red-50/40 border border-red-100 rounded-lg p-3">
-              <p className="text-red-700 text-lg font-bold">{taskRiskSummary.criticalRiskTasks}</p>
-              <p className="text-slate-500 mt-0.5">Nguy cấp</p>
-            </div>
-            <div className="bg-orange-50/40 border border-orange-100 rounded-lg p-3">
-              <p className="text-orange-700 text-lg font-bold">{taskRiskSummary.highRiskTasks}</p>
-              <p className="text-slate-500 mt-0.5">Rủi ro Cao</p>
-            </div>
-            <div className="bg-amber-50/40 border border-amber-100 rounded-lg p-3">
-              <p className="text-amber-700 text-lg font-bold">{taskRiskSummary.mediumRiskTasks}</p>
-              <p className="text-slate-500 mt-0.5">Rủi ro Vừa</p>
-            </div>
-            <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-3">
-              <p className="text-rose-700 text-lg font-bold">{taskRiskSummary.overdueTasks}</p>
-              <p className="text-slate-500 mt-0.5">Task Quá hạn</p>
-            </div>
-          </div>
-
-          {/* Task risk list */}
-          <div className="pt-2">
-            <p className="text-xs font-semibold text-slate-700 mb-2.5">Danh sách các Task rủi ro trong Sprint:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {taskRiskSummary.topRisks.map(risk => (
-                <div key={risk.taskId} className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex flex-col justify-between gap-1">
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="font-semibold text-slate-800 line-clamp-2 flex-1" title={risk.title}>
-                      {risk.title}
-                    </span>
-                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                      risk.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      risk.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                      risk.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                      'bg-blue-100 text-blue-700 border border-blue-200'
-                    }`}>
-                      {taskRiskLevelLabels[risk.riskLevel] || risk.riskLevel}
-                    </span>
-                  </div>
-                  {risk.assigneeUsername && (
-                    <p className="text-[10px] text-slate-500 mt-0.5">
-                      Chịu trách nhiệm: <span className="font-medium text-slate-700">{risk.assigneeUsername}</span>
-                    </p>
-                  )}
-                  <p className="text-[10px] text-rose-700 mt-1 font-medium bg-rose-50/50 p-2 rounded-lg border border-rose-100/50">
-                    Nguyên nhân: {risk.reasons.map(r => taskRiskReasonLabels[r] || r).join(', ')}
-                  </p>
-                </div>
-              ))}
-              {taskRiskSummary.topRisks.length === 0 && (
-                <div className="col-span-2 text-center text-slate-500 py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  Sprint này hiện tại không phát hiện rủi ro công việc nào.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Health Status summary cards */}
       {health && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -345,7 +288,7 @@ export function SprintStatisticsView({
         </div>
       )}
 
-      <div className="pb-4">
+      <div className="pb-4 space-y-6">
         {/* Overview cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Card 1: Tiến độ */}
@@ -418,53 +361,114 @@ export function SprintStatisticsView({
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
                     cursor={{ stroke: '#f97316', strokeWidth: 1, strokeDasharray: '5 5' }} 
                   />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Line type="monotone" name="Tasks Lý tưởng còn lại" dataKey="Lý tưởng" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} activeDot={false} />
-                  <Line type="monotone" name="Tasks Thực tế còn lại" dataKey="Thực tế" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }} />
+                  {!hiddenBurndownLines.includes('Lý tưởng') && (
+                    <Line type="monotone" name="Tasks Lý tưởng còn lại" dataKey="Lý tưởng" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
+                  )}
+                  {!hiddenBurndownLines.includes('Thực tế') && (
+                    <Line type="monotone" name="Tasks Thực tế còn lại" dataKey="Thực tế" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có dữ liệu burndown</div>
             )}
           </div>
+
+          {/* Burndown Interactive Legend */}
+          <div className="flex items-center justify-center gap-4 pt-4 border-t border-slate-100 mt-4">
+            {[
+              { key: 'Lý tưởng', name: 'Tasks Lý tưởng còn lại', color: '#94a3b8' },
+              { key: 'Thực tế', name: 'Tasks Thực tế còn lại', color: '#f97316' }
+            ].map(item => {
+              const isHidden = hiddenBurndownLines.includes(item.key)
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => toggleBurndownLineVisibility(item.key)}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                    isHidden 
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                      : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                  }`}
+                  title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                >
+                  <span className="size-3 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : item.color }} />
+                  <span>{item.name}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* BOTTOM CHARTS */}
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Status Pie Chart */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-1">
-            <h4 className="font-bold text-lg text-slate-800 text-center mb-6">Phân bổ Trạng thái</h4>
-            <div className="h-[280px]">
+          {/* Status Pie Chart - Full Solid Pie Chart (Chart Tròn Đặc) */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-1 flex flex-col justify-between">
+            <h4 className="font-bold text-lg text-slate-800 text-center mb-4">Phân bổ Trạng thái</h4>
+            <div className="h-[250px]">
               {pieData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 10, right: 40, left: 40, bottom: 10 }}>
+                  <PieChart margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
                     <Pie
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={85}
-                      paddingAngle={4}
+                      innerRadius={0}
+                      outerRadius={80}
+                      paddingAngle={0}
+                      stroke="none"
                       dataKey="value"
+                      isAnimationActive={true}
+                      animationDuration={800}
+                      animationEasing="ease-in-out"
+                      animationBegin={0}
+                      labelLine={true}
+                      label={renderCustomizedPieLabel}
+                      onClick={(data: any) => data && data.payload && data.payload.status && toggleStatusVisibility(data.payload.status)}
+                      cursor="pointer"
                     >
                       {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status as string] || COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status as string] || COLORS[index % COLORS.length]} stroke="none" className="cursor-pointer hover:opacity-85" />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-full items-center justify-center text-sm font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có dữ liệu task</div>
+                <div className="flex h-full items-center justify-center text-xs font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có dữ liệu task</div>
               )}
+            </div>
+
+            {/* Interactive Pie Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 border-t border-slate-100">
+              {pieData.map(d => {
+                const isHidden = hiddenStatuses.includes(d.status)
+                const color = STATUS_COLORS[d.status] || '#94a3b8'
+                return (
+                  <button
+                    key={d.status}
+                    type="button"
+                    onClick={() => toggleStatusVisibility(d.status)}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                      isHidden 
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                    }`}
+                    title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                  >
+                    <span className="size-3 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : color }} />
+                    <span>{d.name}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {/* Workload Bar Chart */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
-            <h4 className="font-bold text-lg text-slate-800 text-center mb-6">Khối lượng công việc theo Thành viên</h4>
-            <div className="h-[280px]">
+          {/* Workload Bar Chart (kèm Toggle Bật/Tắt) */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col justify-between">
+            <h4 className="font-bold text-lg text-slate-800 text-center mb-4">Khối lượng công việc theo Thành viên</h4>
+            <div className="h-[250px]">
               {barData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
@@ -473,14 +477,39 @@ export function SprintStatisticsView({
                     <YAxis yAxisId="left" fontSize={12} tickLine={false} axisLine={false} tickMargin={12} />
                     <YAxis yAxisId="right" orientation="right" fontSize={12} tickLine={false} axisLine={false} tickMargin={12} />
                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} cursor={{ fill: '#f1f5f9' }} />
-                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                    <Bar yAxisId="left" name="Số lượng Task" dataKey="Tasks" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                    <Bar yAxisId="right" name="Giờ đã Log (h)" dataKey="Log (h)" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    <Bar yAxisId="left" name="Số lượng Task" dataKey="Tasks" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
+                    <Bar yAxisId="right" name="Giờ đã Log (h)" dataKey="Log (h)" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex h-full items-center justify-center text-sm font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">Chưa có dữ liệu thành viên</div>
               )}
+            </div>
+
+            {/* Interactive Bar Legend */}
+            <div className="flex items-center justify-center gap-4 pt-3 border-t border-slate-100">
+              {[
+                { key: 'Tasks', name: 'Số lượng Task', color: '#3b82f6' },
+                { key: 'Log (h)', name: 'Giờ đã Log (h)', color: '#f59e0b' }
+              ].map(item => {
+                const isHidden = hiddenBarSeries.includes(item.key)
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => toggleBarSeriesVisibility(item.key)}
+                    className={`flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                      isHidden 
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                    }`}
+                    title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                  >
+                    <span className="size-3 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : item.color }} />
+                    <span>{item.name}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -626,6 +655,115 @@ export function SprintStatisticsView({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Sprint Task Risk Summary Section */}
+        {taskRiskSummary && (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-800 font-bold">
+                <ShieldAlert size={18} className="text-rose-600" />
+                <span>Phân tích Rủi ro Công việc trong Sprint ({taskRiskSummary.totalRiskTasks} rủi ro)</span>
+              </div>
+            </div>
+
+            {/* Quick Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-xs">
+              <div className="bg-red-50/40 border border-red-100 rounded-lg p-3">
+                <p className="text-red-700 text-lg font-bold">{taskRiskSummary.criticalRiskTasks}</p>
+                <p className="text-slate-500 mt-0.5">Nguy cấp</p>
+              </div>
+              <div className="bg-orange-50/40 border border-orange-100 rounded-lg p-3">
+                <p className="text-orange-700 text-lg font-bold">{taskRiskSummary.highRiskTasks}</p>
+                <p className="text-slate-500 mt-0.5">Rủi ro Cao</p>
+              </div>
+              <div className="bg-amber-50/40 border border-amber-100 rounded-lg p-3">
+                <p className="text-amber-700 text-lg font-bold">{taskRiskSummary.mediumRiskTasks}</p>
+                <p className="text-slate-500 mt-0.5">Rủi ro Vừa</p>
+              </div>
+              <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-3">
+                <p className="text-rose-700 text-lg font-bold">{taskRiskSummary.overdueTasks}</p>
+                <p className="text-slate-500 mt-0.5">Task Quá hạn</p>
+              </div>
+            </div>
+
+            {/* Task risk list */}
+            <div className="pt-2">
+              <p className="text-xs font-semibold text-slate-700 mb-2.5">Danh sách các Task rủi ro trong Sprint:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {taskRiskSummary.topRisks.map(risk => (
+                  <div key={risk.taskId} className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs flex flex-col justify-between gap-1">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-semibold text-slate-800 line-clamp-2 flex-1" title={risk.title}>
+                        {risk.title}
+                      </span>
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        risk.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 border border-red-200' :
+                        risk.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                        risk.riskLevel === 'MEDIUM' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                        'bg-blue-100 text-blue-700 border border-blue-200'
+                      }`}>
+                        {taskRiskLevelLabels[risk.riskLevel] || risk.riskLevel}
+                      </span>
+                    </div>
+                    {risk.assigneeUsername && (
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        Chịu trách nhiệm: <span className="font-medium text-slate-700">{risk.assigneeUsername}</span>
+                      </p>
+                    )}
+                    <p className="text-[10px] text-rose-700 mt-1 font-medium bg-rose-50/50 p-2 rounded-lg border border-rose-100/50">
+                      Nguyên nhân: {risk.reasons.map(r => taskRiskReasonLabels[r] || r).join(', ')}
+                    </p>
+                  </div>
+                ))}
+                {taskRiskSummary.topRisks.length === 0 && (
+                  <div className="col-span-2 text-center text-slate-500 py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    Sprint này hiện tại không phát hiện rủi ro công việc nào.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Risks warning section */}
+        {risks && risks.length > 0 && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50/20 p-4">
+            <div className="flex items-center gap-2 text-red-800 font-bold mb-3">
+              <ShieldAlert size={18} className="text-red-600" />
+              <span className="text-sm">Cảnh báo rủi ro Sprint ({risks.length})</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {risks.map((risk, index) => (
+                <div key={index} className="flex flex-col gap-1.5 rounded-lg border border-red-100 bg-white p-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold border ${getSeverityBadgeClass(risk.severity)}`}>
+                      {risk.severity === 'CRITICAL' ? 'Khẩn cấp' : risk.severity === 'HIGH' ? 'Cao' : risk.severity === 'MEDIUM' ? 'Vừa' : 'Thấp'}
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {sprintRiskTypeLabels[risk.type] || risk.type}
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">{risk.message}</p>
+                  {risk.taskTitle && (
+                    <div className="text-[10px] text-slate-500 bg-slate-50 p-1.5 rounded">
+                      <span className="font-bold">Task:</span> {risk.taskTitle}
+                    </div>
+                  )}
+                  {risk.username && (
+                    <div className="text-[10px] text-slate-500">
+                      <span className="font-bold">Người chịu trách nhiệm:</span> {risk.username}
+                    </div>
+                  )}
+                  {risk.suggestedAction && (
+                    <div className="mt-0.5 text-[10px] text-emerald-700 bg-emerald-50/50 border border-emerald-100 p-1.5 rounded">
+                      <span className="font-bold">Gợi ý:</span> {risk.suggestedAction}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

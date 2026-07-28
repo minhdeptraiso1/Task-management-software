@@ -157,11 +157,12 @@ export function SprintProgressView({
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tickMargin={12} />
                 <YAxis fontSize={12} tickLine={false} axisLine={false} tickMargin={12} domain={[0, 100]} />
                 <Tooltip 
+                  isAnimationActive={false}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Line type="monotone" name="Tiến độ Kỳ vọng (%)" dataKey="Kỳ vọng (%)" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} activeDot={false} />
-                <Area type="monotone" name="Tiến độ Thực tế (%)" dataKey="Thực tế (%)" fill="#f97316" stroke="#f97316" strokeWidth={3} fillOpacity={0.1} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }} />
+                <Line type="monotone" name="Tiến độ Kỳ vọng (%)" dataKey="Kỳ vọng (%)" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={true} animationDuration={1200} animationEasing="ease-in-out" />
+                <Area type="monotone" name="Tiến độ Thực tế (%)" dataKey="Thực tế (%)" fill="#f97316" stroke="#f97316" strokeWidth={3} fillOpacity={0.1} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }} isAnimationActive={true} animationDuration={1200} animationEasing="ease-in-out" />
               </ComposedChart>
             </ResponsiveContainer>
           ) : (

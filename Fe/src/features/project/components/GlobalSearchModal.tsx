@@ -144,19 +144,19 @@ export default function GlobalSearchModal({
   const getEntityIcon = (type: SearchEntityType) => {
     switch (type) {
       case 'PROJECT':
-        return <FolderKanban size={18} className="text-indigo-500" />
+        return <FolderKanban size={22} className="text-indigo-500" />
       case 'SPRINT':
-        return <CalendarDays size={18} className="text-emerald-500" />
+        return <CalendarDays size={22} className="text-emerald-500" />
       case 'BACKLOG_ITEM':
-        return <Layers size={18} className="text-amber-500" />
+        return <Layers size={22} className="text-amber-500" />
       case 'TASK':
-        return <CheckSquare size={18} className="text-sky-500" />
+        return <CheckSquare size={22} className="text-sky-500" />
       case 'BUG':
-        return <Bug size={18} className="text-rose-500" />
+        return <Bug size={22} className="text-rose-500" />
       case 'COMMENT':
-        return <MessageSquare size={18} className="text-purple-500" />
+        return <MessageSquare size={22} className="text-purple-500" />
       case 'ATTACHMENT':
-        return <Paperclip size={18} className="text-teal-500" />
+        return <Paperclip size={22} className="text-teal-500" />
     }
   }
 
@@ -183,7 +183,7 @@ export default function GlobalSearchModal({
       <span>
         {parts.map((part, index) =>
           regex.test(part) ? (
-            <mark key={index} className="bg-amber-100 text-amber-950 font-semibold rounded px-0.5">
+            <mark key={index} className="bg-amber-100 text-amber-950 font-bold rounded px-1">
               {part}
             </mark>
           ) : (
@@ -195,22 +195,22 @@ export default function GlobalSearchModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-10">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-brand-black/40 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-brand-black/50 backdrop-blur-md transition-opacity" 
         onClick={onClose} 
       />
 
-      {/* Spotlight Box */}
-      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-2xl border border-line bg-white shadow-2xl transition-all flex flex-col max-h-[75vh] animate-enter">
+      {/* Spotlight Box (Enlarged x3, Centered) */}
+      <div className="relative w-full max-w-5xl transform overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl transition-all flex flex-col max-h-[85vh] h-[720px] animate-enter">
         {/* Header Search Field */}
-        <div className="flex items-center border-b border-line px-4 py-3.5">
-          <Search size={20} className="text-muted mr-3 shrink-0" />
+        <div className="flex items-center border-b border-line px-6 py-5 bg-white">
+          <Search size={24} className="text-slate-400 mr-4 shrink-0" />
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 text-sm bg-transparent outline-none text-ink placeholder-muted/80"
+            className="flex-1 text-lg sm:text-xl font-medium bg-transparent outline-none text-ink placeholder-slate-400"
             placeholder={
               currentProjectId 
                 ? `Tìm kiếm dự án, task, bug... (${searchProjectOnly ? `trong ${currentProjectCode}` : 'toàn hệ thống'})` 
@@ -220,42 +220,42 @@ export default function GlobalSearchModal({
             onChange={e => setQuery(e.target.value)}
           />
           {loading ? (
-            <Loader2 className="animate-spin text-brand mr-2" size={16} />
+            <Loader2 className="animate-spin text-brand mr-2" size={20} />
           ) : query ? (
             <button 
               type="button" 
               onClick={() => { setQuery(''); setResults([]) }} 
-              className="text-muted hover:text-ink transition p-1"
+              className="text-slate-400 hover:text-slate-700 transition p-1.5 rounded-full hover:bg-slate-100"
             >
-              <X size={16} />
+              <X size={20} />
             </button>
           ) : null}
         </div>
 
         {/* Project Scope Toggle */}
         {currentProjectId && (
-          <div className="flex items-center justify-between bg-canvas px-4 py-2 border-b border-line text-xs">
-            <span className="text-muted font-medium">Tìm kiếm trong dự án:</span>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div className="flex items-center justify-between bg-canvas px-6 py-3 border-b border-line text-sm">
+            <span className="text-slate-500 font-semibold">Phạm vi tìm kiếm:</span>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
-                className="rounded border-line text-brand focus:ring-brand size-3.5"
+                className="rounded border-line text-brand focus:ring-brand size-4 cursor-pointer"
                 checked={searchProjectOnly}
                 onChange={e => setSearchProjectOnly(e.target.checked)}
               />
-              <span className="font-semibold text-ink">Chỉ dự án hiện tại ({currentProjectCode})</span>
+              <span className="font-bold text-slate-800">Chỉ trong dự án hiện tại ({currentProjectCode})</span>
             </label>
           </div>
         )}
 
         {/* Entity Type Filter Tabs */}
-        <div className="flex gap-1 overflow-x-auto p-3 border-b border-line scrollbar-none bg-canvas">
+        <div className="flex gap-2 overflow-x-auto p-4 border-b border-line scrollbar-none bg-canvas">
           {ENTITY_TYPES.map(tab => (
             <button
               key={tab.value}
               type="button"
               onClick={() => setSelectedType(tab.value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${selectedType === tab.value ? 'bg-brand text-white shadow-sm' : 'bg-white border border-line text-muted hover:bg-slate-50'}`}
+              className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition whitespace-nowrap ${selectedType === tab.value ? 'bg-brand text-white shadow-md' : 'bg-white border border-line text-slate-600 hover:bg-slate-50'}`}
             >
               {tab.label}
             </button>
@@ -265,32 +265,36 @@ export default function GlobalSearchModal({
         {/* Results list */}
         <div 
           ref={resultsContainerRef}
-          className="flex-1 overflow-y-auto min-h-0 divide-y divide-line"
+          className="flex-1 overflow-y-auto min-h-0 divide-y divide-line/60"
         >
           {error && (
-            <div className="p-4 text-center text-xs text-rose-600 bg-rose-50 font-medium">
+            <div className="p-6 text-center text-sm text-rose-600 bg-rose-50 font-semibold">
               {error}
             </div>
           )}
 
           {!query.trim() ? (
-            <div className="py-12 text-center text-muted">
-              <Search className="mx-auto text-muted/50 mb-3" size={36} />
-              <p className="text-xs font-medium">Nhập từ khóa để bắt đầu tìm kiếm</p>
-              <p className="text-[11px] text-muted/70 mt-1">Hỗ trợ tìm nhanh Dự án, Sprint, Backlog, Task, Bug, Bình luận.</p>
+            <div className="py-20 sm:py-24 text-center text-slate-400 flex flex-col items-center justify-center">
+              <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
+                <Search size={36} />
+              </div>
+              <p className="text-base font-bold text-slate-700">Nhập từ khóa để bắt đầu tìm kiếm</p>
+              <p className="text-xs text-slate-400 mt-1.5 max-w-md">Hỗ trợ tìm kiếm nhanh chóng cho Dự án, Sprint, Backlog, Task, Bug, Bình luận và Tài liệu đính kèm.</p>
             </div>
           ) : loading && results.length === 0 ? (
-            <div className="py-12 text-center text-muted animate-pulse text-xs">
-              Đang tải danh sách kết quả...
+            <div className="py-20 text-center text-slate-400 animate-pulse text-sm font-semibold">
+              Đang phân tích và tìm kiếm dữ liệu...
             </div>
           ) : results.length === 0 ? (
-            <div className="py-12 text-center text-muted">
-              <Search className="mx-auto text-muted/30 mb-3" size={32} />
-              <p className="text-xs font-bold text-ink">Không tìm thấy kết quả</p>
-              <p className="text-[11px] text-muted mt-1">Không tìm thấy thực thể phù hợp với "{query}".</p>
+            <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center">
+              <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                <Search size={32} />
+              </div>
+              <p className="text-base font-bold text-slate-700">Không tìm thấy kết quả phù hợp</p>
+              <p className="text-xs text-slate-400 mt-1.5">Thử từ khóa khác hoặc thay đổi bộ lọc phân loại.</p>
             </div>
           ) : (
-            <div className="p-2 space-y-0.5">
+            <div className="p-3 sm:p-4 space-y-1.5">
               {results.map((item, index) => (
                 <button
                   key={`${item.entityType}-${item.entityId}`}
@@ -300,41 +304,41 @@ export default function GlobalSearchModal({
                     onSelectResult(item)
                     onClose()
                   }}
-                  className={`w-full text-left rounded-xl p-3 flex items-start gap-3 transition-all ${index === focusedIndex ? 'bg-brand-soft border border-brand/20 shadow-sm' : 'border border-transparent hover:bg-slate-50'}`}
+                  className={`w-full text-left rounded-2xl p-4 flex items-start gap-4 transition-all ${index === focusedIndex ? 'bg-brand-soft border border-brand/30 shadow-md scale-[1.005]' : 'border border-transparent hover:bg-slate-50'}`}
                 >
-                  <div className={`p-2 rounded-lg bg-white border border-line flex-shrink-0 ${index === focusedIndex ? 'shadow-sm' : ''}`}>
+                  <div className={`p-3 rounded-2xl bg-white border border-slate-200 flex-shrink-0 ${index === focusedIndex ? 'shadow-sm' : ''}`}>
                     {getEntityIcon(item.entityType)}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-dark">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
                         {getEntityTypeLabel(item.entityType)}
                       </span>
                       {item.projectCode && (
-                        <span className="text-[10px] font-semibold bg-white border border-line text-brand-dark px-1.5 py-0.5 rounded">
+                        <span className="text-xs font-bold bg-white border border-slate-200 text-brand-dark px-2 py-0.5 rounded-lg shadow-2xs">
                           {item.projectCode}
                         </span>
                       )}
-                      <span className="text-[10px] text-muted ml-auto">
+                      <span className="text-xs text-slate-400 ml-auto">
                         Cập nhật: {new Date(item.updatedAt).toLocaleDateString('vi-VN')}
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-ink text-xs mt-1 truncate">
+                    <h4 className="font-bold text-slate-800 text-sm sm:text-base mt-1.5 truncate">
                       {highlightKeyword(item.title, query)}
                     </h4>
 
                     {item.matchedText && (
-                      <p className="text-[11px] text-muted mt-1 leading-relaxed line-clamp-2 italic bg-white border border-line/60 rounded px-2 py-1">
+                      <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed line-clamp-2 italic bg-white border border-slate-200/80 rounded-xl p-2.5">
                         ...{highlightKeyword(item.matchedText, query)}...
                       </p>
                     )}
                   </div>
 
                   {index === focusedIndex && (
-                    <div className="self-center flex-shrink-0 text-brand">
-                      <CornerDownLeft size={16} />
+                    <div className="self-center flex-shrink-0 text-brand p-1">
+                      <CornerDownLeft size={20} />
                     </div>
                   )}
                 </button>
@@ -344,14 +348,14 @@ export default function GlobalSearchModal({
         </div>
 
         {/* Footer shortcuts */}
-        <div className="bg-canvas border-t border-line px-4 py-2 flex items-center justify-between text-[11px] text-muted">
-          <div className="flex gap-4">
-            <span><kbd className="bg-white border border-line rounded px-1.5 py-0.5 font-bold shadow-sm">↑↓</kbd> để di chuyển</span>
-            <span><kbd className="bg-white border border-line rounded px-1.5 py-0.5 font-bold shadow-sm">Enter</kbd> để chọn</span>
-            <span><kbd className="bg-white border border-line rounded px-1.5 py-0.5 font-bold shadow-sm">Esc</kbd> để đóng</span>
+        <div className="bg-canvas border-t border-line px-6 py-3.5 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex gap-5">
+            <span><kbd className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold shadow-xs text-slate-700">↑↓</kbd> di chuyển</span>
+            <span><kbd className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold shadow-xs text-slate-700">Enter</kbd> chọn</span>
+            <span><kbd className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold shadow-xs text-slate-700">Esc</kbd> đóng</span>
           </div>
           {currentProjectCode && (
-            <span className="font-medium text-brand">Dự án: {currentProjectCode}</span>
+            <span className="font-bold text-brand text-xs">Dự án hiện tại: {currentProjectCode}</span>
           )}
         </div>
       </div>

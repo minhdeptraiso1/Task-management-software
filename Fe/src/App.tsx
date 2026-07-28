@@ -3,12 +3,27 @@ import { LoginController } from './features/auth/controllers/LoginController'
 import { RoleRouterController } from './features/user/controllers/RoleRouterController'
 import { logout } from './features/auth/services/auth.service'
 import { tokenStore } from './services/apiClient'
+import { ToastContainer, toast } from './components/ui'
+
+// Global override for native window.alert to ensure zero browser alert popups system-wide
+if (typeof window !== 'undefined') {
+  window.alert = (msg?: any) => {
+    if (msg) {
+      toast.warning(String(msg))
+    }
+  }
+}
 
 function App() {
   const [authenticated, setAuthenticated] = useState(Boolean(tokenStore.access()))
   useEffect(() => { const expired = () => setAuthenticated(false); window.addEventListener('auth:expired', expired); return () => window.removeEventListener('auth:expired', expired) }, [])
   const handleLogout = async () => { await logout(); setAuthenticated(false) }
-  return authenticated ? <RoleRouterController onLogout={handleLogout} /> : <LoginController onAuthenticated={() => setAuthenticated(true)} />
+  return (
+    <>
+      <ToastContainer />
+      {authenticated ? <RoleRouterController onLogout={handleLogout} /> : <LoginController onAuthenticated={() => setAuthenticated(true)} />}
+    </>
+  )
 }
 
 export default App

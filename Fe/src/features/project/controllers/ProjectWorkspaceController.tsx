@@ -93,6 +93,7 @@ import type { SearchResultItem } from '../models/search.model'
 import { searchProjectCandidateUsers } from '../../user/services/user.service'
 import type { ProjectActivityFilters } from '../services/project.service'
 import type { UserPage } from '../../user/models/user.model'
+import { toast } from '../../../components/ui'
 
 const emptyProjectPage: ProjectPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 9, numberOfElements: 0, first: true, last: true, empty: true }
 const emptyActivityPage: ProjectActivityPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 10, numberOfElements: 0, first: true, last: true, empty: true }
@@ -161,11 +162,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
   const setError = useCallback((message: string) => {
     if (!message) return
-    const id = String(Date.now() + Math.random())
-    setErrors(prev => [...prev, { id, message }])
-    setTimeout(() => {
-      setErrors(prev => prev.filter(err => err.id !== id))
-    }, 5000)
+    toast.error(message)
   }, [])
   
   const dismissError = useCallback((id: string) => {

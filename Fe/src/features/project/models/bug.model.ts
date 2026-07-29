@@ -79,21 +79,21 @@ export interface BugSearchFilters {
 }
 
 export const bugSeverityLabels: Record<BugSeverity, string> = {
-  LOW: 'Thấp (Low)',
-  MEDIUM: 'Trung bình (Medium)',
-  HIGH: 'Cao (High)',
-  CRITICAL: 'Khẩn cấp (Critical)'
+  LOW: 'Thấp',
+  MEDIUM: 'Trung bình',
+  HIGH: 'Cao',
+  CRITICAL: 'Khẩn cấp'
 }
 
 export const bugStatusLabels: Record<BugStatus, string> = {
-  OPEN: 'Mở (Open)',
-  ASSIGNED: 'Đã phân công (Assigned)',
-  IN_PROGRESS: 'Đang sửa (In Progress)',
-  RESOLVED: 'Đã giải quyết (Resolved)',
-  VERIFIED: 'Đã xác minh (Verified)',
-  REOPENED: 'Mở lại (Reopened)',
-  CLOSED: 'Đã đóng (Closed)',
-  CANCELLED: 'Hủy (Cancelled)'
+  OPEN: 'Mở',
+  ASSIGNED: 'Đã phân công',
+  IN_PROGRESS: 'Đang sửa',
+  RESOLVED: 'Đã giải quyết',
+  VERIFIED: 'Đã xác minh',
+  REOPENED: 'Mở lại',
+  CLOSED: 'Đã đóng',
+  CANCELLED: 'Đã hủy'
 }
 
 export interface BugComment {

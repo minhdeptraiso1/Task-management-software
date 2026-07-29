@@ -10,30 +10,30 @@ const statuses: BacklogItemStatus[] = ['DRAFT', 'READY', 'IN_SPRINT', 'DONE', 'C
 
 export function priorityClass(priority: BacklogPriority) {
   switch (priority) {
-    case 'LOW': return 'bg-slate-50 text-slate-600 ring-1 ring-slate-500/20'
-    case 'MEDIUM': return 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20'
-    case 'HIGH': return 'bg-orange-50 text-orange-600 ring-1 ring-orange-500/20'
-    case 'URGENT': return 'bg-red-50 text-red-600 ring-1 ring-red-500/20'
-    default: return 'bg-gray-50 text-gray-600 ring-1 ring-gray-500/20'
+    case 'LOW': return 'bg-slate-100 text-slate-600 border border-slate-200 font-medium'
+    case 'MEDIUM': return 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+    case 'HIGH': return 'bg-orange-50 text-orange-700 border border-orange-200 font-bold'
+    case 'URGENT': return 'bg-red-50 text-red-700 border border-red-200 font-extrabold'
+    default: return 'bg-gray-50 text-gray-600 border border-gray-200'
   }
 }
 
 export function statusClass(status: BacklogItemStatus) {
   switch (status) {
-    case 'DRAFT': return 'bg-gray-50 text-gray-600 ring-1 ring-gray-500/20'
-    case 'READY': return 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20'
-    case 'IN_SPRINT': return 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/20'
-    case 'DONE': return 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20'
-    case 'CANCELLED': return 'bg-slate-100 text-slate-500 ring-1 ring-slate-500/20 line-through opacity-70'
-    default: return 'bg-gray-50 text-gray-600 ring-1 ring-gray-500/20'
+    case 'DRAFT': return 'bg-amber-50 text-amber-800 border border-amber-300/80 font-semibold'
+    case 'READY': return 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold'
+    case 'IN_SPRINT': return 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold'
+    case 'DONE': return 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold'
+    case 'CANCELLED': return 'bg-slate-100 text-slate-500 border border-slate-200 line-through opacity-70'
+    default: return 'bg-gray-50 text-gray-600 border border-gray-200'
   }
 }
 
 export function typeClass(type: BacklogItemType) {
-  if (type === 'EPIC') return 'bg-purple-100 text-purple-700 ring-1 ring-purple-600/20 font-bold'
-  if (type === 'FEATURE') return 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-600/20'
-  if (type === 'USER_STORY') return 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20'
-  return 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'
+  if (type === 'EPIC') return 'bg-purple-100 text-purple-800 border border-purple-300 font-bold'
+  if (type === 'FEATURE') return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+  if (type === 'USER_STORY') return 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold'
+  return 'bg-slate-100 text-slate-700 border border-slate-200'
 }
 
 function priorityIndicatorClass(priority: BacklogPriority) {
@@ -122,28 +122,39 @@ export function BacklogCard({
         </button>
         
         <div className="min-w-0 flex-1">
-          {/* Header row: Badges + Menu */}
-          <div className="mb-2.5 flex items-start justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${typeClass(item.type)}`}>
-                {backlogTypeLabels[item.type]}
-              </span>
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${priorityClass(item.priority)}`}>
-                {backlogPriorityLabels[item.priority]}
-              </span>
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${statusClass(item.status)}`}>
-                {backlogStatusLabels[item.status]}
-              </span>
+          {/* Vertical Metadata Layout requested by User */}
+          <div className="mb-2.5 flex items-start justify-between gap-2 w-full">
+            <div className="flex flex-col items-start gap-1.5 min-w-0 flex-1">
+              {/* Row 1: Type + Story Points */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${typeClass(item.type)}`}>
+                  {backlogTypeLabels[item.type]}
+                </span>
+                {item.storyPoints !== null && item.storyPoints > 0 && (
+                  <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 ring-1 ring-amber-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                    {item.storyPoints} pt
+                  </div>
+                )}
+              </div>
+
+              {/* Row 2: Priority */}
+              <div>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${priorityClass(item.priority)}`}>
+                  Ưu tiên: {backlogPriorityLabels[item.priority]}
+                </span>
+              </div>
+
+              {/* Row 3: Status */}
+              <div>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${statusClass(item.status)}`}>
+                  Trạng thái: {backlogStatusLabels[item.status]}
+                </span>
+              </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
-              {item.storyPoints !== null && item.storyPoints > 0 && (
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 ring-1 ring-amber-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                  {item.storyPoints} pt
-                </div>
-              )}
-              {canManage && !editing && (
+            {canManage && !editing && (
+              <div className="shrink-0 mr-2 mt-0.5">
                 <ActionMenu>
                   <ActionItem onClick={() => setEditing(true)}>
                     <Pencil size={15} /> Sửa
@@ -152,13 +163,15 @@ export function BacklogCard({
                     <Trash2 size={15} /> Xóa
                   </ActionItem>
                 </ActionMenu>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          <h4 className="text-[15px] font-bold text-slate-800 leading-snug transition-colors group-hover:text-brand">{item.title}</h4>
+          <h4 className="text-[15px] font-bold text-slate-800 leading-snug transition-colors group-hover:text-brand truncate max-w-full" title={item.title}>
+            {item.title}
+          </h4>
           {item.description && (
-            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-slate-500">{item.description}</p>
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-slate-500 break-all">{item.description}</p>
           )}
 
         </div>

@@ -1,6 +1,8 @@
 export interface AuditLog {
   id: string
   userId: string
+  username?: string | null
+  email?: string | null
   action: string
   createdAt: string
 }

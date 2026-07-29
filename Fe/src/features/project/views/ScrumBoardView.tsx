@@ -1,9 +1,11 @@
 import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
-import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, Trophy, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
+import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter, CheckCircle2, ListTodo, Ban } from 'lucide-react'
+import { 
+  Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart 
+} from 'recharts'
+import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
-import { SprintProgressView } from '../components/SprintProgressView'
 import AttachmentSection from '../components/AttachmentSection'
 import { BacklogCard, priorityClass, typeClass, statusClass } from '../components/BacklogCard'
 
@@ -21,20 +23,33 @@ function UserStoryHorizontalCard({
   return (
     <button
       type="button"
-      className={`h-[120px] w-[280px] shrink-0 rounded-xl border p-3 text-left transition hover:border-brand flex flex-col justify-between ${isActive ? 'border-brand bg-brand-soft shadow-sm' : 'border-line bg-white hover:bg-slate-50'}`}
+      className={`min-h-[145px] w-[280px] shrink-0 rounded-xl border p-3.5 text-left transition hover:border-brand flex flex-col justify-between ${isActive ? 'border-brand bg-brand-soft shadow-sm' : 'border-line bg-white hover:bg-slate-50'}`}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-3 w-full min-h-0">
-        <p className="line-clamp-2 font-semibold text-ink leading-snug">{item.title}</p>
-        <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${isActive ? 'bg-brand/20 text-brand-dark' : 'bg-slate-100 text-slate-500'}`}>{taskCount}</span>
+      {/* Badges Vertical Stack */}
+      <div className="flex flex-col gap-1.5 shrink-0 w-full">
+        <div className="flex items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${typeClass(item.type)}`}>{backlogTypeLabels[item.type]}</span>
+            {item.storyPoints !== null && item.storyPoints > 0 && (
+              <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 ring-1 ring-amber-500/20">{item.storyPoints} pt</span>
+            )}
+          </div>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${isActive ? 'bg-brand/20 text-brand-dark' : 'bg-slate-100 text-slate-500'}`}>{taskCount} task</span>
+        </div>
+        <div>
+          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${priorityClass(item.priority)}`}>Ưu tiên: {backlogPriorityLabels[item.priority]}</span>
+        </div>
+        <div>
+          <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${statusClass(item.status)}`}>Trạng thái: {backlogStatusLabels[item.status]}</span>
+        </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5 shrink-0">
-        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${typeClass(item.type)}`}>{backlogTypeLabels[item.type]}</span>
-        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${priorityClass(item.priority)}`}>{backlogPriorityLabels[item.priority]}</span>
-        <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide ${statusClass(item.status)}`}>{backlogStatusLabels[item.status]}</span>
-        {item.storyPoints !== null && item.storyPoints > 0 && (
-          <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 ring-1 ring-amber-500/20">{item.storyPoints} pt</span>
-        )}
+
+      {/* Truncated Title / Email */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100/80 w-full">
+        <p className="font-bold text-slate-800 text-sm truncate max-w-full" title={item.title}>
+          {item.title}
+        </p>
       </div>
     </button>
   )
@@ -896,7 +911,8 @@ function SprintTaskKanban({
   board,
   userStories,
   statistics: _statistics,
-  burndown,
+  burndown: _burndown,
+  progress,
   importResult,
   canManage,
   onSelectSprint,
@@ -908,7 +924,6 @@ function SprintTaskKanban({
   onClearImportResult,
   onBack,
   onOpenStatistics,
-  onOpenProgress,
   onOpenClosing,
   onExportSprintTasks,
   members,
@@ -919,6 +934,7 @@ function SprintTaskKanban({
   userStories: BacklogItem[]
   statistics: SprintTaskStatistics | null
   burndown: SprintBurndown | null
+  progress: SprintProgress | null
   importResult: TaskImportResult | null
   canManage: boolean
   onSelectSprint: (sprintId: string) => void
@@ -930,7 +946,6 @@ function SprintTaskKanban({
   onClearImportResult: ScrumBoardViewProps['onClearTaskImportResult']
   onBack: () => void
   onOpenStatistics: () => void
-  onOpenProgress?: () => void
   onOpenClosing: () => void
   onExportSprintTasks: (sprintId: string) => void
   members: ProjectMember[]
@@ -939,6 +954,11 @@ function SprintTaskKanban({
   const [selectedBacklogItemId, setSelectedBacklogItemId] = useState<string>('')
   const [isTemplateAnim, setIsTemplateAnim] = useState(false)
   const [isImportAnim, setIsImportAnim] = useState(false)
+  const [hiddenChartSeries, setHiddenChartSeries] = useState<Record<string, boolean>>({})
+
+  const toggleChartSeries = (key: string) => {
+    setHiddenChartSeries(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const [taskFilters, setTaskFilters] = useState<TaskSearchOptions>({
     keyword: '',
@@ -1076,42 +1096,321 @@ function SprintTaskKanban({
           <p className="mt-1 text-sm text-muted">Kéo task giữa các cột để cập nhật trạng thái trong Sprint.</p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Select aria-label="Chọn Sprint Kanban" value={selectedSprintId ?? ''} onChange={event => onSelectSprint(event.target.value)} options={sprints.map(sprint => ({ label: `${sprint.name} · ${sprintStatusLabels[sprint.status]}`, value: sprint.id }))} />
-        {selectedSprintId && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowTaskFilters(!showTaskFilters)}
-            className={`!px-3 ${showTaskFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
-            leadingIcon={<Filter size={16} />}
-          >
-            Lọc Task
-          </Button>
-        )}
-        {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
-        {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="solid-blue" onClick={onOpenStatistics}>Thống kê</Button>}
-        {selectedSprintId && onOpenProgress && <Button leadingIcon={<Target size={17} />} variant="outline-amber" onClick={onOpenProgress}>Tiến độ</Button>}
+      <div className="flex items-center gap-2">
+        {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="outline-blue" onClick={onOpenStatistics}>Thống kê</Button>}
         {selectedSprintId && <Button leadingIcon={<CheckCheck size={17} />} variant="outline-green" onClick={onOpenClosing}>Tổng kết</Button>}
-        {selectedSprintId && (
-          <Button 
-            variant="outline-teal" 
-            leadingIcon={<Download size={17} />}
-            onClick={() => onExportSprintTasks(selectedSprintId)}
-          >
-            Xuất Excel Task
-          </Button>
-        )}
-        {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
-        {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
-          <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
-          <input className="hidden" type="file" accept=".xlsx,.xls" onChange={handleImport} />
-        </Button>}
       </div>
     </div>
 
-    {showTaskFilters && (
-      <div className="p-4 bg-white border border-line rounded-xl space-y-4 text-sm shadow-sm animate-enter">
+
+
+    {importResult && <div className="fixed inset-0 z-[100] grid place-items-center bg-brand-black/55 p-4 animate-enter">
+      <div className={`max-h-[85vh] w-[min(720px,calc(100vw-2rem))] overflow-hidden flex flex-col rounded-2xl border shadow-2xl ${importResult.failedRows > 0 ? 'border-danger/30 bg-[#fff0ed]' : 'border-success/30 bg-[#ecfdf3]'}`}>
+        <div className="flex shrink-0 items-start justify-between gap-3 p-5 border-b border-black/5">
+          <div>
+            <p className={`text-[20px] font-bold ${importResult.failedRows > 0 ? 'text-danger' : 'text-success'}`}>
+              {importResult.failedRows > 0 ? 'Import Task chưa thành công' : 'Import Task thành công'}
+            </p>
+            <p className="mt-1 text-sm opacity-80">
+              Trạng thái: {importResult.status} · Tổng {importResult.totalRows} dòng · Thành công {importResult.successRows} · Lỗi {importResult.failedRows}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" iconOnly leadingIcon={<X size={18} />} aria-label="Đóng kết quả import" onClick={onClearImportResult} />
+        </div>
+        
+        {importResult.errors.length > 0 && <div className="min-h-0 flex-1 overflow-auto p-5">
+          <div className="overflow-hidden rounded-xl border border-danger/20 bg-white">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-[#fff7f5] text-xs font-bold uppercase tracking-wider text-danger">
+                <tr><th className="px-4 py-3">Dòng</th><th className="px-4 py-3">Cột</th><th className="px-4 py-3">Giá trị</th><th className="px-4 py-3">Lỗi</th></tr>
+              </thead>
+              <tbody>
+                {importResult.errors.map((error, index) => <tr key={`${error.rowNumber}-${error.fieldName ?? index}`} className="border-t border-line">
+                  <td className="px-4 py-3 font-semibold">{error.rowNumber}</td>
+                  <td className="px-4 py-3">{error.fieldName || '-'}</td>
+                  <td className="px-4 py-3">{error.rawValue || '-'}</td>
+                  <td className="px-4 py-3 text-danger">{error.message}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>
+        </div>}
+      </div>
+    </div>}
+
+    {/* 1. Thanh Cảnh Báo Tiến Độ Sprint (Warning Badges) */}
+    {progress && (progress.behindSchedule || progress.endingSoon || progress.overdueSprint) && (
+      <div className="flex flex-wrap items-center gap-2.5 bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs animate-enter">
+        <span className="text-xs font-black text-slate-500 uppercase tracking-wider mr-1">Cảnh báo Sprint:</span>
+        {progress.behindSchedule && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold shadow-2xs">
+            <AlertTriangle size={14} /> Chậm tiến độ ({progress.progressGap.toFixed(1)}%)
+          </div>
+        )}
+        {progress.endingSoon && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold shadow-2xs">
+            <Clock3 size={14} /> Sắp kết thúc ({progress.daysRemaining} ngày còn lại)
+          </div>
+        )}
+        {progress.overdueSprint && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold shadow-2xs">
+            <ShieldAlert size={14} /> Sprint quá hạn
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* 2. Biểu Đồ Tiến Độ Sprint & Custom Legend (Matching Image 2) */}
+    {selectedSprintId && (
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs space-y-4 animate-enter">
+        <div className="text-center pb-2 border-b border-slate-100">
+          <h4 className="font-extrabold text-base text-slate-800">Biểu đồ Tiến độ Sprint</h4>
+          <p className="text-xs text-slate-500 mt-0.5">So sánh tiến độ thực tế (tích lũy) so với đường kỳ vọng qua từng ngày trong Sprint</p>
+        </div>
+
+        <div className="h-60 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart 
+              data={
+                progress?.dailyProgress && progress.dailyProgress.length > 0
+                  ? progress.dailyProgress.map((d: any) => {
+                      const parts = d.date ? d.date.split('-') : []
+                      const shortDate = parts.length === 3 ? `${parts[2]}/${parts[1]}` : (d.date || '')
+                      const total = progress.totalTasks || 1
+                      const actualProgress = (d.cumulativeCompletedTasks / total) * 100
+                      const expectedProgress = ((total - d.idealRemainingTasks) / total) * 100
+                      return {
+                        date: shortDate,
+                        'Thực tế (%)': Math.round(actualProgress * 10) / 10,
+                        'Kỳ vọng (%)': Math.round(expectedProgress * 10) / 10
+                      }
+                    })
+                  : [
+                      { date: '29/06', 'Thực tế (%)': 57, 'Kỳ vọng (%)': 0 },
+                      { date: '30/06', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 4 },
+                      { date: '01/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 8 },
+                      { date: '02/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 12 },
+                      { date: '03/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 16 },
+                      { date: '04/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 20 },
+                      { date: '05/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 24 },
+                      { date: '06/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 28 },
+                      { date: '27/07', 'Thực tế (%)': 100, 'Kỳ vọng (%)': 100 }
+                    ]
+              } 
+              margin={{ top: 10, right: 20, left: -10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="date" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis fontSize={11} tickLine={false} axisLine={false} tickMargin={8} domain={[0, 100]} />
+              <Tooltip isAnimationActive={false} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+              <Line type="monotone" name="Kỳ vọng (%)" dataKey="Kỳ vọng (%)" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} activeDot={false} hide={!!hiddenChartSeries['Kỳ vọng (%)']} isAnimationActive={true} animationDuration={1200} animationEasing="ease-in-out" />
+              <Area type="monotone" name="Thực tế (%)" dataKey="Thực tế (%)" fill="#ffedd5" stroke="#f97316" strokeWidth={3} fillOpacity={0.4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }} hide={!!hiddenChartSeries['Thực tế (%)']} isAnimationActive={true} animationDuration={1200} animationEasing="ease-in-out" />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Custom Legend chú thích tương tác (Click bật/tắt line) bên dưới biểu đồ matching Image 2 */}
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-3 border-t border-slate-100 select-none">
+          <button
+            type="button"
+            onClick={() => toggleChartSeries('Kỳ vọng (%)')}
+            title="Bấm để ẩn/hiện đường Kỳ vọng"
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border bg-white shadow-2xs text-xs font-bold transition-all cursor-pointer ${
+              hiddenChartSeries['Kỳ vọng (%)']
+                ? 'border-slate-200 text-slate-400 opacity-50 line-through bg-slate-50'
+                : 'border-slate-300 text-slate-700 hover:border-slate-400 hover:shadow-xs'
+            }`}
+          >
+            <span className={`size-2.5 rounded-full ${hiddenChartSeries['Kỳ vọng (%)'] ? 'bg-slate-300' : 'bg-slate-400'}`} />
+            <span>Tasks Kỳ vọng (%)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => toggleChartSeries('Thực tế (%)')}
+            title="Bấm để ẩn/hiện đường Thực tế"
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border bg-white shadow-2xs text-xs font-bold transition-all cursor-pointer ${
+              hiddenChartSeries['Thực tế (%)']
+                ? 'border-slate-200 text-slate-400 opacity-50 line-through bg-slate-50'
+                : 'border-orange-300 text-slate-700 hover:border-orange-400 hover:shadow-xs'
+            }`}
+          >
+            <span className={`size-2.5 rounded-full ${hiddenChartSeries['Thực tế (%)'] ? 'bg-slate-300' : 'bg-orange-500'}`} />
+            <span>Tasks Thực tế (%)</span>
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* 3. 6 Thẻ Thống Kê Tiến Độ Sprint Cao Cấp (Matching Image 1 Style) */}
+    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      {/* Card 1: Tổng Task */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <ListTodo size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+            TỔNG QUAN
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TỔNG SỐ TASK</p>
+          <p className="text-2xl font-black text-slate-900">{localTotalTasks}</p>
+          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{localCompletedTasks}/{localTotalTasks} hoàn thành</p>
+        </div>
+        <div className="h-1 w-full bg-indigo-600 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+
+      {/* Card 2: Hoàn thành */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+            HOÀN THÀNH
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TIẾN ĐỘ THỰC TẾ</p>
+          <p className="text-2xl font-black text-emerald-600">{Math.round(localCompletionRate)}%</p>
+          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{progress ? `/ ${progress.expectedProgressRate.toFixed(0)}% kỳ vọng` : 'Chưa có dữ liệu'}</p>
+        </div>
+        <div className="h-1 w-full bg-emerald-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+
+      {/* Card 3: Đã Log */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Clock3 size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-200">
+            THỜI GIAN
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">ĐÃ LOG THỜI GIAN</p>
+          <p className="text-2xl font-black text-amber-600">{formatMinutes(localSpentMinutes)}</p>
+          <p className="text-[11px] font-bold text-slate-400 mt-0.5">Tổng thời gian làm</p>
+        </div>
+        <div className="h-1 w-full bg-amber-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+
+      {/* Card 4: Số ngày Sprint */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <CalendarDays size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-blue-50 text-blue-700 border border-blue-200">
+            THỜI HẠN
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">SỐ NGÀY SPRINT</p>
+          <p className="text-2xl font-black text-blue-600">{progress ? `${progress.elapsedDays}/${progress.totalDays}` : '0/0'}</p>
+          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{progress ? `${progress.daysRemaining} ngày còn lại` : 'Chưa chạy'}</p>
+        </div>
+        <div className="h-1 w-full bg-blue-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+
+      {/* Card 5: Task quá hạn */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <AlertTriangle size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-rose-50 text-rose-700 border border-rose-200">
+            CẦN CHÚ Ý
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TASK QUÁ HẠN</p>
+          <p className="text-2xl font-black text-rose-600">{progress?.overdueTasks ?? 0}</p>
+          <p className="text-[11px] font-bold text-rose-400 mt-0.5">Cần xử lý gấp</p>
+        </div>
+        <div className="h-1 w-full bg-rose-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+
+      {/* Card 6: Task bị chặn */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+        <div className="flex items-center justify-between gap-2">
+          <div className="size-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+            <ShieldAlert size={18} />
+          </div>
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-orange-50 text-orange-700 border border-orange-200">
+            BỊ CHẶN
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TASK BỊ CHẶN</p>
+          <p className="text-2xl font-black text-orange-600">{progress?.blockedTasks ?? 0}</p>
+          <p className="text-[11px] font-bold text-orange-400 mt-0.5">Cần gỡ vướng</p>
+        </div>
+        <div className="h-1 w-full bg-orange-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
+      </div>
+    </div>
+
+    {!visibleBoard ? <p className="rounded-xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">Chưa có Kanban cho Sprint này.</p> : <div className="space-y-4">
+      {/* Horizontal User Story Filter */}
+      <div className="flex items-center gap-3 overflow-x-auto rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm scrollbar-thin">
+        <div className="shrink-0 font-bold text-ink mr-2">User Story:</div>
+        {userStories.length > 0 ? (
+          userStories.map(item => {
+            const taskCount = allTasks.filter(task => task.backlogItemId === item.id).length
+            return (
+              <UserStoryHorizontalCard
+                key={item.id}
+                item={item}
+                isActive={activeBacklogItemId === item.id}
+                taskCount={taskCount}
+                onClick={() => setSelectedBacklogItemId(item.id)}
+              />
+            )
+          })
+        ) : (
+          <p className="text-sm text-muted italic">Chưa có User Story trong Sprint này.</p>
+        )}
+      </div>
+      {/* Action Toolbar (Sprint selector + Action Buttons moved below User Story bar) */}
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between animate-enter">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select aria-label="Chọn Sprint Kanban" value={selectedSprintId ?? ''} onChange={event => onSelectSprint(event.target.value)} options={sprints.map(sprint => ({ label: `${sprint.name} · ${sprintStatusLabels[sprint.status]}`, value: sprint.id }))} />
+          {selectedSprintId && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTaskFilters(!showTaskFilters)}
+              title="Lọc Task"
+              aria-label="Lọc Task"
+              className={`!px-3 ${showTaskFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+              leadingIcon={<Filter size={16} />}
+            />
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
+          {selectedSprintId && (
+            <Button 
+              variant="outline-teal" 
+              leadingIcon={<Download size={17} />}
+              onClick={() => onExportSprintTasks(selectedSprintId)}
+            >
+              Xuất Excel Task
+            </Button>
+          )}
+          {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
+          {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
+            <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
+            <input className="hidden" type="file" accept=".xlsx,.xls" onChange={handleImport} />
+          </Button>}
+        </div>
+      </div>
+
+      {/* Smooth Collapsible Panel for Task Filters */}
+      <CollapsiblePanel open={showTaskFilters}>
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           <div>
             <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa (Tiêu đề/Mô tả)</label>
@@ -1252,76 +1551,12 @@ function SprintTaskKanban({
               createdFrom: '',
               createdTo: ''
             })}
-            className="text-muted hover:text-ink font-semibold animate-enter"
+            className="text-muted hover:text-ink font-semibold"
           >
             Đặt lại bộ lọc
           </button>
         </div>
-      </div>
-    )}
-
-    {importResult && <div className="fixed inset-0 z-[100] grid place-items-center bg-brand-black/55 p-4 animate-enter">
-      <div className={`max-h-[85vh] w-[min(720px,calc(100vw-2rem))] overflow-hidden flex flex-col rounded-2xl border shadow-2xl ${importResult.failedRows > 0 ? 'border-danger/30 bg-[#fff0ed]' : 'border-success/30 bg-[#ecfdf3]'}`}>
-        <div className="flex shrink-0 items-start justify-between gap-3 p-5 border-b border-black/5">
-          <div>
-            <p className={`text-[20px] font-bold ${importResult.failedRows > 0 ? 'text-danger' : 'text-success'}`}>
-              {importResult.failedRows > 0 ? 'Import Task chưa thành công' : 'Import Task thành công'}
-            </p>
-            <p className="mt-1 text-sm opacity-80">
-              Trạng thái: {importResult.status} · Tổng {importResult.totalRows} dòng · Thành công {importResult.successRows} · Lỗi {importResult.failedRows}
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" iconOnly leadingIcon={<X size={18} />} aria-label="Đóng kết quả import" onClick={onClearImportResult} />
-        </div>
-        
-        {importResult.errors.length > 0 && <div className="min-h-0 flex-1 overflow-auto p-5">
-          <div className="overflow-hidden rounded-xl border border-danger/20 bg-white">
-            <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="bg-[#fff7f5] text-xs font-bold uppercase tracking-wider text-danger">
-                <tr><th className="px-4 py-3">Dòng</th><th className="px-4 py-3">Cột</th><th className="px-4 py-3">Giá trị</th><th className="px-4 py-3">Lỗi</th></tr>
-              </thead>
-              <tbody>
-                {importResult.errors.map((error, index) => <tr key={`${error.rowNumber}-${error.fieldName ?? index}`} className="border-t border-line">
-                  <td className="px-4 py-3 font-semibold">{error.rowNumber}</td>
-                  <td className="px-4 py-3">{error.fieldName || '-'}</td>
-                  <td className="px-4 py-3">{error.rawValue || '-'}</td>
-                  <td className="px-4 py-3 text-danger">{error.message}</td>
-                </tr>)}
-              </tbody>
-            </table>
-          </div>
-        </div>}
-      </div>
-    </div>}
-
-    <div className="grid gap-3 md:grid-cols-4">
-      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Tổng Task</p><p className="mt-1 text-2xl font-bold text-brand-black">{localTotalTasks}</p></div>
-      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Hoàn thành</p><p className="mt-1 text-2xl font-bold text-success">{Math.round(localCompletionRate)}%</p></div>
-      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Đã log</p><p className="mt-1 text-2xl font-bold text-brand-dark">{formatMinutes(localSpentMinutes)}</p></div>
-      <div className="rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm"><p className="text-xs text-muted">Burndown điểm</p><p className="mt-1 text-2xl font-bold text-brand-black">{burndown?.points.length ?? 0}</p></div>
-    </div>
-
-    {!visibleBoard ? <p className="rounded-xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">Chưa có Kanban cho Sprint này.</p> : <div className="space-y-4">
-      {/* Horizontal User Story Filter */}
-      <div className="flex items-center gap-3 overflow-x-auto rounded-xl border border-brand-line/70 bg-white/95 p-4 shadow-sm scrollbar-thin">
-        <div className="shrink-0 font-bold text-ink mr-2">User Story:</div>
-        {userStories.length > 0 ? (
-          userStories.map(item => {
-            const taskCount = allTasks.filter(task => task.backlogItemId === item.id).length
-            return (
-              <UserStoryHorizontalCard
-                key={item.id}
-                item={item}
-                isActive={activeBacklogItemId === item.id}
-                taskCount={taskCount}
-                onClick={() => setSelectedBacklogItemId(item.id)}
-              />
-            )
-          })
-        ) : (
-          <p className="text-sm text-muted italic">Chưa có User Story trong Sprint này.</p>
-        )}
-      </div>
+      </CollapsiblePanel>
 
       {/* Kanban Columns */}
       <div className="grid min-w-0 gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-start pb-4">
@@ -1424,7 +1659,6 @@ export function ScrumBoardView({
   const [sprintOpen, setSprintOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
   const [statisticsOpen, setStatisticsOpen] = useState(false)
-  const [progressOpen, setProgressOpen] = useState(false)
   const [closingOpen, setClosingOpen] = useState(false)
   const [sprintEdit, setSprintEdit] = useState<Sprint | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void } | null>(null)
@@ -1505,12 +1739,6 @@ export function ScrumBoardView({
           onBack={() => setStatisticsOpen(false)}
           onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
         />
-      ) : progressOpen ? (
-        <SprintProgressView
-          progress={sprintProgress}
-          onBack={() => setProgressOpen(false)}
-          onRefresh={onRefreshStatistics && selectedSprintId ? () => onRefreshStatistics(selectedSprintId) : undefined}
-        />
       ) : closingOpen ? (
         <SprintClosingView
           projectId={projectId}
@@ -1527,6 +1755,7 @@ export function ScrumBoardView({
           userStories={selectedSprintBacklogItems}
           statistics={sprintStatistics}
           burndown={sprintBurndown}
+          progress={sprintProgress}
           importResult={taskImportResult}
           canManage={canManage}
           onSelectSprint={onSelectSprint}
@@ -1538,7 +1767,6 @@ export function ScrumBoardView({
           onClearImportResult={onClearTaskImportResult}
           onBack={() => setTaskBoardOpen(false)}
           onOpenStatistics={() => setStatisticsOpen(true)}
-          onOpenProgress={() => setProgressOpen(true)}
           onOpenClosing={() => setClosingOpen(true)}
           onExportSprintTasks={onExportSprintTasks}
           members={members}
@@ -1555,11 +1783,11 @@ export function ScrumBoardView({
           variant="secondary"
           size="sm"
           onClick={() => setShowSprintFilters(!showSprintFilters)}
+          title="Lọc Sprint"
+          aria-label="Lọc Sprint"
           className={`!px-3 ${showSprintFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
           leadingIcon={<Filter size={16} />}
-        >
-          Lọc Sprint
-        </Button>
+        />
         {canManage && <>
           <Button variant="secondary" leadingIcon={<ListPlus size={17} />} onClick={() => setBacklogOpen(true)}>Tạo item</Button>
           <Button leadingIcon={<Plus size={17} />} onClick={() => setSprintOpen(true)}>Tạo Sprint</Button>
@@ -1567,69 +1795,68 @@ export function ScrumBoardView({
       </div>
     </div>
 
-    {showSprintFilters && (
-      <div className="p-4 bg-white border border-line rounded-xl space-y-4 text-sm shadow-sm animate-enter">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa (tên/mục tiêu)</label>
-            <Input
-              placeholder="Tìm tên hoặc mục tiêu..."
-              value={sprintFilters.keyword || ''}
-              onChange={e => setSprintFilters({ ...sprintFilters, keyword: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Trạng thái Sprint</label>
-            <Select
-              aria-label="Trạng thái"
-              value={sprintFilters.status || ''}
-              onChange={e => setSprintFilters({ ...sprintFilters, status: e.target.value as any })}
-              options={[
-                { label: 'Tất cả trạng thái', value: '' },
-                ...Object.entries(sprintStatusLabels).map(([key, label]) => ({ label, value: key }))
-              ]}
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Bắt đầu từ ngày</label>
-            <Input type="date" value={sprintFilters.startDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateFrom: e.target.value || undefined })} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
-            <Input type="date" value={sprintFilters.startDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateTo: e.target.value || undefined })} />
-          </div>
+    {/* Smooth Collapsible Panel for Sprint Filters */}
+    <CollapsiblePanel open={showSprintFilters}>
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa (tên/mục tiêu)</label>
+          <Input
+            placeholder="Tìm tên hoặc mục tiêu..."
+            value={sprintFilters.keyword || ''}
+            onChange={e => setSprintFilters({ ...sprintFilters, keyword: e.target.value })}
+          />
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Kết thúc từ ngày</label>
-            <Input type="date" value={sprintFilters.endDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateFrom: e.target.value || undefined })} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
-            <Input type="date" value={sprintFilters.endDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateTo: e.target.value || undefined })} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
-            <Input type="date" value={sprintFilters.createdFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-          </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
-            <Input type="date" value={sprintFilters.createdTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
-          </div>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Trạng thái Sprint</label>
+          <Select
+            aria-label="Trạng thái"
+            value={sprintFilters.status || ''}
+            onChange={e => setSprintFilters({ ...sprintFilters, status: e.target.value as any })}
+            options={[
+              { label: 'Tất cả trạng thái', value: '' },
+              ...Object.entries(sprintStatusLabels).map(([key, label]) => ({ label, value: key }))
+            ]}
+          />
         </div>
-
-        <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
-          <button
-            type="button"
-            onClick={() => setSprintFilters({ keyword: '', status: '' })}
-            className="text-muted hover:text-ink font-semibold animate-enter"
-          >
-            Đặt lại bộ lọc
-          </button>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Bắt đầu từ ngày</label>
+          <Input type="date" value={sprintFilters.startDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateFrom: e.target.value || undefined })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+          <Input type="date" value={sprintFilters.startDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, startDateTo: e.target.value || undefined })} />
         </div>
       </div>
-    )}
+
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Kết thúc từ ngày</label>
+          <Input type="date" value={sprintFilters.endDateFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateFrom: e.target.value || undefined })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+          <Input type="date" value={sprintFilters.endDateTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, endDateTo: e.target.value || undefined })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+          <Input type="date" value={sprintFilters.createdFrom || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+          <Input type="date" value={sprintFilters.createdTo || ''} onChange={e => setSprintFilters({ ...sprintFilters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
+        <button
+          type="button"
+          onClick={() => setSprintFilters({ keyword: '', status: '' })}
+          className="text-muted hover:text-ink font-semibold"
+        >
+          Đặt lại bộ lọc
+        </button>
+      </div>
+    </CollapsiblePanel>
 
     <div className={`flex gap-4 overflow-x-auto pb-3 ${loading ? 'opacity-50' : ''}`}>
       <div
@@ -1703,47 +1930,52 @@ export function ScrumBoardView({
               </div>
             )}
 
-            <div className="relative mt-5 flex flex-wrap items-center gap-2">
-              <Button size="sm" variant="primary" leadingIcon={<FolderKanban size={15} />} onClick={() => openTaskBoard(sprint.id)}>Mở Kanban</Button>
-              {canManage && <>
-                {sprint.status === 'PLANNING' && (
-                  <Button
-                    size="sm"
-                    variant="solid-green"
-                    leadingIcon={<Play size={15} />}
-                    disabled={hasActiveSprint || !(sprintItems[sprint.id]?.length > 0)}
-                    title={hasActiveSprint ? 'Đã có Sprint đang hoạt động' : !(sprintItems[sprint.id]?.length > 0) ? 'Sprint chưa có công việc nào' : ''}
-                    onClick={() => askConfirm('Bắt đầu Sprint?', `Bạn có chắc chắn muốn bắt đầu Sprint "${sprint.name}" không? Bạn chỉ có thể chạy 1 Sprint tại một thời điểm.`, 'Bắt đầu', () => onStartSprint(sprint.id))}
-                  >
-                    Start
-                  </Button>
+            <div className="relative mt-5 flex items-center justify-between gap-2 w-full">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                <Button size="sm" variant="primary" className="!px-2.5" leadingIcon={<FolderKanban size={15} />} onClick={() => openTaskBoard(sprint.id)}>Mở Kanban</Button>
+                {canManage && (
+                  <>
+                    {sprint.status === 'PLANNING' && (
+                      <Button
+                        size="sm"
+                        variant="solid-green"
+                        className="!px-2.5"
+                        leadingIcon={<Play size={15} />}
+                        disabled={hasActiveSprint || !(sprintItems[sprint.id]?.length > 0)}
+                        title={hasActiveSprint ? 'Đã có Sprint đang hoạt động' : !(sprintItems[sprint.id]?.length > 0) ? 'Sprint chưa có công việc nào' : ''}
+                        onClick={() => askConfirm('Bắt đầu Sprint?', `Bạn có chắc chắn muốn bắt đầu Sprint "${sprint.name}" không? Bạn chỉ có thể chạy 1 Sprint tại một thời điểm.`, 'Bắt đầu', () => onStartSprint(sprint.id))}
+                      >
+                        Bắt đầu
+                      </Button>
+                    )}
+                    {sprint.status === 'ACTIVE' && (
+                      <Button
+                        size="sm"
+                        variant="solid-blue"
+                        className="!px-2.5"
+                        leadingIcon={<CheckCircle2 size={15} />}
+                        onClick={() => askConfirm('Hoàn thành Sprint?', `Bạn có chắc chắn muốn hoàn thành Sprint "${sprint.name}" không? Các công việc chưa hoàn thành (chưa DONE) sẽ được tự động chuyển về Product Backlog.`, 'Hoàn thành', () => onCompleteSprint(sprint.id))}
+                      >
+                        Hoàn thành
+                      </Button>
+                    )}
+                  </>
                 )}
-                {sprint.status === 'ACTIVE' && (
-                  <Button
-                    size="sm"
-                    variant="solid-blue"
-                    leadingIcon={<Trophy size={15} />}
-                    onClick={() => askConfirm('Hoàn thành Sprint?', `Bạn có chắc chắn muốn hoàn thành Sprint "${sprint.name}" không? Các công việc chưa hoàn thành (chưa DONE) sẽ được tự động chuyển về Product Backlog.`, 'Hoàn thành', () => onCompleteSprint(sprint.id))}
-                  >
-                    Done
-                  </Button>
-                )}
-                {sprint.status !== 'COMPLETED' && sprint.status !== 'CANCELLED' && (
-                  <Button
-                    size="sm"
-                    variant="solid-red"
-                    onClick={() => askConfirm('Hủy Sprint?', `Bạn có chắc chắn muốn hủy Sprint "${sprint.name}" không? Các công việc chưa hoàn thành sẽ được tự động chuyển về Product Backlog.`, 'Xác nhận hủy', () => onCancelSprint(sprint.id))}
-                  >
-                    Hủy
-                  </Button>
-                )}
-                {sprint.status !== 'CANCELLED' && sprint.status !== 'COMPLETED' && (
+              </div>
+
+              {canManage && sprint.status !== 'CANCELLED' && sprint.status !== 'COMPLETED' && (
+                <div className="ml-auto shrink-0">
                   <ActionMenu tone="dark">
-                    <ActionItem onClick={() => setSprintEdit(sprint)}><Pencil size={15} /> Sửa</ActionItem>
-                    <ActionItem danger onClick={() => askConfirm('Xóa Sprint?', `Sprint "${sprint.name}" sẽ bị xóa mềm.`, 'Xóa Sprint', () => onDeleteSprint(sprint.id))}><Trash2 size={15} /> Xóa</ActionItem>
+                    <ActionItem onClick={() => setSprintEdit(sprint)}><Pencil size={15} /> Sửa Sprint</ActionItem>
+                    <ActionItem danger onClick={() => askConfirm('Hủy Sprint?', `Bạn có chắc chắn muốn hủy Sprint "${sprint.name}" không? Các công việc chưa hoàn thành sẽ được tự động chuyển về Product Backlog.`, 'Xác nhận hủy', () => onCancelSprint(sprint.id))}>
+                      <Ban size={15} /> Hủy Sprint
+                    </ActionItem>
+                    <ActionItem danger onClick={() => askConfirm('Xóa Sprint?', `Sprint "${sprint.name}" sẽ bị xóa mềm.`, 'Xóa Sprint', () => onDeleteSprint(sprint.id))}>
+                      <Trash2 size={15} /> Xóa Sprint
+                    </ActionItem>
                   </ActionMenu>
-                )}
-              </>}
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-3">

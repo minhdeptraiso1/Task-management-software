@@ -13,6 +13,7 @@ public final class SecurityEndpoints {
             "/swagger-ui.html",
             "/v3/api-docs/**",
 
-            "/actuator/health"
+            "/actuator/health",
+            "/ws/**"
     };
 }

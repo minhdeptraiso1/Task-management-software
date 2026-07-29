@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Activity,
   Bell,
   Bug,
   CalendarDays,
   CheckCheck,
+  CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -19,10 +22,10 @@ import {
   User as UserIcon,
   UserPlus,
   UsersRound,
-  X,
+  RotateCcw,
   Paperclip,
 } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import {
   entityTypeLabels,
@@ -40,6 +43,56 @@ import {
 import { formatDate } from '../../../utils/format'
 import type { NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
+
+const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
+
+const sidebarVariants = {
+  initial: { x: '-100%', opacity: 0 },
+  animate: {
+    x: '0%',
+    opacity: 1,
+    transition: {
+      duration: 1.0,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
+
+const headerVariants = {
+  initial: { y: -30, opacity: 0 },
+  animate: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.8,
+      delay: 0.2,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
+
+const EASE_IN_CUBIC = [0.32, 0, 0.67, 0] as const
+
+const contentTransitionVariants = {
+  initial: { opacity: 0, x: 20 },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: EXPO_OUT_EASE,
+      staggerChildren: 0.05,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: -20,
+    transition: {
+      duration: 0.2,
+      ease: EASE_IN_CUBIC,
+    },
+  },
+}
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
@@ -99,8 +152,8 @@ interface Props {
   taskDetailLoading: boolean
   candidateLoading: boolean
   saving: boolean
-  errors: { id: string; message: string }[]
-  onDismissError: (id: string) => void
+  errors?: { id: string; message: string }[]
+  onDismissError?: (id: string) => void
   onLogout: () => void
   onFiltersChange: (filters: ProjectFilters) => void
   onSearch: (forceFilters?: ProjectFilters) => void
@@ -162,6 +215,46 @@ function statusClass(status: ProjectStatus) {
   if (status === 'CANCELLED') return 'bg-[#fff0ed] text-danger'
   if (status === 'COMPLETED') return 'bg-[#eff6ff] text-info'
   if (status === 'ARCHIVED') return 'bg-panel text-muted'
+}
+
+function getProjectStatusBadgeStyle(status: ProjectStatus) {
+  switch (status) {
+    case 'ACTIVE':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80 shadow-2xs'
+    case 'COMPLETED':
+      return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80 shadow-2xs'
+    case 'CANCELLED':
+      return 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80 shadow-2xs'
+    case 'ARCHIVED':
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80 shadow-2xs'
+  }
+}
+
+function getProjectStatusDotColor(status: ProjectStatus) {
+  switch (status) {
+    case 'ACTIVE': return 'bg-emerald-500'
+    case 'COMPLETED': return 'bg-blue-500'
+    case 'CANCELLED': return 'bg-rose-500'
+    case 'ARCHIVED': default: return 'bg-slate-500'
+  }
+}
+
+function getProjectStatusCardStyle(st: ProjectStatus, isCurrent: boolean) {
+  if (isCurrent) {
+    switch (st) {
+      case 'ACTIVE': return 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+      case 'COMPLETED': return 'bg-blue-50/90 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
+      case 'CANCELLED': return 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
+      case 'ARCHIVED': default: return 'bg-slate-100 border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+    }
+  }
+  switch (st) {
+    case 'ACTIVE': return 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/70'
+    case 'COMPLETED': return 'bg-blue-50/30 border-blue-100 hover:border-blue-300 hover:bg-blue-50/70'
+    case 'CANCELLED': return 'bg-rose-50/30 border-rose-100 hover:border-rose-300 hover:bg-rose-50/70'
+    case 'ARCHIVED': default: return 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/70'
+  }
 }
 
 function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; saving: boolean; onClose: () => void; onSave: Props['onCreateProject'] }) {
@@ -330,8 +423,8 @@ export function ProjectWorkspaceView({
   taskDetailLoading,
   candidateLoading,
   saving,
-  errors,
-  onDismissError,
+  errors: _errors,
+  onDismissError: _onDismissError,
   onLogout,
   onFiltersChange,
   onSearch,
@@ -395,6 +488,7 @@ export function ProjectWorkspaceView({
   const [createOpen, setCreateOpen] = useState(false)
   const [projectEditOpen, setProjectEditOpen] = useState(false)
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false)
+  const [projectStatusModalOpen, setProjectStatusModalOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [isActivityFilterVisible, setIsActivityFilterVisible] = useState(false)
@@ -487,15 +581,13 @@ export function ProjectWorkspaceView({
     : recentSearches.map(term => ({ type: 'recent' as const, label: term, value: term, code: '', id: term }))
 
   return <div className="min-h-screen bg-canvas">
-    {errors.length > 0 && <div className="fixed right-5 top-5 z-50 flex max-w-md flex-col gap-2">
-      {errors.map(err => (
-        <div key={err.id} onClick={() => onDismissError(err.id)} className="animate-enter cursor-pointer rounded-2xl border border-danger/20 bg-[#fff0ed] p-4 text-danger shadow-2xl transition-all hover:opacity-80">
-          <p className="font-bold">Có lỗi xảy ra</p>
-          <p className="mt-1 text-sm leading-5">{err.message}</p>
-        </div>
-      ))}
-    </div>}
-    <header className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6">
+    <motion.header
+      variants={headerVariants}
+      initial="initial"
+      animate="animate"
+      style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+      className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6 sticky top-0 z-30"
+    >
       <div className="flex items-center gap-3 font-bold">
         <span className="text-2xl tracking-[-.08em]">HI<span className="text-brand">CAS</span></span>
         <span className="h-6 w-px bg-white/20" />
@@ -532,10 +624,16 @@ export function ProjectWorkspaceView({
         <div className="h-6 w-px bg-white/20 mx-1" />
         <Button className="!text-white/80 hover:!text-white hover:bg-white/10" variant="ghost" size="sm" leadingIcon={<LogOut size={17} />} onClick={onLogout}>Đăng xuất</Button>
       </div>
-    </header>
+    </motion.header>
 
     <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 items-start grid-cols-1 ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)]'}`}>
-      <aside className={`sticky top-5 flex h-auto lg:h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
+      <motion.aside
+        variants={sidebarVariants}
+        initial="initial"
+        animate="animate"
+        style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+        className={`sticky top-5 flex h-auto lg:h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 overflow-x-hidden ${sidebarCollapsed ? 'overflow-hidden' : ''}`}
+      >
         <div className="shrink-0 border-b border-line p-5">
           <div className="flex items-center justify-between gap-3">
             {!sidebarCollapsed && <div>
@@ -648,65 +746,66 @@ export function ProjectWorkspaceView({
               </div>
             </div>
 
-            {showProjectAdvancedFilters && (
-              <div className="mt-3 p-3.5 bg-canvas border border-line rounded-xl space-y-3.5 text-xs animate-enter">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Bắt đầu từ ngày</label>
-                    <Input type="date" value={filters.startDateFrom || ''} onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                    <Input type="date" value={filters.startDateTo || ''} onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })} />
-                  </div>
+            <CollapsiblePanel
+              open={showProjectAdvancedFilters}
+              innerClassName="mt-3 p-3.5 bg-canvas border border-line rounded-xl space-y-3.5 text-xs"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Bắt đầu từ ngày</label>
+                  <Input type="date" value={filters.startDateFrom || ''} onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })} />
                 </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Kết thúc từ ngày</label>
-                    <Input type="date" value={filters.endDateFrom || ''} onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                    <Input type="date" value={filters.endDateTo || ''} onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })} />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Ngày tạo từ ngày</label>
-                    <Input type="date" value={filters.createdFrom || ''} onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                    <Input type="date" value={filters.createdTo || ''} onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2.5 border-t border-line/60">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onFiltersChange({
-                        keyword: filters.keyword,
-                        status: filters.status
-                      })
-                      setTimeout(() => handleSearch(), 50)
-                    }}
-                    className="text-muted hover:text-ink font-semibold"
-                  >
-                    Đặt lại
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSearch()}
-                    className="text-brand hover:text-brand-dark font-bold"
-                  >
-                    Áp dụng
-                  </button>
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                  <Input type="date" value={filters.startDateTo || ''} onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })} />
                 </div>
               </div>
-            )}
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Kết thúc từ ngày</label>
+                  <Input type="date" value={filters.endDateFrom || ''} onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                  <Input type="date" value={filters.endDateTo || ''} onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })} />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Ngày tạo từ ngày</label>
+                  <Input type="date" value={filters.createdFrom || ''} onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
+                  <Input type="date" value={filters.createdTo || ''} onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2.5 border-t border-line/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFiltersChange({
+                      keyword: filters.keyword,
+                      status: filters.status
+                    })
+                    setTimeout(() => handleSearch(), 50)
+                  }}
+                  className="text-muted hover:text-ink font-semibold"
+                >
+                  Đặt lại
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSearch()}
+                  className="text-brand hover:text-brand-dark font-bold"
+                >
+                  Áp dụng
+                </button>
+              </div>
+            </CollapsiblePanel>
           </div>}
         </div>
 
@@ -732,23 +831,46 @@ export function ProjectWorkspaceView({
           ))}
         </div> : <>
         <div className={`flex-1 overflow-y-auto p-3 ${loading ? 'opacity-50' : ''}`}>
-          <button type="button" className={`mb-3 w-full rounded-xl border p-4 text-left transition hover:border-brand ${!selectedProject ? 'border-brand bg-[#fff7ed] text-brand' : 'border-line bg-white'}`} onClick={() => onSelectProject(null as any)}>
-            <div className="flex items-center gap-3 font-semibold">
-              <LayoutDashboard size={20} /> Trang tổng quan
+          <button 
+            type="button" 
+            className={`mb-3 w-full rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${!selectedProject ? 'border-brand bg-brand-cream/60 text-brand-dark shadow-xs font-bold' : 'border-line/70 bg-white hover:border-brand/40'}`} 
+            onClick={() => onSelectProject(null as any)}
+          >
+            <div className="flex items-center gap-3 font-bold text-sm">
+              <div className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+                <LayoutDashboard size={18} />
+              </div>
+              <span>Trang tổng quan</span>
             </div>
           </button>
+
           {projects.content.map(project => (
-            <button key={project.id} type="button" className={`mb-3 w-full rounded-xl border p-4 text-left transition hover:border-brand ${selectedProject?.id === project.id ? 'border-brand bg-[#fff7ed]' : 'border-line bg-white'}`} onClick={() => onSelectProject(project)}>
+            <button 
+              key={project.id} 
+              type="button" 
+              className={`mb-3 w-full rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${selectedProject?.id === project.id ? 'border-brand bg-brand-cream/40 shadow-xs' : 'border-line/70 bg-white hover:border-brand/40'}`} 
+              onClick={() => onSelectProject(project)}
+            >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-brand">{project.code}</p>
-                  <p className="mt-1 font-semibold text-ink">{project.name}</p>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-brand">
+                    {project.code}
+                  </span>
+                  <h4 className="mt-1 font-bold text-ink text-sm leading-snug line-clamp-2" title={project.name}>
+                    {project.name}
+                  </h4>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(project.status)}`}>{projectStatusLabels[project.status]}</span>
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold shadow-2xs ${statusClass(project.status)}`}>
+                  {projectStatusLabels[project.status]}
+                </span>
               </div>
-              <div className="mt-3 flex items-center gap-3 text-xs text-muted">
-                <span className="inline-flex items-center gap-1"><CalendarDays size={14} />{formatDate(project.startDate)}</span>
-                {project.currentUserRole && <span>{projectMemberRoleLabels[project.currentUserRole]}</span>}
+              <div className="mt-3 flex items-center justify-between border-t border-line/50 pt-2.5 text-xs text-muted">
+                <span className="inline-flex items-center gap-1 font-medium"><CalendarDays size={13} className="text-muted" />{formatDate(project.startDate)}</span>
+                {project.currentUserRole && (
+                  <span className="font-semibold text-muted-dark text-[11px]">
+                    {projectMemberRoleLabels[project.currentUserRole]}
+                  </span>
+                )}
               </div>
             </button>
           ))}
@@ -762,58 +884,181 @@ export function ProjectWorkspaceView({
           </div>
         </footer>
         </>}
-      </aside>
+      </motion.aside>
 
-      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white h-auto lg:h-[calc(100vh-96px)] overflow-y-auto">
-        {!selectedProject ? (
-          <PersonalDashboardController me={user} />
-        ) : <>
-          <div className="border-b border-line p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#fef3e2] px-2.5 py-1 text-xs font-bold text-brand-dark">{selectedProject.code}</span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(selectedProject.status)}`}>{projectStatusLabels[selectedProject.status]}</span>
-                  {selectedProject.currentUserRole && <span className="rounded-full bg-panel px-2.5 py-1 text-xs font-semibold text-muted">{projectMemberRoleLabels[selectedProject.currentUserRole]}</span>}
-                </div>
-                <h2 className="mt-3 text-2xl font-bold">{selectedProject.name}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">{selectedProject.description || 'Chưa có mô tả dự án.'}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {canManageMembers && (
-                  <ActionMenu label="Tùy chọn">
-                    <ActionItem onClick={() => setProjectEditOpen(true)}>
-                      <Pencil size={15} /> Sửa dự án
-                    </ActionItem>
-                    {selectedProject.currentUserRole === 'OWNER' && (
-                      <ActionItem danger onClick={() => setDeleteProjectOpen(true)}>
-                        <Trash2 size={15} /> Xóa dự án
+      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white h-auto lg:h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          {!selectedProject ? (
+            <motion.div
+              key="personal-dashboard"
+              variants={contentTransitionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+              className="min-h-full"
+            >
+              <PersonalDashboardController me={user} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`${selectedProject.id}-${activeTab}`}
+              variants={contentTransitionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+              className="min-h-full"
+            >
+          {/* Bộ Menu Điều Hướng Tab Đẩy Lên Vị Trí Cao Nhất */}
+          <div className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur-sm px-5 py-3 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-start gap-2">
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
+              </motion.div>
+            </div>
+          </div>
+
+          {activeTab === 'dashboard' && (
+            <div className="border-b border-line bg-white overflow-hidden rounded-t-xl">
+              {/* 1. Banner Hình Nền Dự Án IT Cyber Tech & Neon Glow Grid (Tăng Kích Thước 160% Hoành Tráng) */}
+              <div className="relative h-52 sm:h-64 md:h-72 w-full overflow-hidden bg-gradient-to-r from-slate-950 via-sky-950 to-blue-950">
+                {/* IT Tech Wallpaper Background */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-85 mix-blend-screen"
+                  style={{ backgroundImage: `url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80')` }}
+                />
+                
+                {/* Neon Cyan Circuit Overlay matching user reference images */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-cyan-500/30 via-blue-600/20 to-transparent" />
+                
+                {/* Cyber Grid Lines & Square Frame Overlay */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#0284c720_1px,transparent_1px),linear-gradient(to_bottom,#0284c720_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_50%,#000_85%,transparent_100%)]" />
+
+                {/* Laser Light Ray Effect */}
+                <div className="absolute top-1/3 right-0 h-0.5 w-3/4 bg-gradient-to-l from-cyan-300 via-sky-400/70 to-transparent shadow-[0_0_28px_#38bdf8]" />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-black/30" />
+                <div className="absolute -right-20 -top-20 size-96 rounded-full bg-cyan-400/25 blur-3xl" />
+                <div className="absolute left-1/4 -bottom-24 size-80 rounded-full bg-blue-500/25 blur-3xl" />
+
+                {/* Top Right Controls (Nút Tùy Chọn & Trạng thái Dự án) */}
+                <div className="absolute top-4 right-4 z-10 flex flex-wrap items-center gap-2">
+                  {canManageMembers && (
+                    <ActionMenu label="Tùy chọn">
+                      <ActionItem onClick={() => setProjectEditOpen(true)}>
+                        <Pencil size={15} /> Sửa dự án
                       </ActionItem>
-                    )}
-                  </ActionMenu>
-                )}
-                <Select aria-label="Đổi trạng thái" value={selectedProject.status} onChange={event => onStatusChange(event.target.value as ProjectStatus)} disabled={saving || detailLoading} options={statuses.map(status => ({ label: projectStatusLabels[status], value: status }))} />
+                      {selectedProject.currentUserRole === 'OWNER' && (
+                        <ActionItem danger onClick={() => setDeleteProjectOpen(true)}>
+                          <Trash2 size={15} /> Xóa dự án
+                        </ActionItem>
+                      )}
+                    </ActionMenu>
+                  )}
+                  <button
+                    type="button"
+                    disabled={saving || detailLoading}
+                    onClick={() => setProjectStatusModalOpen(true)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-extrabold shadow-sm transition-all cursor-pointer backdrop-blur-md ${getProjectStatusBadgeStyle(selectedProject.status)}`}
+                    title="Bấm để thay đổi trạng thái dự án"
+                  >
+                    <span className={`size-2.5 rounded-full ${getProjectStatusDotColor(selectedProject.status)}`} />
+                    <span>{projectStatusLabels[selectedProject.status]}</span>
+                    <ChevronDown size={14} className="opacity-60 shrink-0" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Thẻ Thông Tin Dự Án (Tiêu Đề & Mô Tả Đặt Tỷ Lệ Phù Hợp) */}
+              <div className="px-6 pb-6 pt-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="rounded-full bg-brand/10 border border-brand/20 px-3 py-0.5 text-xs font-extrabold text-brand-dark">
+                        {selectedProject.code}
+                      </span>
+                      {selectedProject.currentUserRole && (
+                        <span className="rounded-full bg-slate-100 border border-slate-200 px-3 py-0.5 text-xs font-bold text-slate-700">
+                          {projectMemberRoleLabels[selectedProject.currentUserRole]}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                      {selectedProject.name}
+                    </h2>
+                  </div>
+                </div>
+
+                <p className="max-w-4xl text-sm sm:text-base leading-relaxed text-slate-600 font-medium mb-5">
+                  {selectedProject.description || 'Chưa có mô tả chi tiết cho dự án này.'}
+                </p>
+
+                {/* 3. 3 Thẻ Metrics Thu Nhỏ 30% (Ngày Bắt Đầu, Ngày Kết Thúc, Số Thành Viên) */}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {/* Thẻ 1: Ngày Bắt Đầu */}
+                  <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/40 py-2.5 px-3.5 shadow-2xs transition-all hover:bg-emerald-50/70">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-500 text-white shadow-xs">
+                      <CalendarDays size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">Ngày Bắt Đầu</p>
+                      <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-800">
+                        {formatDate(selectedProject.startDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Thẻ 2: Ngày Kết Thúc */}
+                  <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 py-2.5 px-3.5 shadow-2xs transition-all hover:bg-blue-50/70">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-500 text-white shadow-xs">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-blue-800">Ngày Kết Thúc</p>
+                      <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-800">
+                        {formatDate(selectedProject.endDate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Thẻ 3: Thành viên */}
+                  <div className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 py-2.5 px-3.5 shadow-2xs transition-all hover:bg-indigo-50/70">
+                    <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white shadow-xs">
+                      <UsersRound size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-800">Tổng Thành Viên</p>
+                      <p className="mt-0.5 text-xs sm:text-sm font-extrabold text-slate-800">
+                        {members.length} thành viên
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-canvas p-4"><p className="text-xs text-muted">Bắt đầu</p><p className="mt-1 font-semibold">{formatDate(selectedProject.startDate)}</p></div>
-              <div className="rounded-xl bg-canvas p-4"><p className="text-xs text-muted">Kết thúc</p><p className="mt-1 font-semibold">{formatDate(selectedProject.endDate)}</p></div>
-              <div className="rounded-xl bg-canvas p-4"><p className="text-xs text-muted">Thành viên</p><p className="mt-1 font-semibold">{members.length}</p></div>
-            </div>
-          </div>
-
-          <div className="border-b border-line px-5 py-4">
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
-              <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
-              <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
-              <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
-              <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
-              <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
-              <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
-              <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
-            </div>
-          </div>
+          )}
 
           <div className={`p-5 ${detailLoading ? 'opacity-50' : ''}`}>
             {activeTab === 'dashboard' && <ProjectDashboardTab projectId={selectedProject.id} sprints={sprints} onOpenTask={onOpenTask} />}
@@ -880,7 +1125,7 @@ export function ProjectWorkspaceView({
               onExportSprintTasks={onExportSprintTasks}
             />}
 
-            {activeTab === 'members' && <>
+            {activeTab === 'members' && <div className="p-5">
               {canManageMembers && <AddMemberForm candidates={candidateUsers} saving={saving} loading={candidateLoading} onSearch={onCandidateSearch} onAdd={onAddMember} />}
               <div className="mt-4 overflow-x-auto rounded-xl border border-line">
                 <table className="w-full min-w-[760px] text-left text-sm">
@@ -895,88 +1140,123 @@ export function ProjectWorkspaceView({
                   </tbody>
                 </table>
               </div>
-            </>}
-
+            </div>}
             {activeTab === 'activities' && <div className="space-y-3">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-lg">Lịch sử hoạt động</h3>
                 <Button 
-                  variant={isActivityFilterVisible ? 'danger' : 'primary'} 
-                  leadingIcon={isActivityFilterVisible ? <X size={16} /> : <Filter size={16} />}
+                  variant="secondary"
+                  size="sm"
+                  iconOnly
                   onClick={() => setIsActivityFilterVisible(!isActivityFilterVisible)}
-                >
-                  {isActivityFilterVisible ? 'Đóng' : 'Lọc'}
-                </Button>
+                  title="Lọc dữ liệu"
+                  aria-label="Lọc dữ liệu"
+                  className={`!px-3 ${isActivityFilterVisible ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
+                  leadingIcon={<Filter size={16} />}
+                />
               </div>
 
-              {isActivityFilterVisible && (
-                <div className="p-4 bg-panel border border-line rounded-xl mb-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                    <Select
-                      aria-label="Thành viên"
-                      value={activityFilters.performedByUserId ?? ''}
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, performedByUserId: e.target.value })}
-                      options={[
-                        { label: 'Tất cả thành viên', value: '' },
-                        ...members.map(m => ({ label: m.username, value: m.userId }))
-                      ]}
-                      className="w-full"
-                    />
-                    <Select
-                      aria-label="Đối tượng"
-                      value={activityFilters.entityType ?? ''}
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, entityType: e.target.value })}
-                      options={[
-                        { label: 'Tất cả đối tượng', value: '' },
-                        ...Object.entries(entityTypeLabels).map(([key, label]) => ({ label, value: key }))
-                      ]}
-                      className="w-full"
-                    />
-                    <Select
-                      aria-label="Hành động"
-                      value={activityFilters.action ?? ''}
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, action: e.target.value })}
-                      options={[
-                        { label: 'Tất cả hành động', value: '' },
-                        ...Object.entries(projectActivityLabels).map(([key, label]) => ({ label, value: key }))
-                      ]}
-                      className="w-full"
-                    />
-                    <Input
-                      type="date"
-                      aria-label="Từ ngày"
-                      value={activityFilters.fromDate ? activityFilters.fromDate.split('T')[0] : ''}
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, fromDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
-                      className="w-full"
-                    />
-                    <Input
-                      type="date"
-                      aria-label="Đến ngày"
-                      value={activityFilters.toDate ? activityFilters.toDate.split('T')[0] : ''}
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, toDate: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : '' })}
-                      className="w-full"
-                    />
-                    <Input 
-                      placeholder="Tìm kiếm từ khóa..." 
-                      leadingIcon={<Search size={16} />} 
-                      value={activityFilters.keyword ?? ''} 
-                      onChange={e => onActivityFiltersChange({ ...activityFilters, keyword: e.target.value })} 
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          onActivitySearch(activityFilters)
-                        }
-                      }} 
-                      className="w-full"
-                    />
+              <CollapsiblePanel open={isActivityFilterVisible}>
+                <div className="mb-4 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm space-y-4 animate-enter">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Thành viên</label>
+                      <Select
+                        aria-label="Thành viên"
+                        value={activityFilters.performedByUserId ?? ''}
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, performedByUserId: e.target.value })}
+                        options={[
+                          { label: 'Tất cả', value: '' },
+                          ...members.map(m => ({ label: m.username, value: m.userId }))
+                        ]}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Đối tượng</label>
+                      <Select
+                        aria-label="Đối tượng"
+                        value={activityFilters.entityType ?? ''}
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, entityType: e.target.value })}
+                        options={[
+                          { label: 'Tất cả', value: '' },
+                          ...Object.entries(entityTypeLabels).map(([key, label]) => ({ label, value: key }))
+                        ]}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Hành động</label>
+                      <Select
+                        aria-label="Hành động"
+                        value={activityFilters.action ?? ''}
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, action: e.target.value })}
+                        options={[
+                          { label: 'Tất cả', value: '' },
+                          ...Object.entries(projectActivityLabels).map(([key, label]) => ({ label, value: key }))
+                        ]}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ ngày</label>
+                      <Input
+                        type="date"
+                        aria-label="Từ ngày"
+                        value={activityFilters.fromDate ? activityFilters.fromDate.split('T')[0] : ''}
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, fromDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
+                      <Input
+                        type="date"
+                        aria-label="Đến ngày"
+                        value={activityFilters.toDate ? activityFilters.toDate.split('T')[0] : ''}
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, toDate: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : '' })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted-dark mb-1">Từ khóa</label>
+                      <Input 
+                        placeholder="Tìm tiêu đề, nội dung..." 
+                        leadingIcon={<Search size={16} />} 
+                        value={activityFilters.keyword ?? ''} 
+                        onChange={e => onActivityFiltersChange({ ...activityFilters, keyword: e.target.value })} 
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            onActivitySearch(activityFilters)
+                          }
+                        }} 
+                        className="w-full"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-end mt-4">
-                    <Button variant="outline-blue" loading={loading} leadingIcon={<Filter size={16} />} onClick={() => onActivitySearch(activityFilters)}>
-                      Lọc
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-line/60">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      iconOnly
+                      title="Đặt lại bộ lọc"
+                      aria-label="Đặt lại bộ lọc"
+                      onClick={() => {
+                        const resetObj = { performedByUserId: '', entityType: '', action: '', fromDate: '', toDate: '', keyword: '' }
+                        onActivityFiltersChange(resetObj)
+                        onActivitySearch(resetObj)
+                      }}
+                      className="!px-3"
+                      leadingIcon={<RotateCcw size={16} />}
+                    />
+                    <Button variant="primary" size="sm" loading={loading} leadingIcon={<Filter size={15} />} onClick={() => onActivitySearch(activityFilters)} className="!px-5 font-bold shadow-xs">
+                      Áp dụng Lọc
                     </Button>
                   </div>
                 </div>
-              )}
+              </CollapsiblePanel>
               
               {activities.content.map(activity => (
                 <button
@@ -1011,23 +1291,52 @@ export function ProjectWorkspaceView({
               )}
             </div>}
 
-            {activeTab === 'notifications' && <div className="space-y-3">
-              <div className="flex justify-end"><Button variant="outline-teal" size="sm" leadingIcon={<CheckCheck size={16} />} onClick={onReadAllNotifications}>Đánh dấu tất cả đã đọc</Button></div>
-              {notifications.content.map(item => (
-                <div key={item.id} className={`flex items-start gap-4 rounded-xl border p-4 transition ${item.read ? 'border-line bg-white' : 'border-brand bg-[#fff7ed]'}`}>
-                  <button type="button" className="flex-1 text-left" onClick={() => onReadNotification(item.id)}>
-                    <div className="flex items-center gap-2 font-semibold">
-                      {item.title}
-                      {!item.read && <span className="size-2 rounded-full bg-brand" />}
-                    </div>
-                    <p className="mt-1 text-sm text-muted">{item.content}</p>
-                    <p className="mt-2 text-xs text-muted">{formatDate(item.createdAt)}</p>
-                  </button>
-                  <Button variant="secondary" size="sm" iconOnly aria-label="Xóa thông báo" leadingIcon={<Trash2 size={16} className="text-rose-500" />} onClick={() => onDeleteNotification(item.id)} />
+            {activeTab === 'notifications' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg">Thông báo hệ thống ({notifications.content.length})</h3>
+                  {notifications.content.length > 0 && (
+                    <Button variant="outline-teal" size="sm" leadingIcon={<CheckCheck size={16} />} onClick={onReadAllNotifications}>
+                      Đánh dấu tất cả đã đọc
+                    </Button>
+                  )}
                 </div>
-              ))}
-              {!notifications.content.length && <p className="py-10 text-center text-sm text-muted">Chưa có thông báo.</p>}
-            </div>}
+
+                <div className="max-h-[580px] overflow-y-auto pr-1.5 space-y-3">
+                  {notifications.content.map(item => (
+                    <div
+                      key={item.id}
+                      className={`flex items-start gap-4 rounded-xl border p-4 transition ${
+                        item.read ? 'border-line bg-white hover:border-slate-300' : 'border-brand bg-[#fff7ed] shadow-2xs'
+                      }`}
+                    >
+                      <button type="button" className="flex-1 text-left" onClick={() => onReadNotification(item.id)}>
+                        <div className="flex items-center gap-2 font-semibold">
+                          {item.title}
+                          {!item.read && <span className="size-2 rounded-full bg-brand" />}
+                        </div>
+                        <p className="mt-1 text-sm text-muted">{item.content}</p>
+                        <p className="mt-2 text-xs text-muted font-medium">{formatDate(item.createdAt)}</p>
+                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        iconOnly
+                        aria-label="Xóa thông báo"
+                        leadingIcon={<Trash2 size={16} className="text-rose-500" />}
+                        onClick={() => onDeleteNotification(item.id)}
+                      />
+                    </div>
+                  ))}
+
+                  {!notifications.content.length && (
+                    <div className="py-16 text-center text-sm text-muted bg-white rounded-2xl border border-line">
+                      Chưa có thông báo nào.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {activeTab === 'timesheet' && (
               <TimesheetView mode="project" projectId={selectedProject.id} members={members} />
@@ -1049,7 +1358,9 @@ export function ProjectWorkspaceView({
               <ProjectAttachmentsTab projectId={selectedProject.id} />
             )}
           </div>
-        </>}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </main>
 
@@ -1073,6 +1384,46 @@ export function ProjectWorkspaceView({
       currentProjectCode={selectedProject?.code}
       onSelectResult={onSelectSearchResult}
     />
+
+    {selectedProject && (
+      <Modal 
+        open={projectStatusModalOpen} 
+        onClose={() => setProjectStatusModalOpen(false)} 
+        title="Cập nhật trạng thái dự án"
+        description="Chọn trạng thái hoạt động hiện tại cho dự án này."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          {statuses.map(st => {
+            const isCurrent = selectedProject.status === st
+            return (
+              <button
+                key={st}
+                type="button"
+                onClick={() => {
+                  onStatusChange(st)
+                  setProjectStatusModalOpen(false)
+                }}
+                className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${getProjectStatusCardStyle(st, isCurrent)}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`size-3 rounded-full shrink-0 ${getProjectStatusDotColor(st)}`} />
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-800">{projectStatusLabels[st]}</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                      {st === 'ACTIVE' && 'Dự án đang trong giai đoạn triển khai'}
+                      {st === 'COMPLETED' && 'Dự án đã hoàn thành các công việc'}
+                      {st === 'CANCELLED' && 'Dự án tạm dừng hoặc đã hủy bỏ'}
+                      {st === 'ARCHIVED' && 'Dự án đã đóng và đưa vào lưu trữ'}
+                    </p>
+                  </div>
+                </div>
+                {isCurrent && <CheckCircle2 size={18} className="text-brand shrink-0 ml-2" />}
+              </button>
+            )
+          })}
+        </div>
+      </Modal>
+    )}
   </div>
 }
 

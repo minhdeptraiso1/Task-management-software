@@ -16,17 +16,23 @@ const variants = {
   'outline-teal': 'border border-emerald-400 bg-white text-emerald-700 hover:bg-emerald-50 focus:ring-emerald-400/35',
 }
 
-export function Button({ as: Component = 'button', variant = 'primary', size = 'md', loading, icon, leadingIcon, trailingIcon, iconOnly = false, className = '', children, disabled, ...props }: ButtonProps) {
+export function Button({ as: Component = 'button', variant = 'primary', size = 'md', loading, icon, leadingIcon, trailingIcon, iconOnly = false, className = '', children, disabled, title, ...props }: ButtonProps) {
   const startIcon = leadingIcon ?? icon
   return (
     <Component
-      className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all focus:outline-none focus:ring-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100 ${iconOnly ? (size === 'sm' ? 'size-9 p-0' : 'size-11 p-0') : (size === 'sm' ? 'h-9 px-3 text-sm' : 'h-11 px-4 text-sm')} ${variants[variant]} ${className}`}
+      className={`relative group inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold transition-all focus:outline-none focus:ring-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100 ${iconOnly ? (size === 'sm' ? 'size-9 p-0' : 'size-11 p-0') : (size === 'sm' ? 'h-9 px-3 text-sm' : 'h-11 px-4 text-sm')} ${variants[variant]} ${className}`}
       disabled={disabled || loading}
+      title={title}
       {...props}
     >
       {loading ? <span className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : startIcon && <span className="shrink-0" aria-hidden="true">{startIcon}</span>}
       {!iconOnly && children}
       {!loading && trailingIcon && <span className="shrink-0" aria-hidden="true">{trailingIcon}</span>}
+      {title && (
+        <span className="absolute -top-9 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center bg-slate-800/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-md whitespace-nowrap z-50 pointer-events-none border border-slate-700/50">
+          {title}
+        </span>
+      )}
     </Component>
   )
 }

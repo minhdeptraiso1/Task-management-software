@@ -3,7 +3,9 @@ package com.project.taskmanagement.service.impl;
 import com.project.taskmanagement.dto.response.audit.AuditLogPageResponse;
 import com.project.taskmanagement.dto.response.audit.AuditLogResponse;
 import com.project.taskmanagement.entity.AuditLog;
+import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.repository.AuditLogRepository;
+import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.AuditLogService;
 import com.project.taskmanagement.service.AuditLogWebSocketService;
 import lombok.AccessLevel;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class AuditLogServiceImpl implements AuditLogService {
 
     AuditLogRepository auditLogRepository;
+    UserRepository userRepository;
     AuditLogWebSocketService webSocketService;
 
     @Override
@@ -48,9 +51,12 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     private AuditLogResponse toResponse(AuditLog log) {
+        User user = userRepository.findById(log.getUserId()).orElse(null);
         return new AuditLogResponse(
                 log.getId(),
                 log.getUserId(),
+                user != null ? user.getUsername() : null,
+                user != null ? user.getEmail() : null,
                 log.getAction(),
                 log.getCreatedAt()
         );

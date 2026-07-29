@@ -71,6 +71,12 @@ public class JwtAuthenticationFilter
         String authorizationHeader =
                 request.getHeader("Authorization");
 
+        if ((authorizationHeader == null || authorizationHeader.isBlank())
+                && request.getParameter("access_token") != null
+                && !request.getParameter("access_token").isBlank()) {
+            authorizationHeader = BEARER_PREFIX + request.getParameter("access_token").trim();
+        }
+
         /*
          * Không có Authorization header:
          * Không tự trả lỗi tại đây.

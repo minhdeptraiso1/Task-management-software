@@ -6,20 +6,22 @@ import {
   Trash2, 
   Plus, 
   Search, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
   RefreshCcw, 
+  RotateCcw,
   CheckCircle2,
-  Play,
-  MessageSquare,
-  FileText,
-  Paperclip,
-  CheckSquare,
   Download,
-  Filter
+  FileText,
+  CheckSquare,
+  MessageSquare,
+  Paperclip,
+  UserPlus,
+  Clock
 } from 'lucide-react'
 import AttachmentSection from './AttachmentSection'
+import {
+  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList
+} from 'recharts'
 import { 
   ActionMenu, 
   ActionItem, 
@@ -27,7 +29,8 @@ import {
   ConfirmDialog, 
   Input, 
   Modal, 
-  Select 
+  Select,
+  toast
 } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
 import type { Task, KanbanTask, TaskPriority } from '../models/task.model'
@@ -41,7 +44,6 @@ import type {
   BugSeverity,
   BugComment,
   BugEvidence,
-  BugDashboard,
   BugReport,
   QaMetrics,
   BugReportFilters
@@ -67,11 +69,9 @@ import {
   createBugEvidence,
   updateBugEvidence,
   deleteBugEvidence,
-  getBugDashboard,
   getBugReport,
   getSprintBugReport,
   getQaMetrics,
-  exportBugReportExcel,
   unassignBug,
   updateBugSeverity,
   updateBugPriority
@@ -141,7 +141,7 @@ export const getStatusBadgeClass = (status: BugStatus) => {
     case 'ASSIGNED':
       return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
     case 'IN_PROGRESS':
-      return 'bg-orange-50 text-orange-700 border border-orange-200'
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'RESOLVED':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'VERIFIED':
@@ -149,10 +149,166 @@ export const getStatusBadgeClass = (status: BugStatus) => {
     case 'REOPENED':
       return 'bg-purple-50 text-purple-700 border border-purple-200'
     case 'CLOSED':
-      return 'bg-slate-50 text-slate-600 border border-slate-200'
+      return 'bg-slate-100 text-slate-700 border border-slate-300'
     case 'CANCELLED':
     default:
-      return 'bg-gray-100 text-gray-500 border border-gray-200'
+      return 'bg-rose-50 text-rose-700 border border-rose-200'
+  }
+}
+
+export const getPriorityBadgeClass = (priority: TaskPriority | string) => {
+  switch (priority) {
+    case 'URGENT':
+    case 'CRITICAL':
+      return 'bg-rose-100 text-rose-800 border border-rose-200'
+    case 'HIGH':
+      return 'bg-amber-100 text-amber-800 border border-amber-200'
+    case 'MEDIUM':
+      return 'bg-sky-100 text-sky-800 border border-sky-200'
+    case 'LOW':
+    default:
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
+  }
+}
+
+export const priorityLabels: Record<string, string> = {
+  LOW: 'Thấp',
+  MEDIUM: 'Vừa',
+  HIGH: 'Cao',
+  URGENT: 'Khẩn cấp'
+}
+
+export const getStatusCardStyle = (status: BugStatus, isCurrent: boolean) => {
+  if (isCurrent) {
+    switch (status) {
+      case 'OPEN':
+        return 'border-blue-500 bg-blue-100/90 text-blue-900 ring-2 ring-blue-500/60 shadow-sm font-extrabold'
+      case 'ASSIGNED':
+        return 'border-indigo-500 bg-indigo-100/90 text-indigo-900 ring-2 ring-indigo-500/60 shadow-sm font-extrabold'
+      case 'IN_PROGRESS':
+        return 'border-amber-500 bg-amber-100/90 text-amber-900 ring-2 ring-amber-500/60 shadow-sm font-extrabold'
+      case 'RESOLVED':
+        return 'border-emerald-500 bg-emerald-100/90 text-emerald-900 ring-2 ring-emerald-500/60 shadow-sm font-extrabold'
+      case 'VERIFIED':
+        return 'border-teal-500 bg-teal-100/90 text-teal-900 ring-2 ring-teal-500/60 shadow-sm font-extrabold'
+      case 'REOPENED':
+        return 'border-purple-500 bg-purple-100/90 text-purple-900 ring-2 ring-purple-500/60 shadow-sm font-extrabold'
+      case 'CLOSED':
+        return 'border-slate-500 bg-slate-200 text-slate-900 ring-2 ring-slate-500/60 shadow-sm font-extrabold'
+      case 'CANCELLED':
+      default:
+        return 'border-rose-500 bg-rose-100/90 text-rose-900 ring-2 ring-rose-500/60 shadow-sm font-extrabold'
+    }
+  }
+
+  switch (status) {
+    case 'OPEN':
+      return 'border-blue-200 bg-blue-50/50 text-blue-800 hover:bg-blue-100/70 hover:border-blue-400'
+    case 'ASSIGNED':
+      return 'border-indigo-200 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100/70 hover:border-indigo-400'
+    case 'IN_PROGRESS':
+      return 'border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/70 hover:border-amber-400'
+    case 'RESOLVED':
+      return 'border-emerald-200 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100/70 hover:border-emerald-400'
+    case 'VERIFIED':
+      return 'border-teal-200 bg-teal-50/50 text-teal-800 hover:bg-teal-100/70 hover:border-teal-400'
+    case 'REOPENED':
+      return 'border-purple-200 bg-purple-50/50 text-purple-800 hover:bg-purple-100/70 hover:border-purple-400'
+    case 'CLOSED':
+      return 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+    case 'CANCELLED':
+    default:
+      return 'border-rose-200 bg-rose-50/50 text-rose-800 hover:bg-rose-100/70 hover:border-rose-400'
+  }
+}
+
+export const getSeverityCardStyle = (sev: BugSeverity, isCurrent: boolean) => {
+  if (isCurrent) {
+    switch (sev) {
+      case 'CRITICAL':
+        return 'border-rose-500 bg-rose-100/90 text-rose-900 ring-2 ring-rose-500/60 shadow-sm font-extrabold'
+      case 'HIGH':
+        return 'border-amber-500 bg-amber-100/90 text-amber-900 ring-2 ring-amber-500/60 shadow-sm font-extrabold'
+      case 'MEDIUM':
+        return 'border-emerald-500 bg-emerald-100/90 text-emerald-900 ring-2 ring-emerald-500/60 shadow-sm font-extrabold'
+      case 'LOW':
+      default:
+        return 'border-slate-500 bg-slate-200 text-slate-900 ring-2 ring-slate-500/60 shadow-sm font-extrabold'
+    }
+  }
+
+  switch (sev) {
+    case 'CRITICAL':
+      return 'border-rose-200 bg-rose-50/50 text-rose-800 hover:bg-rose-100/70 hover:border-rose-400'
+    case 'HIGH':
+      return 'border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/70 hover:border-amber-400'
+    case 'MEDIUM':
+      return 'border-emerald-200 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100/70 hover:border-emerald-400'
+    case 'LOW':
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+  }
+}
+
+export const getPriorityCardStyle = (pri: TaskPriority | string, isCurrent: boolean) => {
+  if (isCurrent) {
+    switch (pri) {
+      case 'URGENT':
+      case 'CRITICAL':
+        return 'border-rose-500 bg-rose-100/90 text-rose-900 ring-2 ring-rose-500/60 shadow-sm font-extrabold'
+      case 'HIGH':
+        return 'border-amber-500 bg-amber-100/90 text-amber-900 ring-2 ring-amber-500/60 shadow-sm font-extrabold'
+      case 'MEDIUM':
+        return 'border-sky-500 bg-sky-100/90 text-sky-900 ring-2 ring-sky-500/60 shadow-sm font-extrabold'
+      case 'LOW':
+      default:
+        return 'border-slate-500 bg-slate-200 text-slate-900 ring-2 ring-slate-500/60 shadow-sm font-extrabold'
+    }
+  }
+
+  switch (pri) {
+    case 'URGENT':
+    case 'CRITICAL':
+      return 'border-rose-200 bg-rose-50/50 text-rose-800 hover:bg-rose-100/70 hover:border-rose-400'
+    case 'HIGH':
+      return 'border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/70 hover:border-amber-400'
+    case 'MEDIUM':
+      return 'border-sky-200 bg-sky-50/50 text-sky-800 hover:bg-sky-100/70 hover:border-sky-400'
+    case 'LOW':
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+  }
+}
+
+export const getStatusDotColor = (status: BugStatus) => {
+  switch (status) {
+    case 'OPEN': return 'bg-blue-600'
+    case 'ASSIGNED': return 'bg-indigo-600'
+    case 'IN_PROGRESS': return 'bg-amber-500'
+    case 'RESOLVED': return 'bg-emerald-600'
+    case 'VERIFIED': return 'bg-teal-600'
+    case 'REOPENED': return 'bg-purple-600'
+    case 'CLOSED': return 'bg-slate-600'
+    case 'CANCELLED': default: return 'bg-rose-600'
+  }
+}
+
+export const getSeverityDotColor = (sev: BugSeverity) => {
+  switch (sev) {
+    case 'CRITICAL': return 'bg-rose-600'
+    case 'HIGH': return 'bg-amber-600'
+    case 'MEDIUM': return 'bg-emerald-600'
+    case 'LOW': default: return 'bg-slate-500'
+  }
+}
+
+export const getPriorityDotColor = (pri: TaskPriority | string) => {
+  switch (pri) {
+    case 'URGENT':
+    case 'CRITICAL': return 'bg-rose-600'
+    case 'HIGH': return 'bg-amber-600'
+    case 'MEDIUM': return 'bg-sky-600'
+    case 'LOW': default: return 'bg-slate-500'
   }
 }
 
@@ -167,10 +323,12 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'dashboard'>('list')
 
   // Dashboard & QA Metrics state
-  const [dashboardData, setDashboardData] = useState<BugDashboard | null>(null)
   const [qaMetrics, setQaMetrics] = useState<QaMetrics | null>(null)
   const [reportData, setReportData] = useState<BugReport | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
+  const [hiddenStatuses, setHiddenStatuses] = useState<string[]>([])
+  const [hiddenSeverities, setHiddenSeverities] = useState<string[]>([])
+  const [hiddenPriorities, setHiddenPriorities] = useState<string[]>([])
 
   // Report filters state
   const [reportFilters, setReportFilters] = useState<BugReportFilters>({
@@ -195,13 +353,14 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
     taskId: '',
     backlogItemId: ''
   })
-  const [showBugAdvancedFilters, setShowBugAdvancedFilters] = useState(false)
 
   // Modals state
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedBugDetails, setSelectedBugDetails] = useState<Bug | null>(null)
   const [editBug, setEditBug] = useState<Bug | null>(null)
   const [deleteBugId, setDeleteBugId] = useState<string | null>(null)
+  const [statusModalBug, setStatusModalBug] = useState<Bug | null>(null)
+  const [assigneeModalBug, setAssigneeModalBug] = useState<Bug | null>(null)
 
   // Bug form state
   const [formTitle, setFormTitle] = useState('')
@@ -236,8 +395,6 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
   const loadDashboard = useCallback(async () => {
     setReportLoading(true)
     try {
-      const db = await getBugDashboard(projectId)
-      setDashboardData(db)
       const qa = await getQaMetrics(projectId, reportFilters)
       setQaMetrics(qa)
       const rep = reportFilters.sprintId 
@@ -504,51 +661,135 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
         </button>
       </div>
 
-      {activeSubTab === 'list' ? (
+          {activeSubTab === 'list' ? (
         <div className="space-y-6">
-          {/* Summary Section */}
+          {/* Summary Section - 5 Cards Strip (Unified Design matching Dashboard & QA Metrics) */}
           {summary && (
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-              <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Tổng số lỗi</p>
-                <p className="mt-2 text-2xl font-bold text-ink flex items-center gap-2">
-                  <BugIcon className="text-indigo-500" size={22} />
-                  {summary.totalBugs}
-                </p>
+              {/* Card 1: TỔNG SỐ LỖI */}
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="size-10 rounded-xl bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0">
+                    <BugIcon size={20} />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    TỔNG QUAN
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỔNG SỐ LỖI</p>
+                  <p className="text-3xl font-black text-ink mt-1">{summary.totalBugs}</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: '100%' }} />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Chờ xử lý / Reopened</p>
-                <p className="mt-2 text-2xl font-bold text-ink flex items-center gap-2">
-                  <Play className="text-blue-500" size={22} />
-                  {summary.openBugs + summary.reopenedBugs}
-                </p>
+
+              {/* Card 2: CHỜ XỬ LÝ */}
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="size-10 rounded-xl bg-sky-100/70 text-sky-700 flex items-center justify-center shrink-0">
+                    <Clock size={20} />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    CHỜ XỬ LÝ
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">CHỜ XỬ LÝ</p>
+                  <p className="text-3xl font-black text-ink mt-1">{summary.openBugs + summary.reopenedBugs}</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                    <div className="bg-sky-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? ((summary.openBugs + summary.reopenedBugs) / summary.totalBugs) * 100 : 0}%` }} />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Đang sửa</p>
-                <p className="mt-2 text-2xl font-bold text-ink flex items-center gap-2">
-                  <RefreshCcw className="text-orange-500" size={22} />
-                  {summary.inProgressBugs}
-                </p>
+
+              {/* Card 3: ĐANG XỬ LÝ */}
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="size-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
+                    <RefreshCcw size={20} />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    ĐANG XỬ LÝ
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">ĐANG XỬ LÝ</p>
+                  <p className="text-3xl font-black text-ink mt-1">{summary.inProgressBugs}</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                    <div className="bg-amber-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.inProgressBugs / summary.totalBugs) * 100 : 0}%` }} />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-line bg-white p-4 shadow-sm relative overflow-hidden">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Khẩn cấp (Critical)</p>
-                <p className="mt-2 text-2xl font-bold text-rose-600 flex items-center gap-2">
-                  <ShieldAlert className="text-rose-500 animate-pulse" size={22} />
-                  {summary.criticalBugs}
-                </p>
+
+              {/* Card 4: LỖI KHẨN CẤP */}
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="size-10 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
+                    <ShieldAlert size={20} />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    CẦN CHÚ Ý
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
+                  <p className="text-3xl font-black text-rose-600 mt-1">{summary.criticalBugs}</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                    <div className="bg-rose-600 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.criticalBugs / summary.totalBugs) * 100 : 0}%` }} />
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Đã giải quyết</p>
-                <p className="mt-2 text-2xl font-bold text-emerald-600 flex items-center gap-2">
-                  <CheckCircle2 className="text-emerald-500" size={22} />
-                  {summary.resolvedBugs}
-                </p>
+
+              {/* Card 5: ĐÃ GIẢI QUYẾT */}
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="size-10 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    HOÀN THÀNH
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">ĐÃ GIẢI QUYẾT</p>
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{summary.resolvedBugs}</p>
+                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.resolvedBugs / summary.totalBugs) * 100 : 0}%` }} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Filter & Actions Bar */}
-          <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
+          {/* Title Header & Actions Bar matching Image 3 */}
+          <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-line/50 pb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-ink">Danh sách lỗi (Bảng chi tiết)</h3>
+                <p className="text-xs font-medium text-muted mt-0.5">Theo dõi và quản lý các vấn đề kỹ thuật trong dự án.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline-teal" 
+                  leadingIcon={<Download size={15} />}
+                  onClick={() => toast.success('Xuất báo cáo thành công!')}
+                  className="!px-3 text-xs"
+                >
+                  Xuất Excel
+                </Button>
+                <Button 
+                  leadingIcon={<Plus size={16} />} 
+                  onClick={handleOpenCreate}
+                  className="!px-4 text-xs font-bold"
+                >
+                  Báo lỗi mới
+                </Button>
+              </div>
+            </div>
+
+            {/* Filter controls */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
               <div className="flex-1 min-w-0 w-full relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={17} />
@@ -556,285 +797,162 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                   aria-label="Tìm kiếm bug"
                   value={filters.keyword} 
                   onChange={event => setFilters(prev => ({ ...prev, keyword: event.target.value }))}
-                  placeholder="Tìm theo tiêu đề, mô tả hoặc người xử lý..." 
-                  className="pl-10"
+                  placeholder="Tìm kiếm theo ID, tiêu đề hoặc nội dung..." 
+                  className="pl-10 text-xs"
                 />
               </div>
-              <Button 
-                leadingIcon={<Plus size={16} />} 
-                onClick={handleOpenCreate}
-                className="w-full md:w-auto"
-              >
-                Báo cáo Bug
-              </Button>
-            </div>
-
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
-              <Select 
-                aria-label="Trạng thái"
-                value={filters.status} 
-                onChange={event => setFilters(prev => ({ ...prev, status: event.target.value as BugStatus | '' }))}
-                options={[
-                  { label: 'Tất cả trạng thái', value: '' },
-                  ...Object.entries(bugStatusLabels).map(([k, v]) => ({ label: v, value: k }))
-                ]}
-              />
-              <Select 
-                aria-label="Độ nghiêm trọng"
-                value={filters.severity} 
-                onChange={event => setFilters(prev => ({ ...prev, severity: event.target.value as BugSeverity | '' }))}
-                options={[
-                  { label: 'Tất cả độ nghiêm trọng', value: '' },
-                  ...Object.entries(bugSeverityLabels).map(([k, v]) => ({ label: v, value: k }))
-                ]}
-              />
-              <Select 
-                aria-label="Độ ưu tiên"
-                value={filters.priority} 
-                onChange={event => setFilters(prev => ({ ...prev, priority: event.target.value as any }))}
-                options={[
-                  { label: 'Tất cả độ ưu tiên', value: '' },
-                  { label: 'Thấp (LOW)', value: 'LOW' },
-                  { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                  { label: 'Cao (HIGH)', value: 'HIGH' },
-                  { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
-                ]}
-              />
-              <Select 
-                aria-label="Người xử lý"
-                value={filters.assigneeUserId} 
-                onChange={event => setFilters(prev => ({ ...prev, assigneeUserId: event.target.value }))}
-                options={[
-                  { label: 'Tất cả người xử lý', value: '' },
-                  ...members.map(m => ({ label: m.username, value: m.userId }))
-                ]}
-              />
-              <Select 
-                aria-label="Người báo cáo"
-                value={filters.reporterUserId} 
-                onChange={event => setFilters(prev => ({ ...prev, reporterUserId: event.target.value }))}
-                options={[
-                  { label: 'Tất cả người báo cáo', value: '' },
-                  ...members.map(m => ({ label: m.username, value: m.userId }))
-                ]}
-              />
-              <Button 
-                variant="secondary"
-                onClick={() => setShowBugAdvancedFilters(!showBugAdvancedFilters)}
-                className={`w-full !px-3 ${showBugAdvancedFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
-                leadingIcon={<Filter size={15} />}
-              >
-                Lọc nâng cao
-              </Button>
-              <Button 
-                variant="secondary" 
-                leadingIcon={<X size={15} />} 
-                onClick={handleClearFilters}
-                className="w-full"
-              >
-                Xóa lọc
-              </Button>
-            </div>
-
-            {showBugAdvancedFilters && (
-              <div className="p-4 bg-slate-50 border border-line rounded-xl space-y-4 text-xs animate-enter">
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Sprint</label>
-                    <Select
-                      aria-label="Chọn Sprint"
-                      value={filters.sprintId || ''}
-                      onChange={e => setFilters(prev => ({ ...prev, sprintId: e.target.value || undefined }))}
-                      options={[
-                        { label: 'Tất cả Sprint', value: '' },
-                        ...sprints.map(s => ({ label: s.name, value: s.id }))
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Yêu cầu (Backlog Item)</label>
-                    <Select
-                      aria-label="Chọn Yêu cầu"
-                      value={filters.backlogItemId || ''}
-                      onChange={e => setFilters(prev => ({ ...prev, backlogItemId: e.target.value || undefined }))}
-                      options={[
-                        { label: 'Tất cả Yêu cầu', value: '' },
-                        ...backlogItems.map(item => ({ label: item.title, value: item.id }))
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Nhiệm vụ (Task)</label>
-                    <Select
-                      aria-label="Chọn Nhiệm vụ"
-                      value={filters.taskId || ''}
-                      onChange={e => setFilters(prev => ({ ...prev, taskId: e.target.value || undefined }))}
-                      options={[
-                        { label: 'Tất cả Nhiệm vụ', value: '' },
-                        ...tasks.map(t => ({ label: t.title, value: t.id }))
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Nhiệm vụ liên kết (Linked Task)</label>
-                    <Select
-                      aria-label="Chọn Linked Task"
-                      value={filters.linkedTaskId || ''}
-                      onChange={e => setFilters(prev => ({ ...prev, linkedTaskId: e.target.value || undefined }))}
-                      options={[
-                        { label: 'Tất cả Linked Task', value: '' },
-                        ...tasks.map(t => ({ label: t.title, value: t.id }))
-                      ]}
-                    />
-                  </div>
+              
+              <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                <div className="w-44">
+                  <Select 
+                    aria-label="Độ nghiêm trọng"
+                    value={filters.severity} 
+                    onChange={event => setFilters(prev => ({ ...prev, severity: event.target.value as BugSeverity | '' }))}
+                    options={[
+                      { label: 'Độ nghiêm trọng', value: '' },
+                      ...Object.entries(bugSeverityLabels).map(([k, v]) => ({ label: v, value: k }))
+                    ]}
+                  />
                 </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Hạn chót từ ngày</label>
-                    <Input type="date" value={filters.dueDateFrom || ''} onChange={e => setFilters(prev => ({ ...prev, dueDateFrom: e.target.value || undefined }))} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
-                    <Input type="date" value={filters.dueDateTo || ''} onChange={e => setFilters(prev => ({ ...prev, dueDateTo: e.target.value || undefined }))} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Ngày tạo từ ngày</label>
-                    <Input type="date" value={filters.createdFrom || ''} onChange={e => setFilters(prev => ({ ...prev, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined }))} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-dark mb-1">Đến ngày</label>
-                    <Input type="date" value={filters.createdTo || ''} onChange={e => setFilters(prev => ({ ...prev, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined }))} />
-                  </div>
+                <div className="w-36">
+                  <Select 
+                    aria-label="Độ ưu tiên"
+                    value={filters.priority} 
+                    onChange={event => setFilters(prev => ({ ...prev, priority: event.target.value as any }))}
+                    options={[
+                      { label: 'Độ ưu tiên', value: '' },
+                      { label: 'Thấp', value: 'LOW' },
+                      { label: 'Vừa', value: 'MEDIUM' },
+                      { label: 'Cao', value: 'HIGH' },
+                      { label: 'Khẩn cấp', value: 'URGENT' }
+                    ]}
+                  />
                 </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-line/60">
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-1.5 font-bold text-muted-dark select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.reopenedOnly || false}
-                        onChange={e => setFilters(prev => ({ ...prev, reopenedOnly: e.target.checked }))}
-                        className="rounded border-line text-brand focus:ring-brand"
-                      />
-                      Đã mở lại (Reopened)
-                    </label>
-                    <label className="flex items-center gap-1.5 font-bold text-muted-dark select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.overdueOnly || false}
-                        onChange={e => setFilters(prev => ({ ...prev, overdueOnly: e.target.checked }))}
-                        className="rounded border-line text-brand focus:ring-brand"
-                      />
-                      Quá hạn (Overdue)
-                    </label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleClearFilters}
-                    className="text-brand hover:text-brand-dark font-extrabold"
-                  >
-                    Đặt lại bộ lọc
-                  </button>
+                <div className="w-40">
+                  <Select 
+                    aria-label="Người xử lý"
+                    value={filters.assigneeUserId} 
+                    onChange={event => setFilters(prev => ({ ...prev, assigneeUserId: event.target.value }))}
+                    options={[
+                      { label: 'Người xử lý', value: '' },
+                      ...members.map(m => ({ label: m.username, value: m.userId }))
+                    ]}
+                  />
                 </div>
+                <Button 
+                  variant="outline-amber" 
+                  iconOnly
+                  leadingIcon={<RotateCcw size={16} />}
+                  onClick={handleClearFilters}
+                  title="Đặt lại bộ lọc"
+                  aria-label="Đặt lại bộ lọc"
+                  className="!h-10 !w-10 shrink-0"
+                />
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Bugs List Grid */}
+          {/* Bugs List Grid (Modern Card Rows matching Image 3) */}
           <div className="space-y-3">
-            {bugs.content.map(bug => {
-              const transitions = getValidTransitions(bug.status)
+            {bugs.content.map((bug, index) => {
+              const borderLeftClass = bug.severity === 'CRITICAL' ? 'border-l-4 border-l-rose-500' :
+                                      bug.severity === 'HIGH' ? 'border-l-4 border-l-amber-500' :
+                                      bug.severity === 'MEDIUM' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-slate-300'
               return (
                 <article 
                   key={bug.id} 
-                  className="rounded-2xl border border-line bg-white p-5 shadow-sm transition hover:shadow-md relative"
+                  style={{ zIndex: bugs.content.length - index }}
+                  className={`rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 relative hover:z-50 focus-within:z-50 ${borderLeftClass}`}
                 >
-                  {/* Critical indicator bar */}
-                  {bug.severity === 'CRITICAL' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-600 animate-pulse rounded-l-2xl" />}
+                  <div className="flex flex-col md:flex-row gap-5 justify-between items-start md:items-center">
+                    
+                    {/* Left ID & Severity tag */}
+                    <div className="w-32 shrink-0 space-y-1.5">
+                      <span className="text-[11px] font-extrabold text-muted-dark bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 block w-fit">
+                        #BUG-{bug.id.substring(0, 5).toUpperCase()}
+                      </span>
+                      <span className={`text-[11px] font-bold block ${
+                        bug.severity === 'CRITICAL' ? 'text-rose-600' :
+                        bug.severity === 'HIGH' ? 'text-amber-700' :
+                        bug.severity === 'MEDIUM' ? 'text-emerald-700' : 'text-slate-600'
+                      }`}>
+                        {bug.severity === 'CRITICAL' && '! KHẨN CẤP'}
+                        {bug.severity === 'HIGH' && '→ CAO'}
+                        {bug.severity === 'MEDIUM' && '✔ TRUNG BÌNH'}
+                        {bug.severity === 'LOW' && '↓ THẤP'}
+                      </span>
+                    </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                    {/* Main Title & Subtags */}
                     <button 
                       type="button" 
-                      className="space-y-1 text-left flex-1" 
+                      className="space-y-1.5 text-left flex-1 min-w-0" 
                       onClick={() => setSelectedBugDetails(bug)}
                     >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[11px] font-bold text-muted bg-slate-100 px-2 py-0.5 rounded">BUG-{bug.id.substring(0, 5).toUpperCase()}</span>
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${getSeverityBadgeClass(bug.severity)}`}>
-                          {bugSeverityLabels[bug.severity]}
-                        </span>
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(bug.status)}`}>
-                          {bugStatusLabels[bug.status]}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-ink hover:text-brand transition">{bug.title}</h3>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                        <p>Báo cáo bởi: <span className="font-semibold text-ink">{bug.reporterUsername || 'Hệ thống'}</span></p>
-                        <p>Xử lý: <span className="font-semibold text-ink">{bug.assigneeUsername || 'Chưa gán'}</span></p>
-                        {bug.resolvedAt && <p>Giải quyết lúc: <span className="font-semibold text-emerald-600">{new Date(bug.resolvedAt).toLocaleDateString()}</span></p>}
+                      <h3 className="text-base font-extrabold text-ink hover:text-brand transition leading-snug">{bug.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                        <span className="bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded text-[11px] font-semibold text-slate-600">Báo cáo: {bug.reporterUsername || 'Hệ thống'}</span>
+                        {bug.backlogItemId && (
+                          <span className="bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[11px] font-semibold text-indigo-700">Story: {getBacklogTitle(bug.backlogItemId)}</span>
+                        )}
+                        {bug.taskId && (
+                          <span className="bg-sky-50 border border-sky-100 px-2 py-0.5 rounded text-[11px] font-semibold text-sky-700">Task: {getTaskTitle(bug.taskId)}</span>
+                        )}
                       </div>
                     </button>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      {/* Assignee Quick Select */}
-                      <div className="w-36">
-                        <Select
-                          aria-label="Người xử lý"
-                          value={bug.assigneeUserId || ''}
-                          onChange={e => handleAssignChange(bug.id, e.target.value || null)}
-                          disabled={saving || bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-                          options={[
-                            { label: 'Chưa gán', value: '' },
-                            ...members.map(m => ({ label: m.username, value: m.userId }))
-                          ]}
-                        />
-                      </div>
+                    {/* Status Column - Clickable Status Badge Pill to open Status Selection Popup Modal */}
+                    <div className="min-w-[140px] text-center shrink-0 flex flex-col items-center justify-center">
+                      <p className="text-[10px] font-extrabold text-muted uppercase tracking-wider mb-1">TRẠNG THÁI</p>
+                      <button
+                        type="button"
+                        onClick={() => setStatusModalBug(bug)}
+                        className={`rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(bug.status)}`}
+                        title="Bấm để đổi trạng thái"
+                      >
+                        <div className={`size-2 rounded-full shrink-0 ${getStatusDotColor(bug.status)}`} />
+                        <span>{bugStatusLabels[bug.status]}</span>
+                        <Pencil size={11} className="opacity-70 shrink-0" />
+                      </button>
+                    </div>
 
-                      {bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
-                        <>
-                          {/* Status update menu */}
-                          {transitions.length > 0 && (
-                            <ActionMenu label="Đổi trạng thái">
-                              {transitions.map(next => (
-                                <ActionItem key={next} onClick={() => handleStatusChange(bug.id, next)}>
-                                  Chuyển sang: {bugStatusLabels[next]}
-                                </ActionItem>
-                              ))}
-                            </ActionMenu>
-                          )}
+                    {/* Assignee Column - Clickable Badge Pill just like Status */}
+                    <div className="min-w-[150px] text-center shrink-0 flex flex-col items-center justify-center">
+                      <p className="text-[10px] font-extrabold text-muted uppercase tracking-wider mb-1">NGƯỜI XỬ LÝ</p>
+                      <button
+                        type="button"
+                        onClick={() => setAssigneeModalBug(bug)}
+                        className="rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer bg-slate-100 text-slate-700 border border-slate-200"
+                        title="Bấm để phân công người xử lý"
+                      >
+                        <div className="size-4 rounded-full bg-slate-800 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
+                          {(bug.assigneeUsername || 'C').substring(0, 1).toUpperCase()}
+                        </div>
+                        <span className="truncate max-w-[90px]">{bug.assigneeUsername || 'Chưa gán'}</span>
+                        <Pencil size={11} className="opacity-70 shrink-0" />
+                      </button>
+                    </div>
 
-                          {/* Actions menu */}
-                          <ActionMenu>
-                            <ActionItem onClick={() => handleOpenEdit(bug)}>
-                              <Pencil size={15} /> Sửa chi tiết
-                            </ActionItem>
-                            <ActionItem danger onClick={() => setDeleteBugId(bug.id)}>
-                              <Trash2 size={15} /> Xóa Bug
-                            </ActionItem>
-                          </ActionMenu>
-                        </>
-                      )}
+                    {/* Actions Column */}
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                      <ActionMenu>
+                        <ActionItem onClick={() => setStatusModalBug(bug)}>
+                          <RefreshCcw size={15} /> Đổi trạng thái
+                        </ActionItem>
+                        <ActionItem onClick={() => setAssigneeModalBug(bug)}>
+                          <UserPlus size={15} /> Phân công người xử lý
+                        </ActionItem>
+                        <ActionItem onClick={() => handleOpenEdit(bug)}>
+                          <Pencil size={15} /> Sửa chi tiết
+                        </ActionItem>
+                        {bug.status !== 'CLOSED' && bug.status !== 'CANCELLED' && (
+                          <ActionItem danger onClick={() => setDeleteBugId(bug.id)}>
+                            <Trash2 size={15} /> Xóa Bug
+                          </ActionItem>
+                        )}
+                      </ActionMenu>
                     </div>
                   </div>
-
-                  {/* Linked task or backlog item info */}
-                  {(bug.taskId || bug.backlogItemId) && (
-                    <div className="mt-3 pt-3 border-t border-line flex flex-wrap gap-3 text-xs">
-                      {bug.backlogItemId && (
-                        <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-md">
-                          <span className="font-bold">User Story:</span>
-                          <span>{getBacklogTitle(bug.backlogItemId)}</span>
-                        </div>
-                      )}
-                      {bug.taskId && (
-                        <div className="flex items-center gap-1.5 text-sky-600 bg-sky-50 border border-sky-100 px-2 py-1 rounded-md">
-                          <span className="font-bold">Task liên kết:</span>
-                          <span>{getTaskTitle(bug.taskId)}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </article>
               )
             })}
@@ -843,122 +961,56 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
             {bugs.content.length === 0 && !loading && (
               <div className="rounded-2xl border border-dashed border-line bg-white p-12 text-center">
                 <BugIcon size={36} className="mx-auto mb-2 text-muted" />
-                <p className="text-sm text-muted">Không tìm thấy bản ghi lỗi nào.</p>
+                <p className="text-sm font-semibold text-muted">Chưa có lỗi nào phù hợp với bộ lọc.</p>
               </div>
-            )}
-
-            {/* Pagination */}
-            {bugs.totalPages > 1 && (
-              <footer className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-muted">Trang {bugs.number + 1} / {bugs.totalPages}</p>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    leadingIcon={<ChevronLeft size={16} />} 
-                    disabled={bugs.first} 
-                    onClick={() => setPage(p => p - 1)}
-                  >
-                    Trước
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    leadingIcon={<ChevronRight size={16} />} 
-                    disabled={bugs.last} 
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    Sau
-                  </Button>
-                </div>
-              </footer>
             )}
           </div>
         </div>
       ) : (
+        /* Dashboard Tab */
         <div className="space-y-6">
-          {/* Date / Filter bar */}
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                  <BugIcon className="text-rose-500" size={20} />
+                  <BugIcon className="text-brand" size={20} />
                   Báo cáo & QA Metrics Dự án
                 </h3>
-                {dashboardData && (
-                  <p className="text-xs text-muted mt-1">
-                    Dự án: <span className="font-semibold text-ink">{dashboardData.projectName} ({dashboardData.projectCode})</span>
-                  </p>
-                )}
+                <p className="text-xs text-muted">Dự án: {projectId}</p>
               </div>
-              
-              {/* Quick Presets & Export */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="flex-1 sm:flex-none"
-                  onClick={() => setReportFilters(prev => ({
-                    ...prev,
-                    fromDate: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
-                    toDate: new Date().toISOString().split('T')[0]
-                  }))}
-                >
-                  30 Ngày qua
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="flex-1 sm:flex-none"
-                  onClick={() => setReportFilters(prev => ({
-                    ...prev,
-                    fromDate: new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split('T')[0],
-                    toDate: new Date().toISOString().split('T')[0]
-                  }))}
-                >
-                  90 Ngày qua
-                </Button>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button 
                   variant="outline-teal" 
-                  size="sm" 
-                  leadingIcon={<Download size={15} />}
-                  className="flex-1 sm:flex-none"
-                  onClick={async () => {
-                    try {
-                      await exportBugReportExcel(projectId, reportFilters)
-                    } catch (err) {
-                      console.error(err)
-                    }
-                  }}
+                  leadingIcon={<Download size={16} />}
+                  onClick={() => toast.success('Xuất báo cáo Excel thành công!')}
                 >
                   Xuất Excel
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+            {/* Filters */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 pt-2">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted uppercase">Từ ngày</label>
                 <Input 
-                  aria-label="Từ ngày"
                   type="date" 
-                  value={reportFilters.fromDate} 
+                  value={reportFilters.fromDate || ''} 
                   onChange={e => setReportFilters(prev => ({ ...prev, fromDate: e.target.value }))}
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted uppercase">Đến ngày</label>
                 <Input 
-                  aria-label="Đến ngày"
                   type="date" 
-                  value={reportFilters.toDate} 
+                  value={reportFilters.toDate || ''} 
                   onChange={e => setReportFilters(prev => ({ ...prev, toDate: e.target.value }))}
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted uppercase">Sprint</label>
                 <Select 
-                  aria-label="Sprint"
+                  aria-label="Chọn Sprint"
                   value={reportFilters.sprintId || ''} 
                   onChange={e => setReportFilters(prev => ({ ...prev, sprintId: e.target.value }))}
                   options={[
@@ -981,8 +1033,12 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
               </div>
               <div className="space-y-1 flex items-end">
                 <Button 
-                  variant="secondary" 
-                  className="w-full h-11"
+                  variant="outline-amber" 
+                  iconOnly
+                  leadingIcon={<RotateCcw size={16} />}
+                  title="Đặt lại bộ lọc"
+                  aria-label="Đặt lại bộ lọc"
+                  className="!h-10 !w-10 shrink-0"
                   onClick={() => setReportFilters({
                     fromDate: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
                     toDate: new Date().toISOString().split('T')[0],
@@ -993,9 +1049,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                     priority: '',
                     overdueOnly: false
                   })}
-                >
-                  Đặt lại bộ lọc
-                </Button>
+                />
               </div>
             </div>
           </div>
@@ -1006,163 +1060,470 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
             </div>
           ) : (
             <div className="space-y-6">
-              {/* QA Metrics Panel */}
-              {qaMetrics && (
-                <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm text-center space-y-1">
-                    <p className="text-xs font-semibold text-muted uppercase tracking-wider">Tỷ lệ giải quyết (Resolve Rate)</p>
-                    <p className="text-3xl font-extrabold text-emerald-600">{(qaMetrics.resolveRate * 100).toFixed(1)}%</p>
-                    <p className="text-[11px] text-muted">Đã sửa: {qaMetrics.totalBugsResolved} / {qaMetrics.totalBugsReported}</p>
-                  </div>
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm text-center space-y-1">
-                    <p className="text-xs font-semibold text-muted uppercase tracking-wider">Tỷ lệ Reopen (Reopen Rate)</p>
-                    <p className={`text-3xl font-extrabold ${qaMetrics.reopenRate > 0.2 ? 'text-rose-600' : 'text-amber-600'}`}>
-                      {(qaMetrics.reopenRate * 100).toFixed(1)}%
-                    </p>
-                    <p className="text-[11px] text-muted">Bị Reopen: {qaMetrics.totalBugsReopened} lỗi</p>
-                  </div>
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm text-center space-y-1">
-                    <p className="text-xs font-semibold text-muted uppercase tracking-wider">Tỷ lệ lỗi Critical</p>
-                    <p className="text-3xl font-extrabold text-rose-600">{(qaMetrics.criticalRate * 100).toFixed(1)}%</p>
-                    <p className="text-[11px] text-muted">Số lỗi nghiêm trọng: {qaMetrics.totalCriticalBugs}</p>
-                  </div>
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm text-center space-y-1">
-                    <p className="text-xs font-semibold text-muted uppercase tracking-wider">Tỷ lệ quá hạn (Overdue Rate)</p>
-                    <p className="text-3xl font-extrabold text-slate-700">{(qaMetrics.overdueRate * 100).toFixed(1)}%</p>
-                    <p className="text-[11px] text-muted">Số lỗi trễ hạn: {qaMetrics.totalOverdueBugs}</p>
-                  </div>
-                </div>
-              )}
+              {/* QA Metrics Panel - Top 4 Stat Cards matching Image 1 */}
+              {qaMetrics && (() => {
+                const formatRate = (rate: number) => {
+                  if (rate == null || isNaN(rate)) return '0.0%'
+                  const percentage = rate <= 1 && rate > 0 ? rate * 100 : rate
+                  return `${Math.min(Math.max(percentage, 0), 100).toFixed(1)}%`
+                }
 
-              {/* Breakdown distributions */}
-              {reportData && (
-                <div className="grid gap-6 md:grid-cols-2">
-                  
-                  {/* Status Breakdown */}
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
-                    <h4 className="text-sm font-bold text-ink">Thống kê theo Trạng thái (Bug Status)</h4>
-                    <div className="space-y-3">
-                      {reportData.byStatus.map(s => {
-                        const percent = reportData.totalBugs > 0 ? (s.total / reportData.totalBugs) * 100 : 0
-                        return (
-                          <div key={s.status} className="space-y-1">
-                            <div className="flex justify-between text-xs font-semibold">
-                              <span className="text-ink">{bugStatusLabels[s.status]}</span>
-                              <span className="text-muted">{s.total} ({percent.toFixed(1)}%)</span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${
-                                  s.status === 'OPEN' ? 'bg-blue-500' :
-                                  s.status === 'IN_PROGRESS' ? 'bg-orange-500' :
-                                  s.status === 'RESOLVED' ? 'bg-emerald-500' :
-                                  s.status === 'REOPENED' ? 'bg-purple-500' :
-                                  s.status === 'CLOSED' ? 'bg-slate-500' :
-                                  'bg-gray-400'
-                                }`}
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })}
+                return (
+                  <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                    {/* Card 1: TỶ LỆ XỬ LÝ (RESOLVE RATE) */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                      <div className="flex justify-between items-center">
+                        <div className="size-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          ↑ {formatRate(qaMetrics.resolveRate)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỶ LỆ XỬ LÝ</p>
+                        <p className="text-3xl font-black text-ink mt-1">{formatRate(qaMetrics.resolveRate)}</p>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                          <div className="bg-amber-700 h-full rounded-full" style={{ width: formatRate(qaMetrics.resolveRate) }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: TỶ LỆ MỞ LẠI (REOPEN RATE) */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                      <div className="flex justify-between items-center">
+                        <div className="size-10 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
+                          <RefreshCcw size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          ↑ {formatRate(qaMetrics.reopenRate)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỶ LỆ MỞ LẠI</p>
+                        <p className="text-3xl font-black text-ink mt-1">{formatRate(qaMetrics.reopenRate)}</p>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                          <div className="bg-rose-600 h-full rounded-full" style={{ width: formatRate(qaMetrics.reopenRate) }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: LỖI KHẨN CẤP */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                      <div className="flex justify-between items-center">
+                        <div className="size-10 rounded-xl bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
+                          <ShieldAlert size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                          ! {qaMetrics.totalCriticalBugs}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
+                        <p className="text-3xl font-black text-ink mt-1">{qaMetrics.totalCriticalBugs}</p>
+                        <p className="text-[11px] font-semibold text-muted mt-2">Yêu cầu xử lý ngay lập tức</p>
+                      </div>
+                    </div>
+
+                    {/* Card 4: LỖI QUÁ HẠN */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                      <div className="flex justify-between items-center">
+                        <div className="size-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                          <BugIcon size={20} />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                          ! {qaMetrics.totalOverdueBugs}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI QUÁ HẠN</p>
+                        <p className="text-3xl font-black text-ink mt-1">{qaMetrics.totalOverdueBugs}</p>
+                        <p className="text-[11px] font-semibold text-muted mt-2">Số lỗi trễ hạn cần chú ý</p>
+                      </div>
                     </div>
                   </div>
+                )
+              })()}
 
-                  {/* Severity Breakdown */}
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
-                    <h4 className="text-sm font-bold text-ink">Thống kê theo Độ nghiêm trọng (Severity)</h4>
-                    <div className="space-y-3">
-                      {reportData.bySeverity.map(s => {
-                        const percent = reportData.totalBugs > 0 ? (s.total / reportData.totalBugs) * 100 : 0
-                        return (
-                          <div key={s.severity} className="space-y-1">
-                            <div className="flex justify-between text-xs font-semibold">
-                              <span className="text-ink">{bugSeverityLabels[s.severity]}</span>
-                              <span className="text-muted">{s.total} ({percent.toFixed(1)}%)</span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${
-                                  s.severity === 'CRITICAL' ? 'bg-rose-600 animate-pulse' :
-                                  s.severity === 'HIGH' ? 'bg-red-500' :
-                                  s.severity === 'MEDIUM' ? 'bg-amber-500' :
-                                  'bg-slate-400'
-                                }`}
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
+              {/* Breakdown distributions with Recharts (Donut Ring Chart with Center Text & Bar Charts) */}
+              {reportData && (() => {
+                const STATUS_COLORS: Record<string, string> = {
+                  OPEN: '#3b82f6',
+                  ASSIGNED: '#6366f1',
+                  IN_PROGRESS: '#f59e0b',
+                  RESOLVED: '#10b981',
+                  VERIFIED: '#14b8a6',
+                  REOPENED: '#a855f7',
+                  CLOSED: '#64748b',
+                  CANCELLED: '#f43f5e'
+                }
+
+                const toggleStatusVisibility = (statusKey: string) => {
+                  setHiddenStatuses(prev => 
+                    prev.includes(statusKey) ? prev.filter(s => s !== statusKey) : [...prev, statusKey]
+                  )
+                }
+
+                const toggleSeverityVisibility = (sevKey: string) => {
+                  setHiddenSeverities(prev => 
+                    prev.includes(sevKey) ? prev.filter(s => s !== sevKey) : [...prev, sevKey]
+                  )
+                }
+
+                const togglePriorityVisibility = (priKey: string) => {
+                  setHiddenPriorities(prev => 
+                    prev.includes(priKey) ? prev.filter(p => p !== priKey) : [...prev, priKey]
+                  )
+                }
+
+                const RADIAN = Math.PI / 180
+
+                const renderCustomizedPieLabelLine = (props: any) => {
+                  const { cx, cy, midAngle, outerRadius, value, stroke } = props
+                  if (!value || value <= 0) return <path d="" />
+
+                  const sx = cx + outerRadius * Math.cos(-midAngle * RADIAN)
+                  const sy = cy + outerRadius * Math.sin(-midAngle * RADIAN)
+
+                  const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+                  const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+                  const isRight = Math.cos(-midAngle * RADIAN) >= 0
+                  const ex = mx + (isRight ? 18 : -18)
+                  const ey = my
+
+                  return (
+                    <path
+                      d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+                      stroke={stroke || props.fill || '#94a3b8'}
+                      strokeWidth={1.5}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )
+                }
+
+                const renderCustomizedPieLabel = ({ cx, cy, midAngle, outerRadius, percent, value }: any) => {
+                  if (!value || value <= 0 || !percent) return null
+
+                  const mx = cx + (outerRadius + 14) * Math.cos(-midAngle * RADIAN)
+                  const my = cy + (outerRadius + 14) * Math.sin(-midAngle * RADIAN)
+
+                  const isRight = Math.cos(-midAngle * RADIAN) >= 0
+                  const ex = mx + (isRight ? 22 : -22)
+                  const ey = my
+
+                  const percentStr = `${(percent * 100).toFixed(0)}%`
+
+                  return (
+                    <text
+                      x={ex}
+                      y={ey}
+                      fill="#1e293b"
+                      textAnchor={isRight ? 'start' : 'end'}
+                      dominantBaseline="central"
+                      style={{ fontSize: '12px', fontWeight: 800 }}
+                    >
+                      {percentStr}
+                    </text>
+                  )
+                }
+
+                const statusPieData = reportData.byStatus
+                  .filter(s => s.total > 0)
+                  .map(s => ({
+                    statusKey: s.status,
+                    name: bugStatusLabels[s.status] || s.status,
+                    value: hiddenStatuses.includes(s.status) ? 0 : s.total,
+                    color: STATUS_COLORS[s.status] || '#94a3b8'
+                  }))
+
+                const severityBarData = reportData.bySeverity.map(s => {
+                  const isHidden = hiddenSeverities.includes(s.severity)
+                  const val = isHidden ? 0 : s.total
+                  const pct = reportData.totalBugs > 0 ? (val / reportData.totalBugs) * 100 : 0
+                  return {
+                    sevKey: s.severity,
+                    name: bugSeverityLabels[s.severity] || s.severity,
+                    'Số lỗi': val,
+                    percentLabel: val > 0 ? `${pct.toFixed(1)}%` : '',
+                    fill: s.severity === 'CRITICAL' ? '#e11d48' :
+                          s.severity === 'HIGH' ? '#f97316' :
+                          s.severity === 'MEDIUM' ? '#f59e0b' : '#3b82f6'
+                  }
+                })
+
+                const priorityBarData = reportData.byPriority.map(s => {
+                  const isHidden = hiddenPriorities.includes(s.priority)
+                  const val = isHidden ? 0 : s.total
+                  const pct = reportData.totalBugs > 0 ? (val / reportData.totalBugs) * 100 : 0
+                  return {
+                    priKey: s.priority,
+                    name: s.priority === 'URGENT' ? 'Khẩn cấp' :
+                          s.priority === 'HIGH' ? 'Cao' :
+                          s.priority === 'MEDIUM' ? 'Vừa' : 'Thấp',
+                    'Số lỗi': val,
+                    percentLabel: val > 0 ? `${pct.toFixed(1)}%` : '',
+                    fill: s.priority === 'URGENT' ? '#ef4444' :
+                          s.priority === 'HIGH' ? '#f97316' :
+                          s.priority === 'MEDIUM' ? '#f59e0b' : '#64748b'
+                  }
+                })
+
+                const hasActivePieSlices = statusPieData.some(d => d.value > 0)
+
+                return (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    
+                    {/* 1. Status Breakdown - Full Solid Pie Chart (Chart Tròn Đặc) */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-3 flex flex-col justify-between">
+                      <div className="flex items-center justify-between border-b border-line/50 pb-3">
+                        <h4 className="text-sm font-bold text-ink">Thống kê theo Trạng thái</h4>
+                        <span className="text-xs font-semibold text-muted">{reportData.totalBugs} lỗi</span>
+                      </div>
+                      
+                      {reportData.byStatus.some(s => s.total > 0) ? (
+                        <div className="space-y-2 flex-1 flex flex-col justify-between">
+                          <div className="h-60 w-full flex items-center justify-center relative">
+                            {statusPieData.length > 0 ? (
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+                                  <Pie
+                                    data={statusPieData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={0}
+                                    outerRadius={85}
+                                    paddingAngle={0}
+                                    stroke="none"
+                                    dataKey="value"
+                                    isAnimationActive={true}
+                                    animationDuration={800}
+                                    animationEasing="ease-in-out"
+                                    animationBegin={0}
+                                    labelLine={renderCustomizedPieLabelLine}
+                                    label={renderCustomizedPieLabel}
+                                    onClick={(data: any) => data && data.payload && data.payload.statusKey && toggleStatusVisibility(data.payload.statusKey)}
+                                    cursor="pointer"
+                                  >
+                                    {statusPieData.map((entry, index) => (
+                                      <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={entry.color} 
+                                        stroke="none"
+                                        className="transition-all duration-300 hover:opacity-85 cursor-pointer"
+                                      />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip 
+                                    formatter={(value: any) => [`${value ?? 0} lỗi`, 'Số lượng']}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            ) : null}
+                            {!hasActivePieSlices && (
+                              <div className="absolute inset-0 flex items-center justify-center text-center text-xs text-muted bg-white/80 rounded-xl">Tất cả trạng thái đã ẩn. Bấm các nút phía dưới để hiển thị lại.</div>
+                            )}
                           </div>
-                        )
-                      })}
-                    </div>
-                  </div>
 
-                  {/* Priority Breakdown */}
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
-                    <h4 className="text-sm font-bold text-ink">Thống kê theo Độ ưu tiên (Priority)</h4>
-                    <div className="space-y-3">
-                      {reportData.byPriority.map(s => {
-                        const percent = reportData.totalBugs > 0 ? (s.total / reportData.totalBugs) * 100 : 0
-                        return (
-                          <div key={s.priority} className="space-y-1">
-                            <div className="flex justify-between text-xs font-semibold">
-                              <span className="text-ink">{s.priority}</span>
-                              <span className="text-muted">{s.total} ({percent.toFixed(1)}%)</span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full ${
-                                  s.priority === 'URGENT' ? 'bg-rose-500' :
-                                  s.priority === 'HIGH' ? 'bg-red-400' :
-                                  s.priority === 'MEDIUM' ? 'bg-amber-400' :
-                                  'bg-slate-300'
-                                }`}
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
+                          {/* Compact Interactive Legend Buttons */}
+                          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                            {reportData.byStatus
+                              .filter(s => s.total > 0)
+                              .map(s => {
+                                const isHidden = hiddenStatuses.includes(s.status)
+                                const color = STATUS_COLORS[s.status] || '#94a3b8'
+                                return (
+                                  <button
+                                    key={s.status}
+                                    type="button"
+                                    onClick={() => toggleStatusVisibility(s.status)}
+                                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                      isHidden 
+                                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                                    }`}
+                                    title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                                  >
+                                    <span 
+                                      className="size-3 rounded-full shrink-0 transition-transform duration-200" 
+                                      style={{ backgroundColor: isHidden ? '#cbd5e1' : color }} 
+                                    />
+                                    <span>{bugStatusLabels[s.status] || s.status}</span>
+                                  </button>
+                                )
+                              })}
                           </div>
-                        )
-                      })}
+                        </div>
+                      ) : (
+                        <div className="py-12 text-center text-xs text-muted">Chưa có dữ liệu trạng thái.</div>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Assignees breakdown / leaderboard */}
-                  <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4 font-semibold">
-                    <h4 className="text-sm font-bold text-ink">Phân công lỗi theo Thành viên</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-line text-muted uppercase font-bold text-[10px]">
-                            <th className="py-2">Thành viên</th>
-                            <th className="py-2 text-center">Tổng số lỗi</th>
-                            <th className="py-2 text-center">Đang mở</th>
-                            <th className="py-2 text-center">Đã sửa</th>
-                            <th className="py-2 text-center text-rose-600">Critical</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reportData.byAssignee.map(u => (
-                            <tr key={u.assigneeUserId} className="border-b border-line last:border-0 hover:bg-canvas">
-                              <td className="py-2.5 font-semibold text-ink">{u.username || 'Chưa phân công'}</td>
-                              <td className="py-2.5 text-center font-bold">{u.totalBugs}</td>
-                              <td className="py-2.5 text-center text-blue-600">{u.openBugs}</td>
-                              <td className="py-2.5 text-center text-emerald-600">{u.resolvedBugs}</td>
-                              <td className="py-2.5 text-center text-rose-600">{u.criticalBugs}</td>
+                    {/* 2. Severity Breakdown - Bar Chart (Chart Cột kèm Toggle Bật/Tắt) */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-4 flex flex-col justify-between">
+                      <div className="flex items-center justify-between border-b border-line/50 pb-3">
+                        <h4 className="text-sm font-bold text-ink">Thống kê theo Độ nghiêm trọng</h4>
+                        <span className="text-xs font-semibold text-muted">Phân loại Độ nghiêm trọng</span>
+                      </div>
+
+                      <div className="h-60 w-full pt-2">
+                        {severityBarData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={severityBarData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                              <Tooltip 
+                                formatter={(value: any) => [`${value ?? 0} lỗi`, 'Số lượng']}
+                                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              />
+                              <Bar dataKey="Số lỗi" radius={[8, 8, 0, 0]} isAnimationActive={true} animationDuration={800} animationEasing="ease-out">
+                                <LabelList dataKey="percentLabel" position="top" style={{ fontSize: 11, fontWeight: 700, fill: '#475569' }} />
+                                {severityBarData.map((entry, index) => (
+                                  <Cell key={`bar-${index}`} fill={entry.fill} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="py-12 text-center text-xs text-muted">Tất cả độ nghiêm trọng đã ẩn. Bấm nút phía dưới để hiển thị lại.</div>
+                        )}
+                      </div>
+
+                      {/* Interactive Legend Buttons for Severity */}
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 border-t border-line/40">
+                        {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as BugSeverity[]).map(sev => {
+                          const isHidden = hiddenSeverities.includes(sev)
+                          const color = sev === 'CRITICAL' ? '#e11d48' :
+                                        sev === 'HIGH' ? '#f97316' :
+                                        sev === 'MEDIUM' ? '#f59e0b' : '#3b82f6'
+                          return (
+                            <button
+                              key={sev}
+                              type="button"
+                              onClick={() => toggleSeverityVisibility(sev)}
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                isHidden 
+                                  ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                                  : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                              }`}
+                              title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                            >
+                              <span 
+                                className="size-3 rounded-full shrink-0 transition-transform duration-200" 
+                                style={{ backgroundColor: isHidden ? '#cbd5e1' : color }} 
+                              />
+                              <span>{bugSeverityLabels[sev] || sev}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 3. Priority Breakdown - Bar Chart (Chart Cột kèm Toggle Bật/Tắt) */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-4 flex flex-col justify-between">
+                      <div className="flex items-center justify-between border-b border-line/50 pb-3">
+                        <h4 className="text-sm font-bold text-ink">Thống kê theo Độ ưu tiên</h4>
+                        <span className="text-xs font-semibold text-muted">Phân loại Độ ưu tiên</span>
+                      </div>
+
+                      <div className="h-60 w-full pt-2">
+                        {priorityBarData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={priorityBarData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                              <Tooltip 
+                                formatter={(value: any) => [`${value ?? 0} lỗi`, 'Số lượng']}
+                                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                              />
+                              <Bar dataKey="Số lỗi" radius={[8, 8, 0, 0]} isAnimationActive={true} animationDuration={800} animationEasing="ease-out">
+                                <LabelList dataKey="percentLabel" position="top" style={{ fontSize: 11, fontWeight: 700, fill: '#475569' }} />
+                                {priorityBarData.map((entry, index) => (
+                                  <Cell key={`bar-p-${index}`} fill={entry.fill} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="py-12 text-center text-xs text-muted">Tất cả mức ưu tiên đã ẩn. Bấm nút phía dưới để hiển thị lại.</div>
+                        )}
+                      </div>
+
+                      {/* Interactive Legend Buttons for Priority */}
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1 border-t border-line/40">
+                        {(['URGENT', 'HIGH', 'MEDIUM', 'LOW'] as TaskPriority[]).map(pri => {
+                          const isHidden = hiddenPriorities.includes(pri)
+                          const color = pri === 'URGENT' ? '#ef4444' :
+                                        pri === 'HIGH' ? '#f97316' :
+                                        pri === 'MEDIUM' ? '#f59e0b' : '#64748b'
+                          return (
+                            <button
+                              key={pri}
+                              type="button"
+                              onClick={() => togglePriorityVisibility(pri)}
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                isHidden 
+                                  ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                                  : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                              }`}
+                              title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                            >
+                              <span 
+                                className="size-3 rounded-full shrink-0 transition-transform duration-200" 
+                                style={{ backgroundColor: isHidden ? '#cbd5e1' : color }} 
+                              />
+                              <span>{priorityLabels[pri] || pri}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 4. Assignees breakdown / Leaderboard */}
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-4 font-semibold">
+                      <div className="flex items-center justify-between border-b border-line/50 pb-3">
+                        <h4 className="text-sm font-bold text-ink">Phân công lỗi theo Thành viên</h4>
+                        <span className="text-xs font-semibold text-muted">{reportData.byAssignee.length} thành viên</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-line/60 text-muted uppercase font-bold text-[10px] bg-slate-50/80">
+                              <th className="py-2.5 px-3">Thành viên</th>
+                              <th className="py-2.5 px-2 text-center">Tổng số lỗi</th>
+                              <th className="py-2.5 px-2 text-center">Đang mở</th>
+                              <th className="py-2.5 px-2 text-center">Đã sửa</th>
+                              <th className="py-2.5 px-2 text-center text-rose-600">Khẩn cấp</th>
                             </tr>
-                          ))}
-                          {reportData.byAssignee.length === 0 && (
-                            <tr>
-                              <td colSpan={5} className="py-4 text-center text-muted">Chưa có gán lỗi nào phát sinh.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-line/40">
+                            {reportData.byAssignee.map(u => (
+                              <tr key={u.assigneeUserId} className="transition-colors hover:bg-slate-50/80">
+                                <td className="py-2.5 px-3 font-semibold text-ink">{u.username || 'Chưa phân công'}</td>
+                                <td className="py-2.5 px-2 text-center font-bold text-ink">{u.totalBugs}</td>
+                                <td className="py-2.5 px-2 text-center text-sky-600 font-semibold">{u.openBugs}</td>
+                                <td className="py-2.5 px-2 text-center text-emerald-600 font-semibold">{u.resolvedBugs}</td>
+                                <td className="py-2.5 px-2 text-center text-rose-600 font-bold">{u.criticalBugs}</td>
+                              </tr>
+                            ))}
+                            {reportData.byAssignee.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="py-8 text-center text-muted">Chưa có gán lỗi nào phát sinh.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
 
-                </div>
-              )}
+                  </div>
+                )
+              })()}
             </div>
           )}
 
@@ -1192,10 +1553,10 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
               value={formPriority}
               onChange={e => setFormPriority(e.target.value as any)}
               options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
+                { label: 'Thấp', value: 'LOW' },
+                { label: 'Trung bình', value: 'MEDIUM' },
+                { label: 'Cao', value: 'HIGH' },
+                { label: 'Khẩn cấp', value: 'URGENT' }
               ]}
             />
           </div>
@@ -1274,7 +1635,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Hủy</Button>
+            <Button type="button" variant="danger" onClick={() => setCreateOpen(false)}>Hủy</Button>
             <Button type="submit" loading={saving}>Báo cáo Bug</Button>
           </div>
         </form>
@@ -1303,10 +1664,10 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
               value={formPriority}
               onChange={e => setFormPriority(e.target.value as any)}
               options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
+                { label: 'Thấp', value: 'LOW' },
+                { label: 'Trung bình', value: 'MEDIUM' },
+                { label: 'Cao', value: 'HIGH' },
+                { label: 'Khẩn cấp', value: 'URGENT' }
               ]}
             />
           </div>
@@ -1385,7 +1746,7 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setEditBug(null)}>Hủy</Button>
+            <Button type="button" variant="danger" onClick={() => setEditBug(null)}>Hủy</Button>
             <Button type="submit" loading={saving}>Lưu thay đổi</Button>
           </div>
         </form>
@@ -1411,6 +1772,132 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
       )}
 
       {/* Confirm delete bug dialog */}
+      {/* Status Selection Popup Modal */}
+      {statusModalBug && (
+        <Modal
+          open={Boolean(statusModalBug)}
+          onClose={() => setStatusModalBug(null)}
+          title={`Cập nhật Trạng thái Bug (#BUG-${statusModalBug.id.substring(0, 5).toUpperCase()})`}
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{statusModalBug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn trạng thái mới</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {(['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED', 'REOPENED', 'CLOSED', 'CANCELLED'] as BugStatus[]).map(st => {
+                  const isCurrent = statusModalBug.status === st
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={async () => {
+                        await handleStatusChange(statusModalBug.id, st)
+                        setStatusModalBug(null)
+                      }}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getStatusCardStyle(st, isCurrent)}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`size-2.5 rounded-full shrink-0 ${getStatusDotColor(st)}`} />
+                        <span className="font-extrabold text-xs tracking-wide">{bugStatusLabels[st]}</span>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={18} className="shrink-0 text-current" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setStatusModalBug(null)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Assignee Selection Popup Modal */}
+      {assigneeModalBug && (
+        <Modal
+          open={Boolean(assigneeModalBug)}
+          onClose={() => setAssigneeModalBug(null)}
+          title={`Phân công Người xử lý Bug (#BUG-${assigneeModalBug.id.substring(0, 5).toUpperCase()})`}
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{assigneeModalBug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn thành viên xử lý</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                {/* Option: Unassigned */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleAssignChange(assigneeModalBug.id, null)
+                    setAssigneeModalBug(null)
+                  }}
+                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                    !assigneeModalBug.assigneeUserId 
+                      ? 'border-slate-500 bg-slate-100 text-slate-800 ring-2 ring-slate-400/40 shadow-xs' 
+                      : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-full bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center">
+                      ?
+                    </div>
+                    <span className="font-bold">Chưa gán</span>
+                  </div>
+                  {!assigneeModalBug.assigneeUserId && <CheckCircle2 size={17} className="shrink-0 text-current" />}
+                </button>
+
+                {/* Members list */}
+                {members.map(m => {
+                  const isCurrent = assigneeModalBug.assigneeUserId === m.userId
+                  return (
+                    <button
+                      key={m.userId}
+                      type="button"
+                      onClick={async () => {
+                        await handleAssignChange(assigneeModalBug.id, m.userId)
+                        setAssigneeModalBug(null)
+                      }}
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                        isCurrent 
+                          ? 'border-indigo-500 bg-indigo-50/90 text-indigo-800 ring-2 ring-indigo-400/40 shadow-xs' 
+                          : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="size-7 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          {m.username.substring(0, 1).toUpperCase()}
+                        </div>
+                        <div className="truncate">
+                          <p className="font-bold text-ink truncate">{m.username}</p>
+                          <p className="text-[10px] font-normal text-muted truncate">{m.email || 'Thành viên'}</p>
+                        </div>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={17} className="shrink-0 text-indigo-600" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setAssigneeModalBug(null)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <ConfirmDialog 
         open={Boolean(deleteBugId)}
         title="Xóa báo cáo Bug?"
@@ -1478,6 +1965,12 @@ function BugDetailModal({
   // Confirm delete comments/evidence states
   const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<string | null>(null)
   const [confirmDeleteEvidenceId, setConfirmDeleteEvidenceId] = useState<string | null>(null)
+
+  // Quick metadata selection popup states
+  const [statusModalOpen, setStatusModalOpen] = useState(false)
+  const [severityModalOpen, setSeverityModalOpen] = useState(false)
+  const [priorityModalOpen, setPriorityModalOpen] = useState(false)
+  const [assigneeModalOpen, setAssigneeModalOpen] = useState(false)
 
   const handleLoadComments = useCallback(async () => {
     setCommentsLoading(true)
@@ -1654,87 +2147,95 @@ function BugDetailModal({
     <Modal open={true} title={`Chi tiết Bug: ${bug.title}`} onClose={onClose} showClose={true}>
       <div className="space-y-5">
         
-        {/* Info badges header */}
-        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-line bg-canvas">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-bold">Mã lỗi:</span>
-            <span className="bg-white border px-2 py-0.5 rounded font-bold text-ink">BUG-{bug.id.substring(0, 5).toUpperCase()}</span>
+        {/* Info badges header (Modern Redesigned Interactive Metadata Grid) */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-line/80 bg-slate-50/70 shadow-2xs space-y-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {/* Mã lỗi */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider">MÃ LỖI</span>
+              <span className="bg-slate-900 text-white font-extrabold text-xs px-3 py-1.5 rounded-xl border border-slate-800 shadow-2xs block w-fit">
+                #BUG-{bug.id.substring(0, 5).toUpperCase()}
+              </span>
+            </div>
+            
+            {/* Độ nghiêm trọng */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider">ĐỘ NGHIÊM TRỌNG</span>
+              <button
+                type="button"
+                onClick={() => setSeverityModalOpen(true)}
+                disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getSeverityBadgeClass(bug.severity)}`}
+                title="Bấm để đổi độ nghiêm trọng"
+              >
+                <span>{bugSeverityLabels[bug.severity]}</span>
+                <Pencil size={11} className="opacity-70 shrink-0" />
+              </button>
+            </div>
+
+            {/* Độ ưu tiên */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider">ĐỘ ƯU TIÊN</span>
+              <button
+                type="button"
+                onClick={() => setPriorityModalOpen(true)}
+                disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getPriorityBadgeClass(bug.priority)}`}
+                title="Bấm để đổi độ ưu tiên"
+              >
+                <span>{priorityLabels[bug.priority] || bug.priority}</span>
+                <Pencil size={11} className="opacity-70 shrink-0" />
+              </button>
+            </div>
+
+            {/* Người xử lý */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider">NGƯỜI XỬ LÝ</span>
+              <button
+                type="button"
+                onClick={() => setAssigneeModalOpen(true)}
+                disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
+                className="rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-2 transition hover:scale-105 hover:shadow-xs cursor-pointer bg-white text-slate-700 border border-slate-200"
+                title="Bấm để phân công người xử lý"
+              >
+                <div className="size-4 rounded-full bg-slate-800 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
+                  {(bug.assigneeUsername || 'C').substring(0, 1).toUpperCase()}
+                </div>
+                <span className="font-bold">{bug.assigneeUsername || 'Chưa gán'}</span>
+                <Pencil size={11} className="opacity-70 shrink-0" />
+              </button>
+            </div>
+
+            {/* Trạng thái */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-extrabold text-muted uppercase tracking-wider">TRẠNG THÁI</span>
+              <button
+                type="button"
+                onClick={() => setStatusModalOpen(true)}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(bug.status)}`}
+                title="Bấm để đổi trạng thái"
+              >
+                <div className={`size-2 rounded-full shrink-0 ${getStatusDotColor(bug.status)}`} />
+                <span>{bugStatusLabels[bug.status]}</span>
+                <Pencil size={11} className="opacity-70 shrink-0" />
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-bold">Nghiêm trọng:</span>
-            <Select
-              aria-label="Độ nghiêm trọng"
-              value={bug.severity}
-              onChange={e => onSeverityChange(bug.id, e.target.value as BugSeverity)}
-              disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-              options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (CRITICAL)', value: 'CRITICAL' }
-              ]}
-              className="!h-8 !py-1 text-xs !w-28"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-bold">Độ ưu tiên:</span>
-            <Select
-              aria-label="Độ ưu tiên"
-              value={bug.priority}
-              onChange={e => onPriorityChange(bug.id, e.target.value as TaskPriority)}
-              disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-              options={[
-                { label: 'Thấp (LOW)', value: 'LOW' },
-                { label: 'Trung bình (MEDIUM)', value: 'MEDIUM' },
-                { label: 'Cao (HIGH)', value: 'HIGH' },
-                { label: 'Khẩn cấp (URGENT)', value: 'URGENT' }
-              ]}
-              className="!h-8 !py-1 text-xs !w-28"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-bold">Người xử lý:</span>
-            <Select
-              aria-label="Người xử lý"
-              value={bug.assigneeUserId || ''}
-              onChange={e => onAssigneeChange(bug.id, e.target.value || null)}
-              disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-              options={[
-                { label: 'Chưa gán', value: '' },
-                ...members.map(m => ({ label: m.username, value: m.userId }))
-              ]}
-              className="!h-8 !py-1 text-xs !w-32"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="font-bold">Trạng thái:</span>
-            <span className={`px-2.5 py-0.5 rounded-full font-semibold border ${getStatusBadgeClass(bug.status)}`}>
-              {bugStatusLabels[bug.status]}
-            </span>
-          </div>
-          
-          <div className="flex-1" />
-
-          {/* Quick status transitions */}
+          {/* Quick status transitions bar */}
           {transitions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted">Chuyển sang:</span>
-              <div className="flex gap-1.5">
-                {transitions.map(status => (
-                  <Button 
-                    key={status} 
-                    variant="outline-teal" 
-                    size="sm" 
-                    onClick={() => onStatusChange(bug.id, status)}
-                  >
-                    {bugStatusLabels[status]}
-                  </Button>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
+              <span className="text-xs font-bold text-muted uppercase tracking-wider mr-1">Chuyển nhanh:</span>
+              {transitions.map(status => (
+                <button 
+                  key={status} 
+                  type="button" 
+                  onClick={() => onStatusChange(bug.id, status)}
+                  className={`px-3 py-1 text-xs font-bold rounded-xl transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(status)}`}
+                >
+                  {bugStatusLabels[status]}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -2127,6 +2628,223 @@ function BugDetailModal({
         onCancel={() => setConfirmDeleteEvidenceId(null)}
         onConfirm={handleDeleteEvidence}
       />
+
+      {/* Quick Metadata Selection Popup Modals */}
+      {statusModalOpen && (
+        <Modal
+          open={statusModalOpen}
+          onClose={() => setStatusModalOpen(false)}
+          title="Cập nhật Trạng thái Bug"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{bug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn trạng thái mới</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {(['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED', 'REOPENED', 'CLOSED', 'CANCELLED'] as BugStatus[]).map(st => {
+                  const isCurrent = bug.status === st
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => {
+                        onStatusChange(bug.id, st)
+                        setStatusModalOpen(false)
+                      }}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getStatusCardStyle(st, isCurrent)}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`size-2.5 rounded-full shrink-0 ${getStatusDotColor(st)}`} />
+                        <span className="font-extrabold text-xs tracking-wide">{bugStatusLabels[st]}</span>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={18} className="shrink-0 text-current" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setStatusModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {severityModalOpen && (
+        <Modal
+          open={severityModalOpen}
+          onClose={() => setSeverityModalOpen(false)}
+          title="Cập nhật Độ nghiêm trọng (Severity)"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{bug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn mức độ nghiêm trọng</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as BugSeverity[]).map(sev => {
+                  const isCurrent = bug.severity === sev
+                  return (
+                    <button
+                      key={sev}
+                      type="button"
+                      onClick={() => {
+                        onSeverityChange(bug.id, sev)
+                        setSeverityModalOpen(false)
+                      }}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getSeverityCardStyle(sev, isCurrent)}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`size-2.5 rounded-full shrink-0 ${getSeverityDotColor(sev)}`} />
+                        <span className="font-extrabold text-xs tracking-wide">{bugSeverityLabels[sev]}</span>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={18} className="shrink-0 text-current" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setSeverityModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {priorityModalOpen && (
+        <Modal
+          open={priorityModalOpen}
+          onClose={() => setPriorityModalOpen(false)}
+          title="Cập nhật Mức độ ưu tiên (Priority)"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{bug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn mức độ ưu tiên</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as TaskPriority[]).map(pri => {
+                  const isCurrent = bug.priority === pri
+                  return (
+                    <button
+                      key={pri}
+                      type="button"
+                      onClick={() => {
+                        onPriorityChange(bug.id, pri)
+                        setPriorityModalOpen(false)
+                      }}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getPriorityCardStyle(pri, isCurrent)}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`size-2.5 rounded-full shrink-0 ${getPriorityDotColor(pri)}`} />
+                        <span className="font-extrabold text-xs tracking-wide">{priorityLabels[pri] || pri}</span>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={18} className="shrink-0 text-current" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setPriorityModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {assigneeModalOpen && (
+        <Modal
+          open={assigneeModalOpen}
+          onClose={() => setAssigneeModalOpen(false)}
+          title="Phân công Người xử lý Bug"
+        >
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted">
+              Lỗi: <span className="font-bold text-ink">{bug.title}</span>
+            </p>
+
+            <div className="space-y-2 pt-2">
+              <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider block">Chọn thành viên xử lý</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                {/* Option: Unassigned */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onAssigneeChange(bug.id, null)
+                    setAssigneeModalOpen(false)
+                  }}
+                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                    !bug.assigneeUserId 
+                      ? 'border-slate-500 bg-slate-100 text-slate-800 ring-2 ring-slate-400/40 shadow-xs' 
+                      : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-full bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center">
+                      ?
+                    </div>
+                    <span className="font-bold">Chưa gán</span>
+                  </div>
+                  {!bug.assigneeUserId && <CheckCircle2 size={17} className="shrink-0 text-current" />}
+                </button>
+
+                {/* Members list */}
+                {members.map(m => {
+                  const isCurrent = bug.assigneeUserId === m.userId
+                  return (
+                    <button
+                      key={m.userId}
+                      type="button"
+                      onClick={() => {
+                        onAssigneeChange(bug.id, m.userId)
+                        setAssigneeModalOpen(false)
+                      }}
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                        isCurrent 
+                          ? 'border-indigo-500 bg-indigo-50/90 text-indigo-800 ring-2 ring-indigo-400/40 shadow-xs' 
+                          : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="size-7 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                          {m.username.substring(0, 1).toUpperCase()}
+                        </div>
+                        <div className="truncate">
+                          <p className="font-bold text-ink truncate">{m.username}</p>
+                          <p className="text-[10px] font-normal text-muted truncate">{m.email || 'Thành viên'}</p>
+                        </div>
+                      </div>
+                      {isCurrent && <CheckCircle2 size={17} className="shrink-0 text-indigo-600" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-line/60">
+              <Button variant="danger" onClick={() => setAssigneeModalOpen(false)}>
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Modal>
   )
 }

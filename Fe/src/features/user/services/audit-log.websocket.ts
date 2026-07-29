@@ -8,12 +8,15 @@ interface SubscribeOptions {
   onStatusChange?: (status: RealtimeStatus) => void
 }
 
-function getWebSocketUrl() {
+function getWebSocketUrls(): string[] {
   const token = tokenStore.access()
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const query = token ? `?access_token=${encodeURIComponent(token)}` : ''
 
-  return `${protocol}//${window.location.host}/api/ws/websocket${query}`
+  return [
+    `${protocol}//${window.location.host}/api/ws${query}`,
+    `${protocol}//${window.location.host}/api/ws/websocket${query}`,
+  ]
 }
 
 function stompFrame(command: string, headers: Record<string, string> = {}, body = '') {
@@ -28,64 +31,114 @@ function parseStompMessage(frame: string) {
   return frame.slice(bodyStart + 2).replace(/\0$/, '')
 }
 
-export function subscribeAuditLogs({ onLog, onStatusChange }: SubscribeOptions) {
-  const socket = new WebSocket(getWebSocketUrl())
-  let connected = false
+function extractStompFrames(rawData: unknown): { isSockJs: boolean; frames: string[] } {
+  if (typeof rawData !== 'string') return { isSockJs: false, frames: [] }
 
-  const sendSockJsFrame = (frame: string) => {
-    if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify([frame]))
+  if (rawData === 'o' || rawData === 'h') {
+    return { isSockJs: true, frames: [] }
   }
 
-  socket.addEventListener('open', () => {
-    sendSockJsFrame(stompFrame('CONNECT', {
-      'accept-version': '1.2',
-      'heart-beat': '10000,10000',
-    }))
-  })
+  if (rawData.startsWith('a')) {
+    try {
+      const parsed = JSON.parse(rawData.slice(1)) as string[]
+      if (Array.isArray(parsed)) {
+        return { isSockJs: true, frames: parsed }
+      }
+    } catch {}
+  }
 
-  socket.addEventListener('message', event => {
-    if (event.data === 'o') return
-    if (event.data === 'h') return
+  return { isSockJs: false, frames: [rawData] }
+}
 
-    if (typeof event.data !== 'string' || !event.data.startsWith('a')) return
+export function subscribeAuditLogs({ onLog, onStatusChange }: SubscribeOptions) {
+  let socket: WebSocket | null = null
+  let connected = false
+  let isClosedManually = false
+  let isSockJsMode = false
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let urlIndex = 0
+
+  const connect = () => {
+    if (isClosedManually) return
+
+    const urls = getWebSocketUrls()
+    const targetUrl = urls[urlIndex % urls.length]
 
     try {
-      const frames = JSON.parse(event.data.slice(1)) as string[]
-      for (const frame of frames) {
-        if (frame.startsWith('CONNECTED')) {
-          connected = true
-          onStatusChange?.('connected')
-          sendSockJsFrame(stompFrame('SUBSCRIBE', {
-            id: 'audit-logs',
-            destination: '/topic/audit-logs',
-          }))
-          continue
+      socket = new WebSocket(targetUrl)
+
+      const sendFrame = (frame: string) => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          if (isSockJsMode) {
+            socket.send(JSON.stringify([frame]))
+          } else {
+            socket.send(frame)
+          }
         }
-
-        if (!frame.startsWith('MESSAGE')) continue
-
-        const body = parseStompMessage(frame)
-        if (!body) continue
-
-        onLog(JSON.parse(body) as AuditLog)
       }
+
+      socket.addEventListener('open', () => {
+        // Send initial STOMP CONNECT frame
+        sendFrame(stompFrame('CONNECT', {
+          'accept-version': '1.2',
+          'heart-beat': '10000,10000',
+        }))
+      })
+
+      socket.addEventListener('message', event => {
+        const { isSockJs, frames } = extractStompFrames(event.data)
+        if (isSockJs) isSockJsMode = true
+
+        for (const frame of frames) {
+          if (frame.startsWith('CONNECTED')) {
+            connected = true
+            onStatusChange?.('connected')
+            sendFrame(stompFrame('SUBSCRIBE', {
+              id: 'audit-logs',
+              destination: '/topic/audit-logs',
+            }))
+            continue
+          }
+
+          if (!frame.startsWith('MESSAGE')) continue
+
+          const body = parseStompMessage(frame)
+          if (!body) continue
+
+          try {
+            onLog(JSON.parse(body) as AuditLog)
+          } catch {}
+        }
+      })
+
+      socket.addEventListener('close', () => {
+        if (isClosedManually) return
+        onStatusChange?.(connected ? 'disconnected' : 'error')
+        urlIndex++
+        reconnectTimer = setTimeout(connect, 3000)
+      })
+
+      socket.addEventListener('error', () => {
+        onStatusChange?.('error')
+      })
     } catch {
       onStatusChange?.('error')
+      urlIndex++
+      reconnectTimer = setTimeout(connect, 4000)
     }
-  })
+  }
 
-  socket.addEventListener('close', () => {
-    onStatusChange?.(connected ? 'disconnected' : 'error')
-  })
-
-  socket.addEventListener('error', () => {
-    onStatusChange?.('error')
-  })
+  connect()
 
   return () => {
-    if (socket.readyState === WebSocket.OPEN) {
-      sendSockJsFrame(stompFrame('DISCONNECT'))
+    isClosedManually = true
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      try {
+        const disconnectPayload = stompFrame('DISCONNECT')
+        socket.send(isSockJsMode ? JSON.stringify([disconnectPayload]) : disconnectPayload)
+      } catch {}
+      socket.close()
     }
-    socket.close()
   }
 }

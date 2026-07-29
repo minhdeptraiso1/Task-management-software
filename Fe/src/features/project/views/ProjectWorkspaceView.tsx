@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Activity,
   Bell,
@@ -42,6 +43,56 @@ import {
 import { formatDate } from '../../../utils/format'
 import type { NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemStatus, BacklogPriority, Sprint, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
+
+const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
+
+const sidebarVariants = {
+  initial: { x: '-100%', opacity: 0 },
+  animate: {
+    x: '0%',
+    opacity: 1,
+    transition: {
+      duration: 1.0,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
+
+const headerVariants = {
+  initial: { y: -30, opacity: 0 },
+  animate: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.8,
+      delay: 0.2,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
+
+const EASE_IN_CUBIC = [0.32, 0, 0.67, 0] as const
+
+const contentTransitionVariants = {
+  initial: { opacity: 0, x: 20 },
+  animate: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: EXPO_OUT_EASE,
+      staggerChildren: 0.05,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: -20,
+    transition: {
+      duration: 0.2,
+      ease: EASE_IN_CUBIC,
+    },
+  },
+}
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import type { ProjectActivityFilters } from '../services/project.service'
 import { ScrumBoardView } from './ScrumBoardView'
@@ -530,7 +581,13 @@ export function ProjectWorkspaceView({
     : recentSearches.map(term => ({ type: 'recent' as const, label: term, value: term, code: '', id: term }))
 
   return <div className="min-h-screen bg-canvas">
-    <header className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6">
+    <motion.header
+      variants={headerVariants}
+      initial="initial"
+      animate="animate"
+      style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+      className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6 sticky top-0 z-30"
+    >
       <div className="flex items-center gap-3 font-bold">
         <span className="text-2xl tracking-[-.08em]">HI<span className="text-brand">CAS</span></span>
         <span className="h-6 w-px bg-white/20" />
@@ -567,10 +624,16 @@ export function ProjectWorkspaceView({
         <div className="h-6 w-px bg-white/20 mx-1" />
         <Button className="!text-white/80 hover:!text-white hover:bg-white/10" variant="ghost" size="sm" leadingIcon={<LogOut size={17} />} onClick={onLogout}>Đăng xuất</Button>
       </div>
-    </header>
+    </motion.header>
 
     <main className={`grid gap-5 p-5 transition-[grid-template-columns] duration-300 items-start grid-cols-1 ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)]'}`}>
-      <aside className={`sticky top-5 flex h-auto lg:h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 ${sidebarCollapsed ? 'overflow-hidden' : ''}`}>
+      <motion.aside
+        variants={sidebarVariants}
+        initial="initial"
+        animate="animate"
+        style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+        className={`sticky top-5 flex h-auto lg:h-[calc(100vh-96px)] flex-col rounded-xl border border-line bg-white transition-all duration-300 overflow-x-hidden ${sidebarCollapsed ? 'overflow-hidden' : ''}`}
+      >
         <div className="shrink-0 border-b border-line p-5">
           <div className="flex items-center justify-between gap-3">
             {!sidebarCollapsed && <div>
@@ -821,23 +884,59 @@ export function ProjectWorkspaceView({
           </div>
         </footer>
         </>}
-      </aside>
+      </motion.aside>
 
-      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white h-auto lg:h-[calc(100vh-96px)] overflow-y-auto">
-        {!selectedProject ? (
-          <PersonalDashboardController me={user} />
-        ) : <>
+      <section className="min-w-0 flex-1 rounded-xl border border-line bg-white h-auto lg:h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          {!selectedProject ? (
+            <motion.div
+              key="personal-dashboard"
+              variants={contentTransitionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+              className="min-h-full"
+            >
+              <PersonalDashboardController me={user} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`${selectedProject.id}-${activeTab}`}
+              variants={contentTransitionVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+              className="min-h-full"
+            >
           {/* Bộ Menu Điều Hướng Tab Đẩy Lên Vị Trí Cao Nhất */}
           <div className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur-sm px-5 py-3 shadow-2xs">
             <div className="flex flex-wrap items-center justify-start gap-2">
-              <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
-              <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
-              <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
-              <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
-              <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
-              <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
-              <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
-              <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
+              </motion.div>
             </div>
           </div>
 
@@ -1026,7 +1125,7 @@ export function ProjectWorkspaceView({
               onExportSprintTasks={onExportSprintTasks}
             />}
 
-            {activeTab === 'members' && <>
+            {activeTab === 'members' && <div className="p-5">
               {canManageMembers && <AddMemberForm candidates={candidateUsers} saving={saving} loading={candidateLoading} onSearch={onCandidateSearch} onAdd={onAddMember} />}
               <div className="mt-4 overflow-x-auto rounded-xl border border-line">
                 <table className="w-full min-w-[760px] text-left text-sm">
@@ -1041,8 +1140,7 @@ export function ProjectWorkspaceView({
                   </tbody>
                 </table>
               </div>
-            </>}
-
+            </div>}
             {activeTab === 'activities' && <div className="space-y-3">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-lg">Lịch sử hoạt động</h3>
@@ -1194,7 +1292,7 @@ export function ProjectWorkspaceView({
             </div>}
 
             {activeTab === 'notifications' && (
-              <div className="space-y-4 animate-enter">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-lg">Thông báo hệ thống ({notifications.content.length})</h3>
                   {notifications.content.length > 0 && (
@@ -1260,7 +1358,9 @@ export function ProjectWorkspaceView({
               <ProjectAttachmentsTab projectId={selectedProject.id} />
             )}
           </div>
-        </>}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </main>
 

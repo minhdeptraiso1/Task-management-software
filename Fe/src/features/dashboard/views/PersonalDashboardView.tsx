@@ -1,10 +1,46 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert, FolderKanban, Bell, ChevronLeft, ChevronRight, Target } from 'lucide-react'
 import type { User } from '../../user/models/user.model'
 import type { MyDashboardResponse, MyTaskPageResponse, MyTimeSummaryResponse } from '../models/dashboard.model'
 import { Button } from '../../../components/ui'
 import { taskStatusLabels, taskPriorityLabels, taskRiskReasonLabels } from '../../project/models/task.model'
 import { TimesheetView } from '../../project/components/TimesheetView'
+
+const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
+
+const cardsRowVariants = {
+  initial: {},
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const cardItemVariants = {
+  initial: { opacity: 0, y: 30 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.8,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
+
+const tableRowVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: EXPO_OUT_EASE,
+    },
+  },
+}
 
 interface PersonalDashboardViewProps {
   me: User
@@ -84,41 +120,47 @@ export function PersonalDashboardView({
     </div>
   )
 
-  if (isTimesheet) {
-    return (
-      <div className="p-6 space-y-6 animate-enter">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-ink">Timesheet cá nhân</h1>
-            <p className="mt-1 text-xs text-muted">Quản lý và tổng hợp thời gian làm việc của {me.username}</p>
-          </div>
-          {renderSlidingTabs()}
-        </header>
-        <TimesheetView mode="personal" />
-      </div>
-    )
-  }
-
   // Calculate work hours target progress (monthly target e.g. 160h = 9600m)
   const monthlyTargetMinutes = 9600
   const monthMinutes = timeSummary?.monthMinutes || 0
   const progressTargetPercent = Math.min(Math.round((monthMinutes / monthlyTargetMinutes) * 100), 100)
 
   return (
-    <div className="p-6 space-y-6 animate-enter">
+    <div className="p-6 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Chào mừng, {me.username}!</h1>
-          <p className="mt-1 text-xs text-muted">Dưới đây là tổng quan công việc của bạn hôm nay.</p>
+          <h1 className="text-2xl font-bold text-ink">
+            {isTimesheet ? 'Timesheet cá nhân' : `Chào mừng, ${me.username}!`}
+          </h1>
+          <p className="mt-1 text-xs text-muted">
+            {isTimesheet
+              ? `Quản lý và tổng hợp thời gian làm việc của ${me.username}`
+              : 'Dưới đây là tổng quan công việc của bạn hôm nay.'}
+          </p>
         </div>
         {renderSlidingTabs()}
       </header>
 
+      <div className="space-y-6">
+        {isTimesheet ? (
+          <TimesheetView mode="personal" />
+        ) : (
+          <>
+
       {/* Top 4 Stat Cards */}
       {dashboard && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          variants={cardsRowVariants}
+          initial="initial"
+          animate="animate"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
           {/* Card 1: Dự án tham gia */}
-          <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+          <motion.div
+            variants={cardItemVariants}
+            style={{ willChange: 'transform, opacity' }}
+            className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
+          >
             <div className="flex items-center justify-between">
               <div className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
                 <FolderKanban size={22} />
@@ -131,10 +173,14 @@ export function PersonalDashboardView({
               <p className="text-xs font-medium text-muted">Dự án tham gia</p>
               <p className="text-2xl font-bold text-ink mt-0.5">{dashboard.projectCount}</p>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 2: Thông báo mới */}
-          <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+          <motion.div
+            variants={cardItemVariants}
+            style={{ willChange: 'transform, opacity' }}
+            className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
+          >
             <div className="flex items-center justify-between">
               <div className="grid size-11 place-items-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
                 <Bell size={22} />
@@ -147,10 +193,14 @@ export function PersonalDashboardView({
               <p className="text-xs font-medium text-muted">Thông báo mới</p>
               <p className="text-2xl font-bold text-ink mt-0.5">{dashboard.unreadNotifications}</p>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 3: Task hoàn thành */}
-          <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+          <motion.div
+            variants={cardItemVariants}
+            style={{ willChange: 'transform, opacity' }}
+            className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
+          >
             <div className="flex items-center justify-between">
               <div className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                 <CheckCircle2 size={22} />
@@ -163,10 +213,14 @@ export function PersonalDashboardView({
               <p className="text-xs font-medium text-muted">Task hoàn thành</p>
               <p className="text-2xl font-bold text-emerald-600 mt-0.5">{dashboard.taskSummary.doneTasks}</p>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 4: Task trễ hạn */}
-          <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between">
+          <motion.div
+            variants={cardItemVariants}
+            style={{ willChange: 'transform, opacity' }}
+            className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
+          >
             <div className="flex items-center justify-between">
               <div className="grid size-11 place-items-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                 <AlertCircle size={22} />
@@ -179,8 +233,8 @@ export function PersonalDashboardView({
               <p className="text-xs font-medium text-muted">Task trễ hạn</p>
               <p className="text-2xl font-bold text-rose-600 mt-0.5">{dashboard.taskSummary.overdueTasks}</p>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Main Grid Content */}
@@ -209,7 +263,14 @@ export function PersonalDashboardView({
                   </thead>
                   <tbody className="divide-y divide-line/50">
                     {tasks.content.map(task => (
-                      <tr key={task.taskId} className="transition-colors hover:bg-slate-50/80">
+                      <motion.tr
+                        key={task.taskId}
+                        variants={tableRowVariants}
+                        initial="initial"
+                        animate="animate"
+                        style={{ willChange: 'transform, opacity' }}
+                        className="transition-colors hover:bg-slate-50/80"
+                      >
                         <td className="px-6 py-3.5 font-semibold text-ink">
                           <div className="flex items-center gap-2">
                             <span className="size-1.5 rounded-full bg-brand shrink-0" />
@@ -236,7 +297,7 @@ export function PersonalDashboardView({
                             </span>
                           ) : '-'}
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>
@@ -384,6 +445,9 @@ export function PersonalDashboardView({
           )}
         </div>
       </div>
-    </div>
+    </>
+  )}
+</div>
+</div>
   )
 }

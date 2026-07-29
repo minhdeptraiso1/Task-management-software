@@ -137,7 +137,11 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       page={page}
       auditPage={auditPage}
       onSectionChange={setActiveSection}
-      onFiltersChange={setFilters}
+      onFiltersChange={newFilters => {
+        setFilters(newFilters)
+        setAppliedFilters(newFilters)
+        setPage(0)
+      }}
       onSearch={() => {
         setPage(0)
         setAppliedFilters(filters)

@@ -44,7 +44,7 @@ export function AdminFileCleanupView() {
   }
 
   return (
-    <div className="space-y-6 animate-enter">
+    <div className="space-y-6">
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
         <h2 className="text-base font-bold text-ink flex items-center gap-2">
           <ShieldAlert className="text-brand" size={20} />

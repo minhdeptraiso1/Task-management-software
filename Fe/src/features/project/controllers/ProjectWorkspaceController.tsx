@@ -1148,8 +1148,8 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
     <Modal
       open={Boolean(blockTaskState)}
-      title="Chặn Task (Block Task)"
-      description="Vui lòng cung cấp lý do chi tiết cho việc chặn Task này."
+      title="Chuyển sang Đang chờ (Block Task)"
+      description="Vui lòng cung cấp lý do chi tiết cho việc chuyển Task sang trạng thái Đang chờ này."
       onClose={() => {
         setBlockTaskState(null)
         setBlockReason('')
@@ -1158,7 +1158,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       <div className="space-y-4">
         <textarea
           className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-          placeholder="Lý do chặn task..."
+          placeholder="Lý do chuyển sang Đang chờ..."
           value={blockReason}
           onChange={event => setBlockReason(event.target.value)}
         />
@@ -1192,7 +1192,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
               }
             }}
           >
-            Xác nhận Chặn
+            Xác nhận
           </Button>
         </div>
       </div>

@@ -341,7 +341,7 @@ export function SprintStatisticsView({
             <div className="flex justify-between px-2">
                <div className="text-center">
                   <p className="text-2xl font-bold text-red-500">{statistics.blockedTasks}</p>
-                  <p className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-wide">Bị chặn</p>
+                  <p className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-wide">Đang chờ</p>
                </div>
                <div className="text-center">
                   <p className="text-2xl font-bold text-amber-500">{statistics.overdueTasks}</p>

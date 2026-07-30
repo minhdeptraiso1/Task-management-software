@@ -1,24 +1,17 @@
 package com.project.taskmanagement.service.impl;
 
 import com.project.taskmanagement.dto.request.bug.BugReportExportRequest;
-import com.project.taskmanagement.dto.request.report.TimeLogExportRequest;
 import com.project.taskmanagement.entity.Project;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.BugSeverity;
 import com.project.taskmanagement.enums.BugStatus;
-import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.BugRepository;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.SprintRepository;
-import com.project.taskmanagement.repository.TaskRepository;
-import com.project.taskmanagement.repository.TaskTimeLogRepository;
 import com.project.taskmanagement.repository.projection.bug.BugExportRowView;
-import com.project.taskmanagement.repository.projection.taskexport.SprintTaskExportRowView;
-import com.project.taskmanagement.repository.projection.timelogexport.TimeLogExportRowView;
 import com.project.taskmanagement.service.BugExportService;
-import com.project.taskmanagement.service.ProjectExcelExportService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.GeneratedExcelFile;
@@ -52,11 +45,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExportService {
+public class ExcelExportServiceImpl implements BugExportService {
 
     BugRepository bugRepository;
-    TaskRepository taskRepository;
-    TaskTimeLogRepository taskTimeLogRepository;
     SprintRepository sprintRepository;
     ProjectMemberRepository projectMemberRepository;
     CurrentUserService currentUserService;
@@ -102,84 +93,29 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
         }
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public GeneratedExcelFile exportSprintTasks(UUID projectId, UUID sprintId) {
-        Project project = requireProjectViewAccess(projectId);
-        validateOptionalSprint(projectId, sprintId);
-        List<SprintTaskExportRowView> rows = taskRepository.findSprintTaskExportRows(projectId, sprintId);
-
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Styles styles = createStyles(workbook);
-            createSprintTaskSummarySheet(workbook, styles, project, sprintId, rows);
-            createSprintTaskListSheet(workbook, styles, rows);
-            createCountSheet(workbook, styles, "TASK_BY_STATUS", rows.stream()
-                    .collect(Collectors.groupingBy(row -> label(row.getStatus()), LinkedHashMap::new, Collectors.counting())));
-            createCountSheet(workbook, styles, "TASK_BY_ASSIGNEE", rows.stream()
-                    .collect(Collectors.groupingBy(row -> blank(row.getAssigneeUsername()), LinkedHashMap::new, Collectors.counting())));
-            workbook.write(out);
-            return file("sprint-tasks-" + project.getCode() + "-" + nowFilePart() + ".xlsx", out.toByteArray());
-        } catch (Exception exception) {
-            throw new BusinessException(ErrorCode.EXCEL_EXPORT_FAILED);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public GeneratedExcelFile exportTimeLogs(UUID projectId, TimeLogExportRequest request) {
-        Project project = requireProjectViewAccess(projectId);
-        DateRange dateRange = resolveDateRange(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
-        validateOptionalProjectMember(projectId, request == null ? null : request.userId());
-        validateOptionalTask(projectId, request == null ? null : request.taskId());
-
-        List<TimeLogExportRowView> rows = taskTimeLogRepository.findTimeLogExportRows(
-                projectId,
-                request == null ? null : request.userId(),
-                request == null ? null : request.taskId(),
-                dateRange.fromDate(),
-                dateRange.toDate()
-        );
-
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Styles styles = createStyles(workbook);
-            createTimeLogSummarySheet(workbook, styles, project, dateRange, rows);
-            createTimeLogListSheet(workbook, styles, rows);
-            createCountSheet(workbook, styles, "TIME_BY_DATE", rows.stream()
-                    .collect(Collectors.groupingBy(row -> row.getWorkDate() == null ? "" : row.getWorkDate().toString(),
-                            LinkedHashMap::new, Collectors.summingLong(row -> safeLong(row.getMinutes())))));
-            createCountSheet(workbook, styles, "TIME_BY_USER", rows.stream()
-                    .collect(Collectors.groupingBy(row -> blank(row.getUsername()), LinkedHashMap::new,
-                            Collectors.summingLong(row -> safeLong(row.getMinutes())))));
-            workbook.write(out);
-            return file("time-logs-" + project.getCode() + "-" + nowFilePart() + ".xlsx", out.toByteArray());
-        } catch (Exception exception) {
-            throw new BusinessException(ErrorCode.EXCEL_EXPORT_FAILED);
-        }
-    }
-
     private void createBugSummarySheet(Workbook workbook, Styles styles, Project project, DateRange range, List<BugExportRowView> rows) {
         Sheet sheet = workbook.createSheet("BUG_SUMMARY");
         int row = 0;
-        row = writeKeyValue(sheet, row, styles.header(), "Project", project.getCode() + " - " + project.getName());
-        row = writeKeyValue(sheet, row, styles.header(), "From", range.fromDate().toString());
-        row = writeKeyValue(sheet, row, styles.header(), "To", range.toDate().toString());
-        row = writeKeyValue(sheet, row, styles.header(), "Total Bugs", String.valueOf(rows.size()));
-        row = writeKeyValue(sheet, row, styles.header(), "Resolved / Closed Bugs", String.valueOf(rows.stream()
+        row = writeKeyValue(sheet, row, styles.header(), "Dự án", project.getCode() + " - " + project.getName());
+        row = writeKeyValue(sheet, row, styles.header(), "Từ ngày", range.fromDate().toString());
+        row = writeKeyValue(sheet, row, styles.header(), "Đến ngày", range.toDate().toString());
+        row = writeKeyValue(sheet, row, styles.header(), "Tổng số Lỗi Bug", String.valueOf(rows.size()));
+        row = writeKeyValue(sheet, row, styles.header(), "Bug đã giải quyết / đóng", String.valueOf(rows.stream()
                 .filter(item -> item.getStatus() == BugStatus.RESOLVED
                         || item.getStatus() == BugStatus.VERIFIED
                         || item.getStatus() == BugStatus.CLOSED)
                 .count()));
-        row = writeKeyValue(sheet, row, styles.header(), "Critical Bugs", String.valueOf(rows.stream()
+        row = writeKeyValue(sheet, row, styles.header(), "Bug nguy cấp (Critical)", String.valueOf(rows.stream()
                 .filter(item -> item.getSeverity() == BugSeverity.CRITICAL)
                 .count()));
-        writeKeyValue(sheet, row, styles.header(), "Overdue Bugs", String.valueOf(countOverdueBugs(rows)));
+        writeKeyValue(sheet, row, styles.header(), "Bug trễ hạn (Overdue)", String.valueOf(countOverdueBugs(rows)));
         autoSize(sheet, 2);
     }
 
     private void createBugListSheet(Workbook workbook, Styles styles, List<BugExportRowView> rows) {
         Sheet sheet = workbook.createSheet("BUG_LIST");
-        String[] headers = {"Bug ID", "Title", "Status", "Severity", "Priority", "Sprint", "Task", "Backlog Item",
-                "Assignee", "Reporter", "Due Date", "Reopened", "Resolved At", "Closed At", "Created At", "Updated At", "Description"};
+        String[] headers = {"Mã Bug (ID)", "Tiêu đề Bug", "Trạng thái", "Mức độ nghiêm trọng", "Độ ưu tiên", "Tên Sprint", "Tiêu đề Task", "Hạng mục Backlog",
+                "Người được giao", "Người báo lỗi", "Hạn chót", "Số lần mở lại", "Giải quyết lúc", "Đóng lúc", "Tạo lúc", "Cập nhật lúc", "Mô tả chi tiết"};
         createHeaderRow(sheet, styles.header(), headers);
         int rowIndex = 1;
         for (BugExportRowView bug : rows) {
@@ -208,7 +144,7 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
 
     private void createBugAssigneeSheet(Workbook workbook, Styles styles, List<BugExportRowView> rows) {
         Sheet sheet = workbook.createSheet("BUG_BY_ASSIGNEE");
-        createHeaderRow(sheet, styles.header(), "Assignee", "Total", "Open", "Resolved", "Closed");
+        createHeaderRow(sheet, styles.header(), "Người được giao", "Tổng số Bug", "Đang mở", "Đã giải quyết", "Đã đóng");
         Map<String, List<BugExportRowView>> grouped = rows.stream()
                 .collect(Collectors.groupingBy(row -> blank(row.getAssigneeUsername()), LinkedHashMap::new, Collectors.toList()));
         int rowIndex = 1;
@@ -227,99 +163,20 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
 
     private void createQaMetricsSheet(Workbook workbook, Styles styles, List<BugExportRowView> rows) {
         Sheet sheet = workbook.createSheet("QA_METRICS");
-        createHeaderRow(sheet, styles.header(), "Metric", "Value");
+        createHeaderRow(sheet, styles.header(), "Chỉ số QA", "Giá trị");
         int row = 1;
-        row = writeMetric(sheet, row, "Total Bugs", rows.size());
-        row = writeMetric(sheet, row, "Resolved Bugs", rows.stream().filter(item -> item.getStatus() == BugStatus.RESOLVED).count());
-        row = writeMetric(sheet, row, "Closed Bugs", rows.stream().filter(item -> item.getStatus() == BugStatus.CLOSED).count());
-        row = writeMetric(sheet, row, "Critical Bugs", rows.stream().filter(item -> item.getSeverity() == BugSeverity.CRITICAL).count());
-        row = writeMetric(sheet, row, "Overdue Bugs", countOverdueBugs(rows));
-        writeMetric(sheet, row, "Reopened Count", rows.stream().mapToLong(item -> safeLong(item.getReopenedCount())).sum());
+        row = writeMetric(sheet, row, "Tổng số Bug", rows.size());
+        row = writeMetric(sheet, row, "Bug đã giải quyết", rows.stream().filter(item -> item.getStatus() == BugStatus.RESOLVED).count());
+        row = writeMetric(sheet, row, "Bug đã đóng", rows.stream().filter(item -> item.getStatus() == BugStatus.CLOSED).count());
+        row = writeMetric(sheet, row, "Bug nguy cấp (Critical)", rows.stream().filter(item -> item.getSeverity() == BugSeverity.CRITICAL).count());
+        row = writeMetric(sheet, row, "Bug trễ hạn (Overdue)", countOverdueBugs(rows));
+        writeMetric(sheet, row, "Tổng số lần mở lại", rows.stream().mapToLong(item -> safeLong(item.getReopenedCount())).sum());
         autoSize(sheet, 2);
-    }
-
-    private void createSprintTaskSummarySheet(Workbook workbook, Styles styles, Project project, UUID sprintId, List<SprintTaskExportRowView> rows) {
-        Sheet sheet = workbook.createSheet("TASK_SUMMARY");
-        int row = 0;
-        row = writeKeyValue(sheet, row, styles.header(), "Project", project.getCode() + " - " + project.getName());
-        row = writeKeyValue(sheet, row, styles.header(), "Sprint ID", String.valueOf(sprintId));
-        row = writeKeyValue(sheet, row, styles.header(), "Total Tasks", String.valueOf(rows.size()));
-        row = writeKeyValue(sheet, row, styles.header(), "Estimated Minutes", String.valueOf(rows.stream().mapToLong(item -> safeLong(item.getEstimatedMinutes())).sum()));
-        writeKeyValue(sheet, row, styles.header(), "Logged Minutes", String.valueOf(rows.stream().mapToLong(item -> safeLong(item.getLoggedMinutes())).sum()));
-        autoSize(sheet, 2);
-    }
-
-    private void createSprintTaskListSheet(Workbook workbook, Styles styles, List<SprintTaskExportRowView> rows) {
-        Sheet sheet = workbook.createSheet("SPRINT_TASKS");
-        String[] headers = {"Task ID", "Title", "Type", "Status", "Priority", "Sprint", "Backlog Item", "Assignee", "Reporter",
-                "Estimated Minutes", "Logged Minutes", "Start Date", "Due Date", "Completed At", "Position", "Created At", "Updated At", "Description"};
-        createHeaderRow(sheet, styles.header(), headers);
-        int rowIndex = 1;
-        for (SprintTaskExportRowView task : rows) {
-            Row row = sheet.createRow(rowIndex++);
-            int col = 0;
-            setCell(row, col++, task.getId());
-            setCell(row, col++, task.getTitle());
-            setCell(row, col++, task.getType());
-            setCell(row, col++, task.getStatus());
-            setCell(row, col++, task.getPriority());
-            setCell(row, col++, task.getSprintName());
-            setCell(row, col++, task.getBacklogItemTitle());
-            setCell(row, col++, task.getAssigneeUsername());
-            setCell(row, col++, task.getReporterUsername());
-            setCell(row, col++, task.getEstimatedMinutes());
-            setCell(row, col++, task.getLoggedMinutes());
-            setDateCell(row, col++, task.getStartDate(), styles.date());
-            setDateCell(row, col++, task.getDueDate(), styles.date());
-            setDateTimeCell(row, col++, task.getCompletedAt(), styles.dateTime());
-            setCell(row, col++, task.getPosition());
-            setDateTimeCell(row, col++, task.getCreatedAt(), styles.dateTime());
-            setDateTimeCell(row, col++, task.getUpdatedAt(), styles.dateTime());
-            setCell(row, col, task.getDescription());
-        }
-        finishTable(sheet, rows.size(), headers.length);
-    }
-
-    private void createTimeLogSummarySheet(Workbook workbook, Styles styles, Project project, DateRange range, List<TimeLogExportRowView> rows) {
-        Sheet sheet = workbook.createSheet("TIMELOG_SUMMARY");
-        int row = 0;
-        row = writeKeyValue(sheet, row, styles.header(), "Project", project.getCode() + " - " + project.getName());
-        row = writeKeyValue(sheet, row, styles.header(), "From", range.fromDate().toString());
-        row = writeKeyValue(sheet, row, styles.header(), "To", range.toDate().toString());
-        row = writeKeyValue(sheet, row, styles.header(), "Total Logs", String.valueOf(rows.size()));
-        row = writeKeyValue(sheet, row, styles.header(), "Total Minutes", String.valueOf(rows.stream().mapToLong(item -> safeLong(item.getMinutes())).sum()));
-        writeKeyValue(sheet, row, styles.header(), "Total Hours", String.valueOf(rows.stream().mapToLong(item -> safeLong(item.getMinutes())).sum() / 60D));
-        autoSize(sheet, 2);
-    }
-
-    private void createTimeLogListSheet(Workbook workbook, Styles styles, List<TimeLogExportRowView> rows) {
-        Sheet sheet = workbook.createSheet("TIME_LOGS");
-        String[] headers = {"Log ID", "Project", "Sprint", "Task ID", "Task", "User", "Email", "Work Date", "Minutes", "Hours", "Created At", "Updated At", "Description"};
-        createHeaderRow(sheet, styles.header(), headers);
-        int rowIndex = 1;
-        for (TimeLogExportRowView log : rows) {
-            Row row = sheet.createRow(rowIndex++);
-            int col = 0;
-            setCell(row, col++, log.getId());
-            setCell(row, col++, log.getProjectCode());
-            setCell(row, col++, log.getSprintName());
-            setCell(row, col++, log.getTaskId());
-            setCell(row, col++, log.getTaskTitle());
-            setCell(row, col++, log.getUsername());
-            setCell(row, col++, log.getEmail());
-            setDateCell(row, col++, log.getWorkDate(), styles.date());
-            setCell(row, col++, log.getMinutes());
-            setCell(row, col++, safeLong(log.getMinutes()) / 60D);
-            setDateTimeCell(row, col++, log.getCreatedAt(), styles.dateTime());
-            setDateTimeCell(row, col++, log.getUpdatedAt(), styles.dateTime());
-            setCell(row, col, log.getDescription());
-        }
-        finishTable(sheet, rows.size(), headers.length);
     }
 
     private void createCountSheet(Workbook workbook, Styles styles, String sheetName, Map<String, ? extends Number> values) {
         Sheet sheet = workbook.createSheet(sheetName);
-        createHeaderRow(sheet, styles.header(), "Name", "Total");
+        createHeaderRow(sheet, styles.header(), "Phân loại", "Số lượng");
         int rowIndex = 1;
         for (Map.Entry<String, ? extends Number> entry : values.entrySet()) {
             Row row = sheet.createRow(rowIndex++);
@@ -339,12 +196,6 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
     private void validateOptionalSprint(UUID projectId, UUID sprintId) {
         if (sprintId != null && sprintRepository.findByIdAndProjectId(sprintId, projectId).isEmpty()) {
             throw new BusinessException(ErrorCode.BUG_SPRINT_NOT_IN_PROJECT);
-        }
-    }
-
-    private void validateOptionalTask(UUID projectId, UUID taskId) {
-        if (taskId != null && taskRepository.findByIdAndProjectId(taskId, projectId).isEmpty()) {
-            throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
     }
 
@@ -384,11 +235,11 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
     }
 
     private String label(Object value) {
-        return value == null ? "Chua xac dinh" : String.valueOf(value);
+        return value == null ? "Chưa xác định" : String.valueOf(value);
     }
 
     private String blank(String value) {
-        return value == null || value.isBlank() ? "Chua gan" : value;
+        return value == null || value.isBlank() ? "Chưa gán" : value;
     }
 
     private long safeLong(Number value) {
@@ -459,9 +310,9 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
 
         CreationHelper helper = workbook.getCreationHelper();
         CellStyle date = workbook.createCellStyle();
-        date.setDataFormat(helper.createDataFormat().getFormat("yyyy-mm-dd"));
+        date.setDataFormat(helper.createDataFormat().getFormat("dd/mm/yyyy"));
         CellStyle dateTime = workbook.createCellStyle();
-        dateTime.setDataFormat(helper.createDataFormat().getFormat("yyyy-mm-dd hh:mm:ss"));
+        dateTime.setDataFormat(helper.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
         return new Styles(header, date, dateTime);
     }
 
@@ -474,8 +325,25 @@ public class ExcelExportServiceImpl implements BugExportService, ProjectExcelExp
     }
 
     private void autoSize(Sheet sheet, int cols) {
+        Row headerRow = sheet.getRow(0);
         for (int i = 0; i < cols; i++) {
             sheet.autoSizeColumn(i);
+            int currentWidth = sheet.getColumnWidth(i);
+            String headerTitle = (headerRow != null && headerRow.getCell(i) != null)
+                    ? headerRow.getCell(i).getStringCellValue()
+                    : "";
+
+            int minWidth = 4800; // ~18 chars
+            if (headerTitle.contains("Mã") || headerTitle.contains("ID") || headerTitle.contains("Tiêu đề")
+                    || headerTitle.contains("Mô tả") || headerTitle.contains("Tên")) {
+                minWidth = 9000; // ~35 chars for IDs, titles, descriptions
+            }
+
+            if (currentWidth < minWidth) {
+                sheet.setColumnWidth(i, minWidth);
+            } else {
+                sheet.setColumnWidth(i, Math.min(currentWidth + 1400, 24000));
+            }
         }
     }
 

@@ -252,4 +252,4 @@ export const scanProjectRisks = (projectId: string) =>
   apiRequest<TaskRiskScan>(`${projectPath(projectId)}/task-risks/scan`, { method: 'POST' })
 
 export const exportSprintTasksExcel = (projectId: string, sprintId: string) =>
-  downloadExcelFile(`/projects/${projectId}/exports/sprints/${sprintId}/tasks/excel`, 'sprint-tasks.xlsx')
+  downloadExcelFile(`/projects/${projectId}/sprints/${sprintId}/reports/excel`, 'sprint-report.xlsx')

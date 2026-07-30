@@ -148,6 +148,18 @@ public class TaskServiceImpl
             @CacheEvict(
                     value = CacheNames.PROJECT_REPORT_TIME,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.ANALYTICS_SPRINT_BURNUP,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.ANALYTICS_CUMULATIVE_FLOW,
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.ANALYTICS_SUMMARY,
+                    allEntries = true
             )
     })
     public TaskResponse create(

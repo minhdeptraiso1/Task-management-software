@@ -406,8 +406,8 @@ export const taskRiskReasonLabels: Record<TaskRiskReason, string> = {
   NONE: 'Không có rủi ro',
   DUE_SOON: 'Sắp đến hạn',
   OVERDUE: 'Đã quá hạn',
-  BLOCKED: 'Đang bị chặn',
+  BLOCKED: 'Đang chờ',
   DEPENDENCY_NOT_DONE: 'Phụ thuộc chưa hoàn thành',
-  BLOCKING_OTHER_TASKS: 'Đang chặn task khác',
-  OVERDUE_AND_BLOCKED: 'Quá hạn và đang bị chặn',
+  BLOCKING_OTHER_TASKS: 'Đang làm nghẽn task khác',
+  OVERDUE_AND_BLOCKED: 'Quá hạn và Đang chờ',
 }

@@ -3,7 +3,7 @@ import { Clock3, FolderKanban, Users2, AlertTriangle, ChevronLeft, ChevronRight,
 import { Button, Input, Select } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
-import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary, exportProjectTimeLogsExcel } from '../services/timesheet.service'
+import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary, exportProjectTimeLogsExcel, exportMyTimeLogsExcel } from '../services/timesheet.service'
 
 interface TimesheetViewProps {
   mode: 'personal' | 'project'
@@ -84,18 +84,23 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
   }, [loadTimesheet])
 
   const handleExportExcel = async () => {
-    if (mode === 'project' && projectId) {
-      setError('')
-      try {
+    setError('')
+    try {
+      if (mode === 'project' && projectId) {
         await exportProjectTimeLogsExcel(projectId, {
           fromDate: fromDate || undefined,
           toDate: toDate || undefined,
           userId: selectedUserId || undefined,
           taskId: selectedTaskId || undefined
         })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Không xuất được file Excel')
+      } else {
+        await exportMyTimeLogsExcel({
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined
+        })
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không xuất được file Excel')
     }
   }
 
@@ -218,16 +223,14 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
           )}
           
           <div className="flex gap-2">
-            {mode === 'project' && projectId && (
-              <Button 
-                variant="outline-teal" 
-                onClick={handleExportExcel}
-                title="Xuất Excel"
-                leadingIcon={<Download size={16} />}
-              >
-                Xuất Excel
-              </Button>
-            )}
+            <Button 
+              variant="outline-teal" 
+              onClick={handleExportExcel}
+              title={mode === 'project' ? 'Xuất Excel Time Log Dự án' : 'Xuất Excel Time Log Cá nhân'}
+              leadingIcon={<Download size={16} />}
+            >
+              Xuất Excel
+            </Button>
 
             {/* Nút Đặt lại (Icon Mũi tên quay ngược, Hover hiện 'Đặt lại', Click xoay 1 vòng ngược chiều) */}
             <button

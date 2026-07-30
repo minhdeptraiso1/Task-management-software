@@ -80,6 +80,7 @@ import {
 
 interface BugViewProps {
   projectId: string
+  projectName?: string
   members: ProjectMember[]
   backlogItems: BacklogItem[]
   tasks: (Task | KanbanTask)[]
@@ -313,7 +314,7 @@ export const getPriorityDotColor = (pri: TaskPriority | string) => {
   }
 }
 
-export function BugView({ projectId, members, backlogItems, tasks, sprints, openBugId, onCloseBug }: BugViewProps) {
+export function BugView({ projectId, projectName, members, backlogItems, tasks, sprints, openBugId, onCloseBug }: BugViewProps) {
   const [bugs, setBugs] = useState<BugPage>(emptyBugPage)
   const [summary, setSummary] = useState<BugSummary | null>(null)
   const [loading, setLoading] = useState(false)
@@ -992,21 +993,21 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
         /* Dashboard Tab */
         <div className="space-y-6">
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
               <div>
                 <h3 className="text-base font-bold text-ink flex items-center gap-2">
                   <BugIcon className="text-brand" size={20} />
                   Báo cáo & QA Metrics Dự án
                 </h3>
-                <p className="text-xs text-muted">Dự án: {projectId}</p>
+                <p className="text-xs font-semibold text-muted mt-0.5">Dự án: {projectName || projectId}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="outline-teal" 
                   leadingIcon={<Download size={16} />}
                   onClick={() => handleExportExcel(reportFilters)}
                   loading={exportingExcel}
-                  className="font-bold"
+                  className="font-bold shadow-xs"
                 >
                   Xuất Excel
                 </Button>

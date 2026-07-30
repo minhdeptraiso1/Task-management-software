@@ -20,6 +20,14 @@ public class ReportFileNameBuilder {
         return normalize("project-report-" + project.getCode() + "-" + today() + ".xlsx");
     }
 
+    public String projectTimeLogsExcel(Project project) {
+        return normalize("time-logs-" + project.getCode() + "-" + today() + ".xlsx");
+    }
+
+    public String personalTimeLogsExcel(com.project.taskmanagement.entity.User user) {
+        return normalize("bao-cao-time-log-" + user.getUsername() + "-" + today() + ".xlsx");
+    }
+
     public String sprintPdf(Project project, Sprint sprint) {
         return normalize("sprint-report-" + project.getCode() + "-" + sprint.getName() + "-" + today() + ".pdf");
     }

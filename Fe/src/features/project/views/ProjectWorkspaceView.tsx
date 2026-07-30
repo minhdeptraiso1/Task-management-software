@@ -1129,13 +1129,32 @@ export function ProjectWorkspaceView({
               {canManageMembers && <AddMemberForm candidates={candidateUsers} saving={saving} loading={candidateLoading} onSearch={onCandidateSearch} onAdd={onAddMember} />}
               <div className="mt-4 overflow-x-auto rounded-xl border border-line">
                 <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead className="bg-panel text-xs font-semibold uppercase tracking-wider text-[#3f3f46]"><tr><th className="px-4 py-3">Thành viên</th><th className="px-4 py-3">Role hệ thống</th><th className="px-4 py-3">Role dự án</th><th className="px-4 py-3 text-center">Thao tác</th></tr></thead>
+                  <thead className="bg-panel text-xs font-semibold uppercase tracking-wider text-[#3f3f46]">
+                    <tr>
+                      <th className="px-4 py-3">Thành viên</th>
+                      <th className="px-4 py-3">Role hệ thống</th>
+                      <th className="px-4 py-3">Role dự án</th>
+                      {canManageMembers && <th className="px-4 py-3 text-center">Thao tác</th>}
+                    </tr>
+                  </thead>
                   <tbody>
                     {members.map(member => <tr key={member.id} className="border-t border-line">
                       <td className="px-4 py-3"><p className="font-semibold">{member.username}</p><p className="text-xs text-muted">{member.email}</p></td>
-                      <td className="px-4 py-3">{member.systemRole}</td>
-                      <td className="px-4 py-3">{canManageMembers ? <Select aria-label="Role dự án" value={member.projectRole} onChange={event => onRoleChange(member.id, event.target.value as ProjectMemberRole)} options={memberRoles.map(role => ({ label: projectMemberRoleLabels[role], value: role }))} /> : projectMemberRoleLabels[member.projectRole]}</td>
-                      <td className="px-4 py-3 text-center">{canManageMembers && <Button variant="ghost" size="sm" iconOnly className="!text-danger" leadingIcon={<Trash2 size={16} />} aria-label={`Xóa ${member.username}`} onClick={() => onRemoveMember(member)} />}</td>
+                      <td className="px-4 py-3"><span className="text-xs font-semibold text-slate-700">{member.systemRole}</span></td>
+                      <td className="px-4 py-3">
+                        {canManageMembers ? (
+                          <Select aria-label="Role dự án" value={member.projectRole} onChange={event => onRoleChange(member.id, event.target.value as ProjectMemberRole)} options={memberRoles.map(role => ({ label: projectMemberRoleLabels[role], value: role }))} />
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                            {projectMemberRoleLabels[member.projectRole]}
+                          </span>
+                        )}
+                      </td>
+                      {canManageMembers && (
+                        <td className="px-4 py-3 text-center">
+                          <Button variant="ghost" size="sm" iconOnly className="!text-danger" leadingIcon={<Trash2 size={16} />} aria-label={`Xóa ${member.username}`} onClick={() => onRemoveMember(member)} />
+                        </td>
+                      )}
                     </tr>)}
                   </tbody>
                 </table>
@@ -1345,6 +1364,7 @@ export function ProjectWorkspaceView({
             {activeTab === 'bugs' && (
               <BugView 
                 projectId={selectedProject.id} 
+                projectName={selectedProject.name}
                 members={members} 
                 backlogItems={backlogItems} 
                 tasks={Object.values(kanbanBoards).flatMap(board => board?.columns.flatMap(col => col.tasks) ?? [])} 

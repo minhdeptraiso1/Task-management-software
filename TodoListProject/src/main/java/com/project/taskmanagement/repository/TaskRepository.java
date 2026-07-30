@@ -645,28 +645,30 @@ public interface TaskRepository
                        ELSE NULL
                    END) AS overdueTasks,
                    COALESCE(SUM(DISTINCT t.estimatedMinutes), 0) AS estimatedMinutes,
-                   COALESCE(SUM(tl.minutes), 0) AS spentMinutes
+                   (SELECT COALESCE(SUM(tl2.minutes), 0)
+                    FROM TaskTimeLog tl2
+                    JOIN Task t2
+                        ON t2.id = tl2.taskId
+                    WHERE tl2.userId = u.id
+                      AND t2.projectId = :projectId
+                      AND (
+                            CAST(:sprintId AS java.util.UUID) IS NULL
+                            OR t2.currentSprintId = :sprintId
+                            OR t2.originSprintId = :sprintId
+                      )
+                      AND (CAST(:fromDate AS java.time.LocalDate) IS NULL OR tl2.workDate >= :fromDate)
+                      AND (CAST(:toDate AS java.time.LocalDate) IS NULL OR tl2.workDate <= :toDate)
+                   ) AS spentMinutes
             FROM ProjectMember pm
             JOIN User u
                 ON u.id = pm.userId
             LEFT JOIN Task t
-                ON t.assigneeUserId = u.id
+                ON (t.assigneeUserId = u.id OR t.reporterUserId = u.id)
                AND t.projectId = pm.projectId
                AND (
                     CAST(:sprintId AS java.util.UUID) IS NULL
                     OR t.currentSprintId = :sprintId
                     OR t.originSprintId = :sprintId
-               )
-            LEFT JOIN TaskTimeLog tl
-                ON tl.taskId = t.id
-               AND tl.userId = u.id
-               AND (
-                    CAST(:fromDate AS java.time.LocalDate) IS NULL
-                    OR tl.workDate >= :fromDate
-               )
-               AND (
-                    CAST(:toDate AS java.time.LocalDate) IS NULL
-                    OR tl.workDate <= :toDate
                )
             WHERE pm.projectId = :projectId
               AND (

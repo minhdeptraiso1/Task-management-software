@@ -45,7 +45,10 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.project.taskmanagement.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +66,7 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
     TaskStatisticsService taskStatisticsService;
     PdfReportHelper pdfReportHelper;
     PdfChartHelper pdfChartHelper;
+    UserRepository userRepository;
     AnalyticsService analyticsService;
     ReportFileNameBuilder reportFileNameBuilder;
 
@@ -86,7 +90,7 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
                 .findMemberPerformanceForExcelReport(projectId, sprintId, null, null, null, LocalDate.now(BUSINESS_ZONE));
 
         return buildPdf(buildSprintPdfFileName(project, sprint), document -> {
-            document.add(pdfReportHelper.title("Sprint Report"));
+            document.add(pdfReportHelper.title("BÁO CÁO CHI TIẾT SPRINT"));
             document.add(pdfReportHelper.generatedAt());
             addProjectSection(document, project);
             addSprintSection(document, sprint);
@@ -129,7 +133,7 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
         );
 
         return buildPdf(buildProjectPdfFileName(project), document -> {
-            document.add(pdfReportHelper.title("Project Report"));
+            document.add(pdfReportHelper.title("BÁO CÁO TỔNG QUAN DỰ ÁN"));
             document.add(pdfReportHelper.generatedAt());
             addProjectSection(document, project);
             addProjectFilterSection(document, request);
@@ -146,32 +150,32 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
     }
 
     private void addProjectSection(Document document, Project project) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Project Information"));
+        document.add(pdfReportHelper.sectionTitle("Thông tin Dự án"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Project Code", project.getCode());
-        pdfReportHelper.addKeyValueRow(table, "Project Name", project.getName());
-        pdfReportHelper.addKeyValueRow(table, "Status", project.getStatus());
-        pdfReportHelper.addKeyValueRow(table, "Start Date", project.getStartDate());
-        pdfReportHelper.addKeyValueRow(table, "End Date", project.getEndDate());
+        pdfReportHelper.addKeyValueRow(table, "Mã Dự án", project.getCode());
+        pdfReportHelper.addKeyValueRow(table, "Tên Dự án", project.getName());
+        pdfReportHelper.addKeyValueRow(table, "Trạng thái", project.getStatus());
+        pdfReportHelper.addKeyValueRow(table, "Ngày bắt đầu", project.getStartDate());
+        pdfReportHelper.addKeyValueRow(table, "Ngày kết thúc", project.getEndDate());
 
         document.add(table);
     }
 
     private void addBurndownDataSection(Document document, SprintBurndownResponse burndown) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Burndown Data"));
+        document.add(pdfReportHelper.sectionTitle("Dữ liệu Biểu đồ Burndown"));
         document.add(pdfChartHelper.burndownDataTable(burndown == null ? null : burndown.points()));
     }
 
     private void addVelocitySection(Document document, UUID projectId) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Velocity"));
+        document.add(pdfReportHelper.sectionTitle("Tốc độ Hoàn thành (Velocity)"));
 
         VelocityChartResponse velocity = analyticsService.getVelocity(projectId);
         PdfPTable table = pdfReportHelper.table(4);
         pdfReportHelper.addHeaderCell(table, "Sprint");
-        pdfReportHelper.addHeaderCell(table, "Committed SP");
-        pdfReportHelper.addHeaderCell(table, "Completed SP");
-        pdfReportHelper.addHeaderCell(table, "Rate");
+        pdfReportHelper.addHeaderCell(table, "SP Cam kết");
+        pdfReportHelper.addHeaderCell(table, "SP Hoàn thành");
+        pdfReportHelper.addHeaderCell(table, "Tỷ lệ (%)");
 
         velocity.points().stream()
                 .limit(20)
@@ -179,21 +183,21 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
                     pdfReportHelper.addCell(table, item.sprintName());
                     pdfReportHelper.addCell(table, item.committedStoryPoints());
                     pdfReportHelper.addCell(table, item.completedStoryPoints());
-                    pdfReportHelper.addCell(table, item.completionRate());
+                    pdfReportHelper.addCell(table, item.completionRate() + "%");
                 });
 
         document.add(table);
     }
 
     private void addBurnupSection(Document document, UUID projectId, UUID sprintId) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Burnup"));
+        document.add(pdfReportHelper.sectionTitle("Tiến độ Phạm vi (Burnup)"));
 
         BurnupChartResponse burnup = analyticsService.getSprintBurnup(projectId, sprintId);
         PdfPTable table = pdfReportHelper.table(4);
-        pdfReportHelper.addHeaderCell(table, "Date");
-        pdfReportHelper.addHeaderCell(table, "Total Scope");
-        pdfReportHelper.addHeaderCell(table, "Completed Scope");
-        pdfReportHelper.addHeaderCell(table, "Rate");
+        pdfReportHelper.addHeaderCell(table, "Mốc thời gian");
+        pdfReportHelper.addHeaderCell(table, "Tổng phạm vi");
+        pdfReportHelper.addHeaderCell(table, "Đã hoàn thành");
+        pdfReportHelper.addHeaderCell(table, "Tỷ lệ (%)");
 
         burnup.points().stream()
                 .limit(40)
@@ -201,24 +205,24 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
                     pdfReportHelper.addCell(table, point.date());
                     pdfReportHelper.addCell(table, point.totalScope());
                     pdfReportHelper.addCell(table, point.completedScope());
-                    pdfReportHelper.addCell(table, point.completionRate());
+                    pdfReportHelper.addCell(table, point.completionRate() + "%");
                 });
 
         document.add(table);
     }
 
     private void addCumulativeFlowSection(Document document, UUID projectId, UUID sprintId) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Cumulative Flow"));
+        document.add(pdfReportHelper.sectionTitle("Dòng chảy Tích lũy (Cumulative Flow)"));
 
         CumulativeFlowResponse cumulativeFlow = analyticsService.getSprintCumulativeFlow(projectId, sprintId);
         PdfPTable table = pdfReportHelper.table(7);
-        pdfReportHelper.addHeaderCell(table, "Date");
-        pdfReportHelper.addHeaderCell(table, "TODO");
-        pdfReportHelper.addHeaderCell(table, "IN_PROGRESS");
-        pdfReportHelper.addHeaderCell(table, "IN_REVIEW");
-        pdfReportHelper.addHeaderCell(table, "BLOCKED");
-        pdfReportHelper.addHeaderCell(table, "DONE");
-        pdfReportHelper.addHeaderCell(table, "CANCELLED");
+        pdfReportHelper.addHeaderCell(table, "Mốc thời gian");
+        pdfReportHelper.addHeaderCell(table, "Cần làm");
+        pdfReportHelper.addHeaderCell(table, "Đang làm");
+        pdfReportHelper.addHeaderCell(table, "Đang review");
+        pdfReportHelper.addHeaderCell(table, "Nghẽn");
+        pdfReportHelper.addHeaderCell(table, "Đã xong");
+        pdfReportHelper.addHeaderCell(table, "Đã hủy");
 
         cumulativeFlow.points().stream()
                 .limit(40)
@@ -236,32 +240,32 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
     }
 
     private void addSprintSection(Document document, Sprint sprint) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Sprint Information"));
+        document.add(pdfReportHelper.sectionTitle("Thông tin Sprint"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Sprint Name", sprint.getName());
-        pdfReportHelper.addKeyValueRow(table, "Goal", sprint.getGoal());
-        pdfReportHelper.addKeyValueRow(table, "Status", sprint.getStatus());
-        pdfReportHelper.addKeyValueRow(table, "Start Date", sprint.getStartDate());
-        pdfReportHelper.addKeyValueRow(table, "End Date", sprint.getEndDate());
-        pdfReportHelper.addKeyValueRow(table, "Started At", sprint.getStartedAt());
-        pdfReportHelper.addKeyValueRow(table, "Completed At", sprint.getCompletedAt());
+        pdfReportHelper.addKeyValueRow(table, "Tên Sprint", sprint.getName());
+        pdfReportHelper.addKeyValueRow(table, "Mục tiêu", sprint.getGoal());
+        pdfReportHelper.addKeyValueRow(table, "Trạng thái", sprint.getStatus());
+        pdfReportHelper.addKeyValueRow(table, "Ngày bắt đầu", sprint.getStartDate());
+        pdfReportHelper.addKeyValueRow(table, "Ngày kết thúc", sprint.getEndDate());
+        pdfReportHelper.addKeyValueRow(table, "Bắt đầu thực tế", sprint.getStartedAt());
+        pdfReportHelper.addKeyValueRow(table, "Hoàn thành thực tế", sprint.getCompletedAt());
 
         document.add(table);
     }
 
     private void addSprintStatisticsSection(Document document, SprintTaskStatisticsResponse statistics) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Sprint Statistics"));
+        document.add(pdfReportHelper.sectionTitle("Thống kê Chỉ số Sprint"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Total Tasks", statistics.totalTasks());
-        pdfReportHelper.addKeyValueRow(table, "Completed Tasks", statistics.completedTasks());
-        pdfReportHelper.addKeyValueRow(table, "Unfinished Tasks", statistics.unfinishedTasks());
-        pdfReportHelper.addKeyValueRow(table, "Blocked Tasks", statistics.blockedTasks());
-        pdfReportHelper.addKeyValueRow(table, "Overdue Tasks", statistics.overdueTasks());
-        pdfReportHelper.addKeyValueRow(table, "Completion Rate", statistics.completionRate());
-        pdfReportHelper.addKeyValueRow(table, "Estimated Time", pdfReportHelper.minutesToHourText(statistics.estimatedMinutes()));
-        pdfReportHelper.addKeyValueRow(table, "Spent Time", pdfReportHelper.minutesToHourText(statistics.spentMinutes()));
+        pdfReportHelper.addKeyValueRow(table, "Tổng số Công việc (Tasks)", statistics.totalTasks());
+        pdfReportHelper.addKeyValueRow(table, "Công việc đã hoàn thành", statistics.completedTasks());
+        pdfReportHelper.addKeyValueRow(table, "Công việc chưa xong", statistics.unfinishedTasks());
+        pdfReportHelper.addKeyValueRow(table, "Công việc đang chờ (Blocked)", statistics.blockedTasks());
+        pdfReportHelper.addKeyValueRow(table, "Công việc trễ hạn (Overdue)", statistics.overdueTasks());
+        pdfReportHelper.addKeyValueRow(table, "Tỷ lệ hoàn thành", statistics.completionRate() + "%");
+        pdfReportHelper.addKeyValueRow(table, "Thời gian ước lượng", pdfReportHelper.minutesToHourText(statistics.estimatedMinutes()));
+        pdfReportHelper.addKeyValueRow(table, "Thời gian thực tế", pdfReportHelper.minutesToHourText(statistics.spentMinutes()));
 
         document.add(table);
     }
@@ -271,13 +275,13 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
             return;
         }
 
-        document.add(pdfReportHelper.sectionTitle("Report Filters"));
+        document.add(pdfReportHelper.sectionTitle("Bộ lọc Báo cáo"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "From Date", request.fromDate());
-        pdfReportHelper.addKeyValueRow(table, "To Date", request.toDate());
-        pdfReportHelper.addKeyValueRow(table, "Sprint Id", request.sprintId());
-        pdfReportHelper.addKeyValueRow(table, "User Id", request.userId());
+        pdfReportHelper.addKeyValueRow(table, "Từ ngày", request.fromDate());
+        pdfReportHelper.addKeyValueRow(table, "Đến ngày", request.toDate());
+        pdfReportHelper.addKeyValueRow(table, "Mã Sprint", request.sprintId());
+        pdfReportHelper.addKeyValueRow(table, "Mã Thành viên", request.userId());
 
         document.add(table);
     }
@@ -288,26 +292,26 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
             List<BacklogItem> backlogItems,
             List<Task> tasks
     ) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Project Summary"));
+        document.add(pdfReportHelper.sectionTitle("Tổng quan Dự án"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Total Sprints", sprints.size());
-        pdfReportHelper.addKeyValueRow(table, "Total Backlog Items", backlogItems.size());
-        pdfReportHelper.addKeyValueRow(table, "Total Tasks", tasks.size());
-        pdfReportHelper.addKeyValueRow(table, "Completed Tasks", countTasksByStatus(tasks, TaskStatus.DONE));
-        pdfReportHelper.addKeyValueRow(table, "Blocked Tasks", countTasksByStatus(tasks, TaskStatus.BLOCKED));
-        pdfReportHelper.addKeyValueRow(table, "Overdue Tasks", countOverdueTasks(tasks));
-        pdfReportHelper.addKeyValueRow(table, "Estimated Time", pdfReportHelper.minutesToHourText(sumEstimatedMinutes(tasks)));
+        pdfReportHelper.addKeyValueRow(table, "Tổng số Sprint", sprints.size());
+        pdfReportHelper.addKeyValueRow(table, "Tổng Hạng mục Backlog", backlogItems.size());
+        pdfReportHelper.addKeyValueRow(table, "Tổng số Công việc (Tasks)", tasks.size());
+        pdfReportHelper.addKeyValueRow(table, "Task đã hoàn thành", countTasksByStatus(tasks, TaskStatus.DONE));
+        pdfReportHelper.addKeyValueRow(table, "Task đang chờ", countTasksByStatus(tasks, TaskStatus.BLOCKED));
+        pdfReportHelper.addKeyValueRow(table, "Task trễ hạn", countOverdueTasks(tasks));
+        pdfReportHelper.addKeyValueRow(table, "Thời gian ước lượng", pdfReportHelper.minutesToHourText(sumEstimatedMinutes(tasks)));
 
         document.add(table);
     }
 
     private void addBacklogSummarySection(Document document, List<BacklogItem> backlogItems) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Backlog Summary"));
+        document.add(pdfReportHelper.sectionTitle("Tổng quan Hạng mục Backlog"));
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Total Backlog Items", backlogItems.size());
-        pdfReportHelper.addKeyValueRow(table, "Total Story Points", backlogItems.stream()
+        pdfReportHelper.addKeyValueRow(table, "Tổng Hạng mục Backlog", backlogItems.size());
+        pdfReportHelper.addKeyValueRow(table, "Tổng điểm Story Points", backlogItems.stream()
                 .mapToLong(item -> safeLong(item.getStoryPoints()))
                 .sum());
 
@@ -315,16 +319,16 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
     }
 
     private void addTimeSummarySection(Document document, List<ReportTimeLogExcelView> timeLogs) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Time Summary"));
+        document.add(pdfReportHelper.sectionTitle("Tổng quan Thời gian Log"));
 
         long totalMinutes = timeLogs.stream()
                 .mapToLong(item -> safeLong(item.getMinutes()))
                 .sum();
 
         PdfPTable table = pdfReportHelper.keyValueTable();
-        pdfReportHelper.addKeyValueRow(table, "Total Logs", timeLogs.size());
-        pdfReportHelper.addKeyValueRow(table, "Total Minutes", totalMinutes);
-        pdfReportHelper.addKeyValueRow(table, "Total Time", pdfReportHelper.minutesToHourText(totalMinutes));
+        pdfReportHelper.addKeyValueRow(table, "Tổng số bản ghi TimeLog", timeLogs.size());
+        pdfReportHelper.addKeyValueRow(table, "Tổng số phút", totalMinutes);
+        pdfReportHelper.addKeyValueRow(table, "Tổng thời gian", pdfReportHelper.minutesToHourText(totalMinutes));
 
         document.add(table);
     }
@@ -333,14 +337,14 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
             Document document,
             List<ReportMemberPerformanceExcelView> memberPerformance
     ) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Member Performance"));
+        document.add(pdfReportHelper.sectionTitle("Hiệu suất Thành viên"));
 
         PdfPTable table = pdfReportHelper.table(5);
-        pdfReportHelper.addHeaderCell(table, "Member");
-        pdfReportHelper.addHeaderCell(table, "Total");
-        pdfReportHelper.addHeaderCell(table, "Done");
-        pdfReportHelper.addHeaderCell(table, "Blocked");
-        pdfReportHelper.addHeaderCell(table, "Spent");
+        pdfReportHelper.addHeaderCell(table, "Thành viên");
+        pdfReportHelper.addHeaderCell(table, "Tổng Task");
+        pdfReportHelper.addHeaderCell(table, "Đã xong");
+        pdfReportHelper.addHeaderCell(table, "Đang chờ");
+        pdfReportHelper.addHeaderCell(table, "Đã log");
 
         memberPerformance.stream()
                 .limit(20)
@@ -356,22 +360,27 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
     }
 
     private void addTaskSampleSection(Document document, List<Task> tasks) throws Exception {
-        document.add(pdfReportHelper.sectionTitle("Task List"));
+        document.add(pdfReportHelper.sectionTitle("Danh sách Công việc"));
 
         PdfPTable table = pdfReportHelper.table(5);
-        pdfReportHelper.addHeaderCell(table, "Title");
-        pdfReportHelper.addHeaderCell(table, "Status");
-        pdfReportHelper.addHeaderCell(table, "Priority");
-        pdfReportHelper.addHeaderCell(table, "Assignee");
-        pdfReportHelper.addHeaderCell(table, "Due Date");
+        pdfReportHelper.addHeaderCell(table, "Tiêu đề Task");
+        pdfReportHelper.addHeaderCell(table, "Trạng thái");
+        pdfReportHelper.addHeaderCell(table, "Độ ưu tiên");
+        pdfReportHelper.addHeaderCell(table, "Người thực hiện");
+        pdfReportHelper.addHeaderCell(table, "Hạn chót");
+
+        Map<UUID, User> userMap = userRepository.findAll().stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
 
         tasks.stream()
                 .limit(30)
                 .forEach(task -> {
+                    String assigneeName = task.getAssigneeUserId() != null && userMap.containsKey(task.getAssigneeUserId())
+                            ? userMap.get(task.getAssigneeUserId()).getUsername() : "Chưa giao";
                     pdfReportHelper.addCell(table, task.getTitle());
                     pdfReportHelper.addCell(table, task.getStatus());
                     pdfReportHelper.addCell(table, task.getPriority());
-                    pdfReportHelper.addCell(table, task.getAssigneeUserId());
+                    pdfReportHelper.addCell(table, assigneeName);
                     pdfReportHelper.addCell(table, task.getDueDate());
                 });
 
@@ -460,7 +469,7 @@ public class ReportPdfExportServiceImpl implements ReportPdfExportService {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             Document document = pdfReportHelper.createDocument();
             PdfWriter writerInstance = PdfWriter.getInstance(document, outputStream);
-            writerInstance.setPageEvent(new PdfPageNumberEventHandler());
+            writerInstance.setPageEvent(new PdfPageNumberEventHandler(pdfReportHelper));
 
             document.open();
             writer.write(document);

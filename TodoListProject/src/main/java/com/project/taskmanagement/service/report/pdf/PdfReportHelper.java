@@ -3,7 +3,6 @@ package com.project.taskmanagement.service.report.pdf;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
@@ -19,7 +18,8 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
-import java.io.IOException;
+import java.io.File;
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,8 +32,8 @@ import java.time.format.DateTimeFormatter;
 public class PdfReportHelper {
 
     static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-    static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     final PdfReportTheme theme;
     final ResourceLoader resourceLoader;
@@ -44,29 +44,65 @@ public class PdfReportHelper {
     @Value("${app.report.pdf.bold-font-path:fonts/NotoSans-Bold.ttf}")
     String boldFontPath;
 
+    BaseFont cachedRegularBaseFont;
+    BaseFont cachedBoldBaseFont;
+
     public Document createDocument() {
         return new Document(
                 PageSize.A4,
                 theme.getPageMargin(),
                 theme.getPageMargin(),
-                theme.getPageMargin() + 12,
-                theme.getPageMargin() + 12
+                theme.getPageMargin() + 10,
+                theme.getPageMargin() + 10
         );
     }
 
     public Paragraph title(String text) {
-        Font font = boldFont(theme.getTitleFontSize());
-        Paragraph paragraph = new Paragraph(text, font);
-        paragraph.setAlignment(Element.ALIGN_CENTER);
-        paragraph.setSpacingAfter(16);
-        return paragraph;
+        Font font = boldFont(15);
+        font.setColor(Color.WHITE);
+
+        PdfPCell cell = new PdfPCell(new Phrase(text.toUpperCase(), font));
+        cell.setBackgroundColor(new Color(30, 41, 59)); // Dark Navy #1E293B
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPaddingTop(9f);
+        cell.setPaddingBottom(9f);
+        cell.setBorder(0);
+
+        PdfPTable table = new PdfPTable(1);
+        table.setWidthPercentage(100);
+        table.addCell(cell);
+
+        Paragraph p = new Paragraph();
+        p.add(table);
+        p.setSpacingAfter(10);
+        return p;
     }
 
     public Paragraph sectionTitle(String text) {
-        Font font = boldFont(theme.getHeadingFontSize());
-        Paragraph paragraph = new Paragraph(text, font);
-        paragraph.setSpacingBefore(12);
-        paragraph.setSpacingAfter(8);
+        Font font = boldFont(11.5f);
+        font.setColor(new Color(30, 41, 59));
+
+        PdfPCell cell = new PdfPCell(new Phrase("  " + text, font));
+        cell.setBackgroundColor(new Color(248, 250, 252));
+        cell.setBorderColorLeft(new Color(59, 130, 246));
+        cell.setBorderWidthLeft(3.5f);
+        cell.setBorderColorTop(new Color(226, 232, 240));
+        cell.setBorderColorRight(new Color(226, 232, 240));
+        cell.setBorderColorBottom(new Color(226, 232, 240));
+        cell.setBorderWidthTop(1f);
+        cell.setBorderWidthRight(1f);
+        cell.setBorderWidthBottom(1f);
+        cell.setPadding(5f);
+
+        PdfPTable table = new PdfPTable(1);
+        table.setWidthPercentage(100);
+        table.addCell(cell);
+
+        Paragraph paragraph = new Paragraph();
+        paragraph.add(table);
+        paragraph.setSpacingBefore(10);
+        paragraph.setSpacingAfter(6);
         return paragraph;
     }
 
@@ -78,48 +114,83 @@ public class PdfReportHelper {
     }
 
     public Paragraph generatedAt() {
-        Font font = regularFont(theme.getSmallFontSize());
+        Font font = regularFont(8.5f);
+        font.setColor(new Color(100, 116, 139));
         Paragraph paragraph = new Paragraph(
-                "Generated at: " + LocalDateTime.now(BUSINESS_ZONE).format(DATE_TIME_FORMATTER),
+                "Thời gian xuất báo cáo: " + LocalDateTime.now(BUSINESS_ZONE).format(DATE_TIME_FORMATTER),
                 font
         );
         paragraph.setAlignment(Element.ALIGN_RIGHT);
-        paragraph.setSpacingAfter(8);
+        paragraph.setSpacingAfter(10);
         return paragraph;
     }
 
     public PdfPTable keyValueTable() {
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
-        table.setSpacingAfter(8);
+        table.setSpacingAfter(10);
+        try {
+            table.setWidths(new float[]{35f, 65f});
+        } catch (Exception ignored) {}
         return table;
     }
 
     public PdfPTable table(int columns) {
         PdfPTable table = new PdfPTable(columns);
         table.setWidthPercentage(100);
-        table.setSpacingAfter(8);
+        table.setSpacingAfter(10);
         return table;
     }
 
     public void addHeaderCell(PdfPTable table, String value) {
-        Font font = boldFont(theme.getSmallFontSize());
+        Font font = boldFont(9);
+        font.setColor(Color.WHITE);
+
         PdfPCell cell = new PdfPCell(new Phrase(value == null ? "" : value, font));
-        cell.setBackgroundColor(new Color(230, 230, 230));
-        cell.setPadding(theme.getTableCellPadding());
+        cell.setBackgroundColor(new Color(30, 41, 59));
+        cell.setBorderColor(new Color(203, 213, 225));
+        cell.setPadding(6f);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         table.addCell(cell);
     }
 
     public void addCell(PdfPTable table, Object value) {
-        Font font = regularFont(theme.getSmallFontSize());
-        PdfPCell cell = new PdfPCell(new Phrase(format(value), font));
-        cell.setPadding(theme.getTableCellPadding());
+        addCell(table, value, false);
+    }
+
+    public void addCell(PdfPTable table, Object value, boolean isOddRow) {
+        String text = format(value);
+        Font font = regularFont(8.5f);
+        font.setColor(new Color(30, 41, 59));
+
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setPadding(5.5f);
+        cell.setBorderColor(new Color(226, 232, 240));
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        String upperText = text.toUpperCase();
+        if (upperText.equals("DONE") || upperText.equals("HOÀN THÀNH") || upperText.equals("RESOLVED") || upperText.equals("CLOSED")) {
+            cell.setBackgroundColor(new Color(220, 252, 231));
+            font.setColor(new Color(22, 101, 52));
+            font.setStyle(Font.BOLD);
+        } else if (upperText.equals("IN_PROGRESS") || upperText.equals("ĐANG LÀM") || upperText.equals("IN_REVIEW") || upperText.equals("ACTIVE")) {
+            cell.setBackgroundColor(new Color(254, 243, 199));
+            font.setColor(new Color(146, 64, 14));
+            font.setStyle(Font.BOLD);
+        } else if (upperText.equals("BLOCKED") || upperText.equals("ĐANG CHỜ") || upperText.equals("NGHẼN") || upperText.equals("CANCELLED") || upperText.equals("CRITICAL")) {
+            cell.setBackgroundColor(new Color(254, 226, 226));
+            font.setColor(new Color(153, 27, 27));
+            font.setStyle(Font.BOLD);
+        } else if (isOddRow) {
+            cell.setBackgroundColor(new Color(248, 250, 252));
+        }
+
         table.addCell(cell);
     }
 
     public void addKeyValueRow(PdfPTable table, String key, Object value) {
         addHeaderCell(table, key);
-        addCell(table, value);
+        addCell(table, value, false);
     }
 
     public String minutesToHourText(Number minutes) {
@@ -160,38 +231,74 @@ public class PdfReportHelper {
         return String.valueOf(value);
     }
 
-    private Font regularFont(float size) {
-        BaseFont baseFont = loadBaseFont(fontPath);
+    public Font regularFont(float size) {
+        BaseFont baseFont = getOrLoadBaseFont(false);
         return baseFont == null
-                ? FontFactory.getFont(FontFactory.HELVETICA, size)
+                ? new Font(Font.HELVETICA, size)
                 : new Font(baseFont, size);
     }
 
-    private Font boldFont(float size) {
-        BaseFont baseFont = loadBaseFont(boldFontPath);
+    public Font boldFont(float size) {
+        BaseFont baseFont = getOrLoadBaseFont(true);
         return baseFont == null
-                ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, size)
+                ? new Font(Font.HELVETICA, size, Font.BOLD)
                 : new Font(baseFont, size);
     }
 
-    private BaseFont loadBaseFont(String configuredPath) {
-        if (configuredPath == null || configuredPath.isBlank()) {
-            return null;
+    public synchronized BaseFont getOrLoadBaseFont(boolean bold) {
+        if (bold && cachedBoldBaseFont != null) {
+            return cachedBoldBaseFont;
+        }
+        if (!bold && cachedRegularBaseFont != null) {
+            return cachedRegularBaseFont;
         }
 
-        try {
-            Resource resource = resourceLoader.getResource("classpath:" + configuredPath);
-            if (!resource.exists()) {
-                return null;
-            }
-
-            return BaseFont.createFont(
-                    resource.getFile().getAbsolutePath(),
-                    BaseFont.IDENTITY_H,
-                    BaseFont.EMBEDDED
-            );
-        } catch (IOException | RuntimeException exception) {
-            return null;
+        BaseFont bf = loadBaseFont(bold);
+        if (bold) {
+            cachedBoldBaseFont = bf;
+        } else {
+            cachedRegularBaseFont = bf;
         }
+        return bf;
+    }
+
+    private BaseFont loadBaseFont(boolean bold) {
+        String configuredPath = bold ? boldFontPath : fontPath;
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            try {
+                Resource resource = resourceLoader.getResource("classpath:" + configuredPath);
+                if (resource.exists()) {
+                    try (InputStream is = resource.getInputStream()) {
+                        byte[] bytes = is.readAllBytes();
+                        return BaseFont.createFont(configuredPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, bytes, null);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        String[] systemFontPaths = bold
+                ? new String[]{
+                    "C:\\Windows\\Fonts\\arialbd.ttf",
+                    "C:\\Windows\\Fonts\\segoeuib.ttf",
+                    "C:\\Windows\\Fonts\\tahomabd.ttf",
+                    "C:\\Windows\\Fonts\\timesbd.ttf"
+                }
+                : new String[]{
+                    "C:\\Windows\\Fonts\\arial.ttf",
+                    "C:\\Windows\\Fonts\\segoeui.ttf",
+                    "C:\\Windows\\Fonts\\tahoma.ttf",
+                    "C:\\Windows\\Fonts\\times.ttf"
+                };
+
+        for (String sysPath : systemFontPaths) {
+            try {
+                File file = new File(sysPath);
+                if (file.exists()) {
+                    return BaseFont.createFont(sysPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return null;
     }
 }

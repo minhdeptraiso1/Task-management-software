@@ -20,6 +20,7 @@ import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.SprintRepository;
 import com.project.taskmanagement.repository.TaskRepository;
 import com.project.taskmanagement.repository.TaskTimeLogRepository;
+import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.repository.projection.bug.BugExportRowView;
 import com.project.taskmanagement.repository.projection.report.ReportMemberPerformanceExcelView;
 import com.project.taskmanagement.repository.projection.report.ReportTimeLogExcelView;
@@ -33,6 +34,8 @@ import com.project.taskmanagement.service.report.ReportContentTypes;
 import com.project.taskmanagement.service.report.ReportFileNameBuilder;
 import com.project.taskmanagement.service.report.excel.ExcelReportHelper;
 import com.project.taskmanagement.service.report.excel.ReportSheetNames;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -61,6 +64,7 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
     TaskTimeLogRepository taskTimeLogRepository;
     BugRepository bugRepository;
     ProjectMemberRepository projectMemberRepository;
+    UserRepository userRepository;
     TaskStatisticsService taskStatisticsService;
     ProjectAccessService projectAccessService;
     CurrentUserService currentUserService;
@@ -131,6 +135,55 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public GeneratedReportFile exportProjectTimeLogsReport(UUID projectId, ProjectExcelReportRequest request) {
+        User currentUser = currentUserService.getActiveCurrentUser();
+        Project project = projectAccessService.getProjectOrThrow(projectId);
+        projectAccessService.requireViewAccess(project, currentUser);
+        validateProjectReportRequest(projectId, request);
+
+        List<ReportTimeLogExcelView> rows = loadTimeLogRows(
+                projectId,
+                sprintIdOf(request),
+                userIdOf(request),
+                fromDateOf(request),
+                toDateOf(request)
+        );
+
+        try (XSSFWorkbook workbook = excelReportHelper.createWorkbook()) {
+            createTimeLogSummarySheet(workbook, project, request, rows);
+            createTimeLogsSheet(workbook, rows);
+
+            return buildFile(workbook, reportFileNameBuilder.projectTimeLogsExcel(project));
+        } catch (IOException exception) {
+            throw new BusinessException(ErrorCode.REPORT_EXPORT_FAILED);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GeneratedReportFile exportMyTimeLogsReport(ProjectExcelReportRequest request) {
+        User currentUser = currentUserService.getActiveCurrentUser();
+
+        List<ReportTimeLogExcelView> rows = loadTimeLogRows(
+                null,
+                sprintIdOf(request),
+                currentUser.getId(),
+                fromDateOf(request),
+                toDateOf(request)
+        );
+
+        try (XSSFWorkbook workbook = excelReportHelper.createWorkbook()) {
+            createTimeLogSummarySheet(workbook, null, request, rows);
+            createTimeLogsSheet(workbook, rows);
+
+            return buildFile(workbook, reportFileNameBuilder.personalTimeLogsExcel(currentUser));
+        } catch (IOException exception) {
+            throw new BusinessException(ErrorCode.REPORT_EXPORT_FAILED);
+        }
+    }
+
     private void createSprintSummarySheet(
             XSSFWorkbook workbook,
             Project project,
@@ -138,22 +191,22 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             SprintTaskStatisticsResponse statistics
     ) {
         Sheet sheet = workbook.createSheet(ReportSheetNames.SPRINT_SUMMARY);
-        excelReportHelper.createHeaderRow(sheet, "Field", "Value");
+        excelReportHelper.createHeaderRow(sheet, "Chỉ số", "Giá trị");
 
         int rowIndex = 1;
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Project Code", project.getCode());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Project Name", project.getName());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Sprint Name", sprint.getName());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Sprint Status", sprint.getStatus());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Start Date", sprint.getStartDate());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "End Date", sprint.getEndDate());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Total Tasks", statistics.totalTasks());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Completed Tasks", statistics.completedTasks());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Blocked Tasks", statistics.blockedTasks());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Overdue Tasks", statistics.overdueTasks());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Completion Rate", statistics.completionRate());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Estimated Minutes", excelReportHelper.minutesToHourText(statistics.estimatedMinutes()));
-        addKeyValueRow(sheet, rowIndex, "Spent Minutes", excelReportHelper.minutesToHourText(statistics.spentMinutes()));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Mã Dự án", project.getCode());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tên Dự án", project.getName());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tên Sprint", sprint.getName());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Trạng thái Sprint", sprint.getStatus());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Ngày bắt đầu", sprint.getStartDate());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Ngày kết thúc", sprint.getEndDate());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Công việc (Tasks)", statistics.totalTasks());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Công việc đã hoàn thành", statistics.completedTasks());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Công việc đang chờ (Blocked)", statistics.blockedTasks());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Công việc trễ hạn (Overdue)", statistics.overdueTasks());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tỷ lệ hoàn thành (%)", statistics.completionRate() + "%");
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Thời gian ước lượng", excelReportHelper.minutesToHourText(statistics.estimatedMinutes()));
+        addKeyValueRow(sheet, rowIndex, "Thời gian đã thực hiện", excelReportHelper.minutesToHourText(statistics.spentMinutes()));
 
         excelReportHelper.autoSizeColumns(sheet, 2);
     }
@@ -168,24 +221,24 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             int bugCount
     ) {
         Sheet sheet = workbook.createSheet(ReportSheetNames.PROJECT_SUMMARY);
-        excelReportHelper.createHeaderRow(sheet, "Field", "Value");
+        excelReportHelper.createHeaderRow(sheet, "Chỉ số Tổng quan", "Giá trị");
 
         int rowIndex = 1;
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Project Code", project.getCode());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Project Name", project.getName());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Status", project.getStatus());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Start Date", project.getStartDate());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "End Date", project.getEndDate());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Sprint Count", sprintCount);
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Backlog Item Count", backlogItemCount);
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Task Count", taskCount);
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug Count", bugCount);
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Mã Dự án", project.getCode());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tên Dự án", project.getName());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Trạng thái Dự án", project.getStatus());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Ngày bắt đầu", project.getStartDate());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Ngày kết thúc", project.getEndDate());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Sprint", sprintCount);
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Hạng mục Backlog", backlogItemCount);
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Công việc (Tasks)", taskCount);
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Lỗi Bug QA", bugCount);
 
         if (request != null) {
-            rowIndex = addKeyValueRow(sheet, rowIndex, "Filter From Date", request.fromDate());
-            rowIndex = addKeyValueRow(sheet, rowIndex, "Filter To Date", request.toDate());
-            rowIndex = addKeyValueRow(sheet, rowIndex, "Filter Sprint Id", request.sprintId());
-            addKeyValueRow(sheet, rowIndex, "Filter User Id", request.userId());
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Lọc Từ ngày", request.fromDate());
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Lọc Đến ngày", request.toDate());
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Lọc theo Mã Sprint", request.sprintId());
+            addKeyValueRow(sheet, rowIndex, "Lọc theo Mã Thành viên", request.userId());
         }
 
         excelReportHelper.autoSizeColumns(sheet, 2);
@@ -196,15 +249,15 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 9;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Sprint Id",
-                "Name",
-                "Goal",
-                "Status",
-                "Start Date",
-                "End Date",
-                "Started At",
-                "Completed At",
-                "Created At"
+                "Mã Sprint (ID)",
+                "Tên Sprint",
+                "Mục tiêu Sprint",
+                "Trạng thái",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Thực tế bắt đầu",
+                "Thực tế hoàn thành",
+                "Ngày tạo"
         );
 
         int rowIndex = 1;
@@ -232,24 +285,30 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 9;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Backlog Item Id",
-                "Sprint Id",
-                "Title",
-                "Type",
-                "Status",
-                "Priority",
+                "Mã Hạng mục (ID)",
+                "Mã Sprint",
+                "Tiêu đề Hạng mục",
+                "Loại Hạng mục",
+                "Trạng thái",
+                "Độ ưu tiên",
                 "Story Points",
-                "Position",
-                "Created At"
+                "Thứ tự",
+                "Ngày tạo"
         );
+
+        Map<UUID, Sprint> sprintMap = sprintRepository.findAll().stream()
+                .collect(Collectors.toMap(Sprint::getId, s -> s, (a, b) -> a));
 
         int rowIndex = 1;
         for (BacklogItem item : backlogItems) {
             Row row = sheet.createRow(rowIndex++);
             int column = 0;
 
+            String sprintName = item.getSprintId() != null && sprintMap.containsKey(item.getSprintId())
+                    ? sprintMap.get(item.getSprintId()).getName() : "Product Backlog";
+
             excelReportHelper.setCell(row, column++, item.getId());
-            excelReportHelper.setCell(row, column++, item.getSprintId());
+            excelReportHelper.setCell(row, column++, sprintName);
             excelReportHelper.setCell(row, column++, item.getTitle());
             excelReportHelper.setCell(row, column++, item.getType());
             excelReportHelper.setCell(row, column++, item.getStatus());
@@ -268,37 +327,53 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 15;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Task Id",
-                "Backlog Item Id",
-                "Current Sprint Id",
-                "Title",
-                "Type",
-                "Priority",
-                "Status",
-                "Assignee User Id",
-                "Reporter User Id",
-                "Estimated Minutes",
-                "Start Date",
-                "Due Date",
-                "Completed At",
-                "Position",
-                "Created At"
+                "Mã Công việc (ID)",
+                "Hạng mục Backlog",
+                "Tên Sprint",
+                "Tiêu đề Công việc",
+                "Loại Task",
+                "Độ ưu tiên",
+                "Trạng thái",
+                "Người thực hiện",
+                "Người tạo",
+                "Thời gian ước lượng (phút)",
+                "Ngày bắt đầu",
+                "Hạn chót",
+                "Hoàn thành lúc",
+                "Thứ tự",
+                "Ngày tạo"
         );
+
+        Map<UUID, User> userMap = userRepository.findAll().stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+        Map<UUID, Sprint> sprintMap = sprintRepository.findAll().stream()
+                .collect(Collectors.toMap(Sprint::getId, s -> s, (a, b) -> a));
+        Map<UUID, BacklogItem> backlogItemMap = backlogItemRepository.findAll().stream()
+                .collect(Collectors.toMap(BacklogItem::getId, b -> b, (a, b) -> a));
 
         int rowIndex = 1;
         for (Task task : tasks) {
             Row row = sheet.createRow(rowIndex++);
             int column = 0;
 
+            String backlogTitle = task.getBacklogItemId() != null && backlogItemMap.containsKey(task.getBacklogItemId())
+                    ? backlogItemMap.get(task.getBacklogItemId()).getTitle() : "—";
+            String sprintName = task.getCurrentSprintId() != null && sprintMap.containsKey(task.getCurrentSprintId())
+                    ? sprintMap.get(task.getCurrentSprintId()).getName() : "Backlog";
+            String assigneeName = task.getAssigneeUserId() != null && userMap.containsKey(task.getAssigneeUserId())
+                    ? userMap.get(task.getAssigneeUserId()).getUsername() : "Chưa giao";
+            String reporterName = task.getReporterUserId() != null && userMap.containsKey(task.getReporterUserId())
+                    ? userMap.get(task.getReporterUserId()).getUsername() : "—";
+
             excelReportHelper.setCell(row, column++, task.getId());
-            excelReportHelper.setCell(row, column++, task.getBacklogItemId());
-            excelReportHelper.setCell(row, column++, task.getCurrentSprintId());
+            excelReportHelper.setCell(row, column++, backlogTitle);
+            excelReportHelper.setCell(row, column++, sprintName);
             excelReportHelper.setCell(row, column++, task.getTitle());
             excelReportHelper.setCell(row, column++, task.getType());
             excelReportHelper.setCell(row, column++, task.getPriority());
             excelReportHelper.setCell(row, column++, task.getStatus());
-            excelReportHelper.setCell(row, column++, task.getAssigneeUserId());
-            excelReportHelper.setCell(row, column++, task.getReporterUserId());
+            excelReportHelper.setCell(row, column++, assigneeName);
+            excelReportHelper.setCell(row, column++, reporterName);
             excelReportHelper.setCell(row, column++, task.getEstimatedMinutes());
             excelReportHelper.setCell(row, column++, task.getStartDate());
             excelReportHelper.setCell(row, column++, task.getDueDate());
@@ -319,31 +394,61 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             LocalDate fromDate,
             LocalDate toDate
     ) {
+        createTimeLogsSheet(workbook, loadTimeLogRows(projectId, sprintId, userId, fromDate, toDate));
+    }
+
+    private void createTimeLogSummarySheet(
+            XSSFWorkbook workbook,
+            Project project,
+            ProjectExcelReportRequest request,
+            List<ReportTimeLogExcelView> rows
+    ) {
+        Sheet sheet = workbook.createSheet(ReportSheetNames.TIME_LOG_SUMMARY);
+        excelReportHelper.createHeaderRow(sheet, "Chỉ số", "Giá trị");
+
+        long totalMinutes = rows.stream()
+                .map(ReportTimeLogExcelView::getMinutes)
+                .mapToLong(this::safeLong)
+                .sum();
+
+        int rowIndex = 1;
+        if (project != null) {
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Dự án", project.getName());
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Mã dự án", project.getCode());
+        } else {
+            rowIndex = addKeyValueRow(sheet, rowIndex, "Phạm vi báo cáo", "Tất cả dự án cá nhân");
+        }
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Từ ngày", fromDateOf(request));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Đến ngày", toDateOf(request));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Mã Sprint", sprintIdOf(request));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tên thành viên", memberNameOf(request, rows));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Email thành viên", memberEmailOf(request, rows));
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số dòng log", rows.size());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số phút", totalMinutes);
+        addKeyValueRow(sheet, rowIndex, "Tổng thời gian", excelReportHelper.minutesToHourText(totalMinutes));
+
+        excelReportHelper.autoSizeColumns(sheet, 2);
+    }
+
+    private void createTimeLogsSheet(
+            XSSFWorkbook workbook,
+            List<ReportTimeLogExcelView> rows
+    ) {
         Sheet sheet = workbook.createSheet(ReportSheetNames.TIME_LOGS);
-        int columnCount = 13;
+        int columnCount = 11;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Time Log Id",
-                "Project Id",
-                "Task Id",
-                "Task Title",
-                "Sprint Id",
-                "Backlog Item Id",
-                "User Id",
-                "Username",
+                "Mã TimeLog (ID)",
+                "Tên Dự án",
+                "Tiêu đề Công việc",
+                "Tên Sprint",
+                "Hạng mục Backlog",
+                "Thành viên",
                 "Email",
-                "Work Date",
-                "Minutes",
-                "Hours",
-                "Description"
-        );
-
-        List<ReportTimeLogExcelView> rows = taskTimeLogRepository.findTimeLogsForExcelReport(
-                projectId,
-                sprintId,
-                userId,
-                fromDate,
-                toDate
+                "Ngày làm việc",
+                "Số phút",
+                "Thời gian (giờ)",
+                "Mô tả công việc"
         );
 
         int rowIndex = 1;
@@ -352,12 +457,10 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             int column = 0;
 
             excelReportHelper.setCell(row, column++, item.getTimeLogId());
-            excelReportHelper.setCell(row, column++, item.getProjectId());
-            excelReportHelper.setCell(row, column++, item.getTaskId());
+            excelReportHelper.setCell(row, column++, item.getProjectName());
             excelReportHelper.setCell(row, column++, item.getTaskTitle());
-            excelReportHelper.setCell(row, column++, item.getSprintId());
-            excelReportHelper.setCell(row, column++, item.getBacklogItemId());
-            excelReportHelper.setCell(row, column++, item.getUserId());
+            excelReportHelper.setCell(row, column++, item.getSprintName() != null ? item.getSprintName() : "—");
+            excelReportHelper.setCell(row, column++, item.getBacklogItemTitle() != null ? item.getBacklogItemTitle() : "—");
             excelReportHelper.setCell(row, column++, item.getUsername());
             excelReportHelper.setCell(row, column++, item.getEmail());
             excelReportHelper.setCell(row, column++, item.getWorkDate());
@@ -379,21 +482,20 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             LocalDate toDate
     ) {
         Sheet sheet = workbook.createSheet(ReportSheetNames.MEMBER_PERFORMANCE);
-        int columnCount = 12;
+        int columnCount = 11;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "User Id",
-                "Username",
+                "Tên người dùng",
                 "Email",
-                "Total Tasks",
-                "Done Tasks",
-                "Active Tasks",
-                "Blocked Tasks",
-                "Overdue Tasks",
-                "Estimated Minutes",
-                "Estimated Hours",
-                "Spent Minutes",
-                "Spent Hours"
+                "Tổng số Task",
+                "Task đã xong",
+                "Task đang làm",
+                "Task đang chờ",
+                "Task trễ hạn",
+                "Thời gian ước lượng (phút)",
+                "Ước lượng (giờ)",
+                "Thời gian đã log (phút)",
+                "Đã log (giờ)"
         );
 
         List<ReportMemberPerformanceExcelView> rows = taskRepository.findMemberPerformanceForExcelReport(
@@ -410,7 +512,6 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             Row row = sheet.createRow(rowIndex++);
             int column = 0;
 
-            excelReportHelper.setCell(row, column++, item.getUserId());
             excelReportHelper.setCell(row, column++, item.getUsername());
             excelReportHelper.setCell(row, column++, item.getEmail());
             excelReportHelper.setCell(row, column++, safeLong(item.getTotalTasks()));
@@ -426,20 +527,21 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
 
         excelReportHelper.applyAutoFilter(sheet, columnCount);
         excelReportHelper.autoSizeColumns(sheet, columnCount);
+        excelReportHelper.createMemberPerformanceChart(sheet, rowIndex);
     }
 
     private void createBugSummarySheet(XSSFWorkbook workbook, List<BugExportRowView> bugs) {
         Sheet sheet = workbook.createSheet(ReportSheetNames.BUG_SUMMARY);
-        excelReportHelper.createHeaderRow(sheet, "Field", "Value");
+        excelReportHelper.createHeaderRow(sheet, "Chỉ số Bug QA", "Giá trị");
 
         int rowIndex = 1;
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Total Bugs", bugs.size());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Open Bugs", bugs.stream().filter(this::isOpenBug).count());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Resolved Bugs", bugs.stream().filter(item -> item.getStatus() == BugStatus.RESOLVED).count());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Closed Bugs", bugs.stream().filter(item -> item.getStatus() == BugStatus.CLOSED).count());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Verified Bugs", bugs.stream().filter(item -> item.getStatus() == BugStatus.VERIFIED).count());
-        rowIndex = addKeyValueRow(sheet, rowIndex, "Critical Bugs", bugs.stream().filter(item -> item.getSeverity() == BugSeverity.CRITICAL).count());
-        addKeyValueRow(sheet, rowIndex, "Reopened Count", bugs.stream().mapToLong(item -> safeLong(item.getReopenedCount())).sum());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Tổng số Bug", bugs.size());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug đang mở (Open)", bugs.stream().filter(this::isOpenBug).count());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug đã giải quyết (Resolved)", bugs.stream().filter(item -> item.getStatus() == BugStatus.RESOLVED).count());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug đã đóng (Closed)", bugs.stream().filter(item -> item.getStatus() == BugStatus.CLOSED).count());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug đã xác minh (Verified)", bugs.stream().filter(item -> item.getStatus() == BugStatus.VERIFIED).count());
+        rowIndex = addKeyValueRow(sheet, rowIndex, "Bug nguy cấp (Critical)", bugs.stream().filter(item -> item.getSeverity() == BugSeverity.CRITICAL).count());
+        addKeyValueRow(sheet, rowIndex, "Tổng số lần mở lại", bugs.stream().mapToLong(item -> safeLong(item.getReopenedCount())).sum());
 
         excelReportHelper.autoSizeColumns(sheet, 2);
     }
@@ -449,23 +551,23 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 17;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Bug Id",
-                "Title",
-                "Status",
-                "Severity",
-                "Priority",
-                "Sprint",
-                "Task",
-                "Backlog Item",
-                "Assignee",
-                "Reporter",
-                "Due Date",
-                "Reopened Count",
-                "Resolved At",
-                "Closed At",
-                "Created At",
-                "Updated At",
-                "Description"
+                "Mã Bug (ID)",
+                "Tiêu đề Bug",
+                "Trạng thái",
+                "Mức độ nghiêm trọng",
+                "Độ ưu tiên",
+                "Tên Sprint",
+                "Công việc liên quan",
+                "Hạng mục Backlog",
+                "Người được giao",
+                "Người báo lỗi",
+                "Hạn chót",
+                "Số lần mở lại",
+                "Giải quyết lúc",
+                "Đóng lúc",
+                "Tạo lúc",
+                "Cập nhật lúc",
+                "Mô tả chi tiết"
         );
 
         int rowIndex = 1;
@@ -501,16 +603,16 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 10;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Sprint Id",
-                "Sprint Name",
-                "Sprint Status",
-                "Start Date",
-                "End Date",
-                "Committed Items",
-                "Completed Items",
-                "Committed Story Points",
-                "Completed Story Points",
-                "Completion Rate"
+                "Mã Sprint",
+                "Tên Sprint",
+                "Trạng thái Sprint",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Số mục cam kết",
+                "Số mục hoàn thành",
+                "Story Points cam kết",
+                "Story Points hoàn thành",
+                "Tỷ lệ hoàn thành (%)"
         );
 
         VelocityChartResponse velocity = analyticsService.getVelocity(projectId);
@@ -533,6 +635,7 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
 
         excelReportHelper.applyAutoFilter(sheet, columnCount);
         excelReportHelper.autoSizeColumns(sheet, columnCount);
+        excelReportHelper.createVelocityChart(sheet, rowIndex);
     }
 
     private void createBurnupSheet(XSSFWorkbook workbook, UUID projectId, UUID sprintId) {
@@ -540,10 +643,10 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 4;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Date",
-                "Total Scope",
-                "Completed Scope",
-                "Completion Rate"
+                "Mốc thời gian",
+                "Tổng phạm vi",
+                "Đã hoàn thành",
+                "Tỷ lệ hoàn thành (%)"
         );
 
         BurnupChartResponse burnup = analyticsService.getSprintBurnup(projectId, sprintId);
@@ -560,6 +663,7 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
 
         excelReportHelper.applyAutoFilter(sheet, columnCount);
         excelReportHelper.autoSizeColumns(sheet, columnCount);
+        excelReportHelper.createBurnupChart(sheet, rowIndex);
     }
 
     private void createCumulativeFlowSheet(XSSFWorkbook workbook, UUID projectId, UUID sprintId) {
@@ -567,13 +671,13 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
         int columnCount = 7;
         excelReportHelper.createHeaderRow(
                 sheet,
-                "Date",
-                "TODO",
-                "IN_PROGRESS",
-                "IN_REVIEW",
-                "BLOCKED",
-                "DONE",
-                "CANCELLED"
+                "Mốc thời gian",
+                "Cần làm",
+                "Đang làm",
+                "Đang chờ",
+                "Đang review",
+                "Hoàn thành",
+                "Đã hủy"
         );
 
         CumulativeFlowResponse cumulativeFlow = analyticsService.getSprintCumulativeFlow(projectId, sprintId);
@@ -585,8 +689,8 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
             excelReportHelper.setCell(row, column++, point.date());
             excelReportHelper.setCell(row, column++, point.todo());
             excelReportHelper.setCell(row, column++, point.inProgress());
-            excelReportHelper.setCell(row, column++, point.inReview());
             excelReportHelper.setCell(row, column++, point.blocked());
+            excelReportHelper.setCell(row, column++, point.inReview());
             excelReportHelper.setCell(row, column++, point.done());
             excelReportHelper.setCell(row, column, point.cancelled());
         }
@@ -637,6 +741,22 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
                 null,
                 null,
                 null
+        );
+    }
+
+    private List<ReportTimeLogExcelView> loadTimeLogRows(
+            UUID projectId,
+            UUID sprintId,
+            UUID userId,
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+        return taskTimeLogRepository.findTimeLogsForExcelReport(
+                projectId,
+                sprintId,
+                userId,
+                fromDate,
+                toDate
         );
     }
 
@@ -717,6 +837,52 @@ public class ReportExcelExportServiceImpl implements ReportExcelExportService {
 
     private LocalDate toDateOf(ProjectExcelReportRequest request) {
         return request == null ? null : request.toDate();
+    }
+
+    private String memberNameOf(ProjectExcelReportRequest request, List<ReportTimeLogExcelView> rows) {
+        UUID userId = userIdOf(request);
+        if (userId == null) {
+            if (!rows.isEmpty() && rows.get(0).getUsername() != null && !rows.get(0).getUsername().isBlank()) {
+                return rows.get(0).getUsername();
+            }
+            User currentUser = currentUserService.getActiveCurrentUser();
+            if (currentUser != null) {
+                return currentUser.getUsername();
+            }
+            return "Tất cả thành viên";
+        }
+
+        return rows.stream()
+                .filter(item -> userId.equals(item.getUserId()))
+                .map(ReportTimeLogExcelView::getUsername)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElseGet(() -> userRepository.findById(userId)
+                        .map(User::getUsername)
+                        .orElse(""));
+    }
+
+    private String memberEmailOf(ProjectExcelReportRequest request, List<ReportTimeLogExcelView> rows) {
+        UUID userId = userIdOf(request);
+        if (userId == null) {
+            if (!rows.isEmpty() && rows.get(0).getEmail() != null && !rows.get(0).getEmail().isBlank()) {
+                return rows.get(0).getEmail();
+            }
+            User currentUser = currentUserService.getActiveCurrentUser();
+            if (currentUser != null) {
+                return currentUser.getEmail();
+            }
+            return "Tất cả thành viên";
+        }
+
+        return rows.stream()
+                .filter(item -> userId.equals(item.getUserId()))
+                .map(ReportTimeLogExcelView::getEmail)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElseGet(() -> userRepository.findById(userId)
+                        .map(User::getEmail)
+                        .orElse(""));
     }
 
     private boolean isOpenBug(BugExportRowView bug) {

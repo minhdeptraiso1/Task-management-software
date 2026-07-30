@@ -10,13 +10,19 @@ public interface ReportTimeLogExcelView {
 
     UUID getProjectId();
 
+    String getProjectName();
+
     UUID getTaskId();
 
     String getTaskTitle();
 
     UUID getSprintId();
 
+    String getSprintName();
+
     UUID getBacklogItemId();
+
+    String getBacklogItemTitle();
 
     UUID getUserId();
 

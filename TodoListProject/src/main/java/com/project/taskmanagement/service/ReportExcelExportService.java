@@ -10,4 +10,8 @@ public interface ReportExcelExportService {
     GeneratedReportFile exportSprintReport(UUID projectId, UUID sprintId);
 
     GeneratedReportFile exportProjectReport(UUID projectId, ProjectExcelReportRequest request);
+
+    GeneratedReportFile exportProjectTimeLogsReport(UUID projectId, ProjectExcelReportRequest request);
+
+    GeneratedReportFile exportMyTimeLogsReport(ProjectExcelReportRequest request);
 }

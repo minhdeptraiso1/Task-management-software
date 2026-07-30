@@ -5,6 +5,7 @@ export interface TimesheetSearchParams {
   fromDate?: string
   toDate?: string
   userId?: string
+  sprintId?: string
   taskId?: string
   page?: number
   size?: number
@@ -40,9 +41,13 @@ function buildExcelQueryString(params: TimesheetSearchParams): string {
   if (params.fromDate) query.append('fromDate', params.fromDate)
   if (params.toDate) query.append('toDate', params.toDate)
   if (params.userId) query.append('userId', params.userId)
+  if (params.sprintId) query.append('sprintId', params.sprintId)
   const str = query.toString()
   return str ? `?${str}` : ''
 }
 
 export const exportProjectTimeLogsExcel = (projectId: string, params: TimesheetSearchParams) =>
-  downloadExcelFile(`/projects/${projectId}/reports/excel${buildExcelQueryString(params)}`, 'project-report.xlsx')
+  downloadExcelFile(`/projects/${projectId}/reports/time-logs/excel${buildExcelQueryString(params)}`, 'time-logs.xlsx')
+
+export const exportMyTimeLogsExcel = (params: TimesheetSearchParams) =>
+  downloadExcelFile(`/timesheets/me/reports/excel${buildExcelQueryString(params)}`, 'time-logs-ca-nhan.xlsx')

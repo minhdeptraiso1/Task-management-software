@@ -1,7 +1,6 @@
 package com.project.taskmanagement.service.report.pdf;
 
 import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
@@ -18,26 +17,50 @@ import java.awt.Color;
 public class PdfTableHelper {
 
     PdfReportTheme theme;
+    PdfReportHelper pdfReportHelper;
 
     public PdfPTable fullWidthTable(int columns) {
         PdfPTable table = new PdfPTable(columns);
         table.setWidthPercentage(100);
-        table.setSpacingAfter(8);
+        table.setSpacingAfter(10);
         return table;
     }
 
     public PdfPCell headerCell(String value) {
-        Font font = FontFactory.getFont(FontFactory.HELVETICA_BOLD, theme.getSmallFontSize());
+        Font font = pdfReportHelper.boldFont(9);
+        font.setColor(Color.WHITE);
+
         PdfPCell cell = new PdfPCell(new Phrase(value == null ? "" : value, font));
-        cell.setBackgroundColor(new Color(230, 230, 230));
-        cell.setPadding(theme.getTableCellPadding());
+        cell.setBackgroundColor(new Color(30, 41, 59));
+        cell.setBorderColor(new Color(203, 213, 225));
+        cell.setPadding(6f);
         return cell;
     }
 
     public PdfPCell textCell(Object value) {
-        Font font = FontFactory.getFont(FontFactory.HELVETICA, theme.getSmallFontSize());
-        PdfPCell cell = new PdfPCell(new Phrase(value == null ? "" : String.valueOf(value), font));
-        cell.setPadding(theme.getTableCellPadding());
+        String text = value == null ? "" : String.valueOf(value);
+        Font font = pdfReportHelper.regularFont(8.5f);
+        font.setColor(new Color(30, 41, 59));
+
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setPadding(5.5f);
+        cell.setBorderColor(new Color(226, 232, 240));
+
+        String upperText = text.toUpperCase();
+        if (upperText.equals("DONE") || upperText.equals("HOÀN THÀNH") || upperText.equals("RESOLVED") || upperText.equals("CLOSED")) {
+            cell.setBackgroundColor(new Color(220, 252, 231));
+            font.setColor(new Color(22, 101, 52));
+            font.setStyle(Font.BOLD);
+        } else if (upperText.equals("IN_PROGRESS") || upperText.equals("ĐANG LÀM") || upperText.equals("IN_REVIEW") || upperText.equals("ACTIVE")) {
+            cell.setBackgroundColor(new Color(254, 243, 199));
+            font.setColor(new Color(146, 64, 14));
+            font.setStyle(Font.BOLD);
+        } else if (upperText.equals("BLOCKED") || upperText.equals("ĐANG CHỜ") || upperText.equals("NGHẼN") || upperText.equals("CANCELLED") || upperText.equals("CRITICAL")) {
+            cell.setBackgroundColor(new Color(254, 226, 226));
+            font.setColor(new Color(153, 27, 27));
+            font.setStyle(Font.BOLD);
+        }
+
         return cell;
     }
 

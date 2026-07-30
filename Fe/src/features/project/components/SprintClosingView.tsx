@@ -745,42 +745,44 @@ export function SprintClosingView({
             </div>
 
             {/* Compact Pill Switch with Animated Sliding Pill Background matching Image 2 */}
-            <div className="relative inline-grid grid-cols-2 bg-[#eef2f6] p-0.5 rounded-full border border-slate-200/80 shrink-0 self-start sm:self-auto shadow-inner w-56">
-              {/* Sliding pill indicator */}
-              <div 
-                className={`absolute top-0.5 bottom-0.5 rounded-full shadow-xs transition-all duration-300 ease-out ${
-                  goalAchieved ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-amber-500 shadow-amber-500/20'
-                }`}
-                style={{
-                  left: goalAchieved ? '2px' : 'calc(50% + 1px)',
-                  width: 'calc(50% - 3px)'
-                }}
-              />
+            {canManage && (
+              <div className="relative inline-grid grid-cols-2 bg-[#eef2f6] p-0.5 rounded-full border border-slate-200/80 shrink-0 self-start sm:self-auto shadow-inner w-56">
+                {/* Sliding pill indicator */}
+                <div 
+                  className={`absolute top-0.5 bottom-0.5 rounded-full shadow-xs transition-all duration-300 ease-out ${
+                    goalAchieved ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-amber-500 shadow-amber-500/20'
+                  }`}
+                  style={{
+                    left: goalAchieved ? '2px' : 'calc(50% + 1px)',
+                    width: 'calc(50% - 3px)'
+                  }}
+                />
 
-              <button
-                type="button"
-                onClick={() => setGoalAchieved(true)}
-                disabled={!canManage || saving}
-                className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors duration-300 cursor-pointer ${
-                  goalAchieved ? 'text-white' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <CheckCircle2 size={13} className={goalAchieved ? 'text-white' : 'text-emerald-600'} />
-                <span>Đạt mục tiêu</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setGoalAchieved(true)}
+                  disabled={!canManage || saving}
+                  className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors duration-300 cursor-pointer ${
+                    goalAchieved ? 'text-white' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <CheckCircle2 size={13} className={goalAchieved ? 'text-white' : 'text-emerald-600'} />
+                  <span>Đạt mục tiêu</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setGoalAchieved(false)}
-                disabled={!canManage || saving}
-                className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors duration-300 cursor-pointer ${
-                  !goalAchieved ? 'text-white' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Target size={13} className={!goalAchieved ? 'text-white' : 'text-amber-600'} />
-                <span>Chưa đạt</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setGoalAchieved(false)}
+                  disabled={!canManage || saving}
+                  className={`relative z-10 inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors duration-300 cursor-pointer ${
+                    !goalAchieved ? 'text-white' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Target size={13} className={!goalAchieved ? 'text-white' : 'text-amber-600'} />
+                  <span>Chưa đạt</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

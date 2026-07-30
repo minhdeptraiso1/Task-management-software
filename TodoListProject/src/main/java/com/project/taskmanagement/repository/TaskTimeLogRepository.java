@@ -744,10 +744,13 @@ public interface TaskTimeLogRepository
     @Query(value = """
             SELECT tl.id AS "timeLogId",
                    t.project_id AS "projectId",
+                   p.name AS "projectName",
                    t.id AS "taskId",
                    t.title AS "taskTitle",
                    t.current_sprint_id AS "sprintId",
+                   s.name AS "sprintName",
                    t.backlog_item_id AS "backlogItemId",
+                   bi.title AS "backlogItemTitle",
                    u.id AS "userId",
                    u.username AS "username",
                    u.email AS "email",
@@ -759,11 +762,23 @@ public interface TaskTimeLogRepository
             JOIN tasks t
                 ON t.id = tl.task_id
                AND t.deleted_at IS NULL
+            JOIN projects p
+                ON p.id = t.project_id
+               AND p.deleted_at IS NULL
+            LEFT JOIN sprints s
+                ON s.id = t.current_sprint_id
+               AND s.deleted_at IS NULL
+            LEFT JOIN backlog_items bi
+                ON bi.id = t.backlog_item_id
+               AND bi.deleted_at IS NULL
             JOIN users u
                 ON u.id = tl.user_id
                AND u.deleted_at IS NULL
             WHERE tl.deleted_at IS NULL
-              AND t.project_id = CAST(:projectId AS uuid)
+              AND (
+                    CAST(:projectId AS uuid) IS NULL
+                    OR t.project_id = CAST(:projectId AS uuid)
+              )
               AND (
                     CAST(:sprintId AS uuid) IS NULL
                     OR t.current_sprint_id = CAST(:sprintId AS uuid)

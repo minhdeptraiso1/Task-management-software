@@ -14,7 +14,7 @@ import { taskStatusLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../
 import { scanProjectRisks } from '../services/task.service'
 import { formatShortDate } from '../../../utils/format'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, LineChart, Line, AreaChart, Area
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, LineChart, Line
 } from 'recharts'
 
 export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projectId: string; sprints: Sprint[]; onOpenTask?: (taskId: string) => void }) {
@@ -758,7 +758,7 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
                 </h4>
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={cumulativeFlowData.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <LineChart data={cumulativeFlowData.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={val => formatShortDate(val)} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -766,31 +766,35 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
                         contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} 
                         labelFormatter={val => `Ngày: ${formatShortDate(val)}`}
                       />
-                      {!hiddenCfdAreas.includes('done') && (
-                        <Area type="monotone" dataKey="done" stackId="1" stroke="#10b981" fill="#10b981" name="Hoàn thành" />
-                      )}
-                      {!hiddenCfdAreas.includes('inReview') && (
-                        <Area type="monotone" dataKey="inReview" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" name="Đang review" />
+                      {!hiddenCfdAreas.includes('todo') && (
+                        <Line type="monotone" dataKey="todo" stroke="#64748b" strokeWidth={2} dot={{ r: 4, fill: '#64748b' }} activeDot={{ r: 6 }} name="Cần làm" />
                       )}
                       {!hiddenCfdAreas.includes('inProgress') && (
-                        <Area type="monotone" dataKey="inProgress" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Đang làm" />
+                        <Line type="monotone" dataKey="inProgress" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} name="Đang làm" />
                       )}
                       {!hiddenCfdAreas.includes('blocked') && (
-                        <Area type="monotone" dataKey="blocked" stackId="1" stroke="#ef4444" fill="#ef4444" name="Nghẽn" />
+                        <Line type="monotone" dataKey="blocked" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4, fill: '#f59e0b' }} activeDot={{ r: 6 }} name="Đang chờ" />
                       )}
-                      {!hiddenCfdAreas.includes('todo') && (
-                        <Area type="monotone" dataKey="todo" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Cần làm" />
+                      {!hiddenCfdAreas.includes('inReview') && (
+                        <Line type="monotone" dataKey="inReview" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4, fill: '#8b5cf6' }} activeDot={{ r: 6 }} name="Đang review" />
                       )}
-                    </AreaChart>
+                      {!hiddenCfdAreas.includes('done') && (
+                        <Line type="monotone" dataKey="done" stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} name="Hoàn thành" />
+                      )}
+                      {!hiddenCfdAreas.includes('cancelled') && (
+                        <Line type="monotone" dataKey="cancelled" stroke="#ef4444" strokeWidth={2} dot={{ r: 4, fill: '#ef4444' }} activeDot={{ r: 6 }} name="Đã hủy" />
+                      )}
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="flex items-center justify-center gap-3 pt-3 border-t border-line/60 mt-3 flex-wrap">
                   {[
-                    { key: 'done', name: 'Hoàn thành', color: '#10b981' },
+                    { key: 'todo', name: 'Cần làm', color: '#64748b' },
+                    { key: 'inProgress', name: 'Đang làm', color: '#3b82f6' },
+                    { key: 'blocked', name: 'Đang chờ', color: '#f59e0b' },
                     { key: 'inReview', name: 'Đang review', color: '#8b5cf6' },
-                    { key: 'inProgress', name: 'Đang làm', color: '#f59e0b' },
-                    { key: 'blocked', name: 'Nghẽn', color: '#ef4444' },
-                    { key: 'todo', name: 'Cần làm', color: '#3b82f6' }
+                    { key: 'done', name: 'Hoàn thành', color: '#10b981' },
+                    { key: 'cancelled', name: 'Đã hủy', color: '#ef4444' }
                   ].map(item => {
                     const isHidden = hiddenCfdAreas.includes(item.key)
                     return (

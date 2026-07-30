@@ -43,4 +43,40 @@ public class ReportExcelExportController {
         GeneratedReportFile file = reportExcelExportService.exportProjectReport(projectId, request);
         return fileResponseBuilder.build(file);
     }
+
+    @Operation(summary = "Xuất Time Log của Project ra Excel")
+    @GetMapping("/projects/{projectId}/reports/time-logs/excel")
+    public ResponseEntity<byte[]> exportProjectTimeLogsReport(
+            @PathVariable UUID projectId,
+            @ParameterObject ProjectExcelReportRequest request
+    ) {
+        GeneratedReportFile file = reportExcelExportService.exportProjectTimeLogsReport(projectId, request);
+        return fileResponseBuilder.build(file);
+    }
+
+    @Operation(summary = "Xuất Time Log của Sprint ra Excel")
+    @GetMapping("/projects/{projectId}/sprints/{sprintId}/reports/time-logs/excel")
+    public ResponseEntity<byte[]> exportSprintTimeLogsReport(
+            @PathVariable UUID projectId,
+            @PathVariable UUID sprintId,
+            @ParameterObject ProjectExcelReportRequest request
+    ) {
+        ProjectExcelReportRequest sprintRequest = new ProjectExcelReportRequest(
+                request == null ? null : request.fromDate(),
+                request == null ? null : request.toDate(),
+                sprintId,
+                request == null ? null : request.userId()
+        );
+        GeneratedReportFile file = reportExcelExportService.exportProjectTimeLogsReport(projectId, sprintRequest);
+        return fileResponseBuilder.build(file);
+    }
+
+    @Operation(summary = "Xuất Time Log cá nhân ra Excel (Toàn bộ dự án)")
+    @GetMapping("/timesheets/me/reports/excel")
+    public ResponseEntity<byte[]> exportMyTimeLogsReport(
+            @ParameterObject ProjectExcelReportRequest request
+    ) {
+        GeneratedReportFile file = reportExcelExportService.exportMyTimeLogsReport(request);
+        return fileResponseBuilder.build(file);
+    }
 }

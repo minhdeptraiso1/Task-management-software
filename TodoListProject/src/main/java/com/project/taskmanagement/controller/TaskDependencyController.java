@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.dto.request.task.BlockTaskRequest;
 import com.project.taskmanagement.dto.request.task.CreateTaskDependencyRequest;
 import com.project.taskmanagement.dto.request.task.UnblockTaskRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
@@ -108,6 +109,30 @@ public class TaskDependencyController {
         return ResponseEntity
                 .noContent()
                 .build();
+    }
+
+    @Operation(
+            summary = "Block Task"
+    )
+    @PatchMapping("/tasks/{taskId}/block")
+    public ApiResponseSever<TaskResponse> blockTask(
+            @PathVariable
+            UUID projectId,
+
+            @PathVariable
+            UUID taskId,
+
+            @Valid
+            @RequestBody
+            BlockTaskRequest request
+    ) {
+        return ApiResponseSever.ok(
+                taskDependencyService.blockTask(
+                        projectId,
+                        taskId,
+                        request
+                )
+        );
     }
 
     @Operation(

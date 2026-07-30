@@ -1,17 +1,20 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { ProjectDashboardResponse } from '../../dashboard/models/dashboard.model'
 import { getProjectDashboard } from '../../dashboard/services/dashboard.service'
-import { getMemberReport, getTimeReport, getSprintReport } from '../services/report.service'
+import { getMemberReport, getTimeReport, getSprintReport, exportProjectExcelReport, exportSprintExcelReport, exportProjectPdfReport, exportSprintPdfReport } from '../services/report.service'
+import { getProjectAnalyticsSummary, getProjectVelocity, getProjectBurnup, getSprintCumulativeFlow } from '../services/analytics.service'
 import type { ProjectMemberReportResponse, ProjectTimeReportResponse, SprintReportResponse } from '../models/report.model'
-import { AlertCircle, Clock, Users, BarChart3, ShieldAlert, RefreshCcw, CheckCircle2, AlertTriangle, ListTodo, Bell } from 'lucide-react'
-import { Select, Button, Modal, toast } from '../../../components/ui'
+import type { ProjectAnalyticsSummaryResponse, VelocityChartResponse, BurnupChartResponse, CumulativeFlowResponse } from '../models/analytics.model'
+import { AlertCircle, Clock, Users, BarChart3, ShieldAlert, RefreshCcw, CheckCircle2, AlertTriangle, ListTodo, Bell, FileSpreadsheet, Download, FileText, TrendingUp, Layers, Activity as ActivityIcon } from 'lucide-react'
+import { Select, Button, Modal, Input, toast } from '../../../components/ui'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import type { Sprint } from '../models/scrum.model'
 import type { SprintTaskStatistics, SprintBurndown, TaskRiskScan } from '../models/task.model'
 import { taskStatusLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../models/task.model'
 import { scanProjectRisks } from '../services/task.service'
+import { formatShortDate } from '../../../utils/format'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, LineChart, Line, AreaChart, Area
 } from 'recharts'
 
 export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projectId: string; sprints: Sprint[]; onOpenTask?: (taskId: string) => void }) {
@@ -19,6 +22,11 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
   const [memberReport, setMemberReport] = useState<ProjectMemberReportResponse | null>(null)
   const [timeReport, setTimeReport] = useState<ProjectTimeReportResponse | null>(null)
   const [sprintReport, setSprintReport] = useState<SprintReportResponse | null>(null)
+
+  const [analyticsSummary, setAnalyticsSummary] = useState<ProjectAnalyticsSummaryResponse | null>(null)
+  const [velocityData, setVelocityData] = useState<VelocityChartResponse | null>(null)
+  const [burnupData, setBurnupData] = useState<BurnupChartResponse | null>(null)
+  const [cumulativeFlowData, setCumulativeFlowData] = useState<CumulativeFlowResponse | null>(null)
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,6 +34,44 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
   const [scanResult, setScanResult] = useState<TaskRiskScan | null>(null)
   const [scanning, setScanning] = useState(false)
   const [hiddenRiskKeys, setHiddenRiskKeys] = useState<string[]>([])
+  const [hiddenVelocityBars, setHiddenVelocityBars] = useState<string[]>([])
+  const [hiddenBurnupLines, setHiddenBurnupLines] = useState<string[]>([])
+  const [hiddenCfdAreas, setHiddenCfdAreas] = useState<string[]>([])
+
+  const toggleVelocityBar = (key: string) => {
+    setHiddenVelocityBars(prev =>
+      prev.includes(key) ? prev.filter((itemKey: string) => itemKey !== key) : [...prev, key]
+    )
+  }
+
+  const toggleBurnupLine = (key: string) => {
+    setHiddenBurnupLines(prev =>
+      prev.includes(key) ? prev.filter((itemKey: string) => itemKey !== key) : [...prev, key]
+    )
+  }
+
+  const toggleCfdArea = (key: string) => {
+    setHiddenCfdAreas(prev =>
+      prev.includes(key) ? prev.filter((itemKey: string) => itemKey !== key) : [...prev, key]
+    )
+  }
+  
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exportFilters, setExportFilters] = useState<{
+    fromDate: string
+    toDate: string
+    sprintId: string
+    userId: string
+  }>({
+    fromDate: '',
+    toDate: '',
+    sprintId: '',
+    userId: '',
+  })
+  const [exportingProject, setExportingProject] = useState(false)
+  const [exportingProjectPdf, setExportingProjectPdf] = useState(false)
+  const [exportingSprint, setExportingSprint] = useState(false)
+  const [exportingSprintPdf, setExportingSprintPdf] = useState(false)
 
   const toggleRiskVisibility = (key: string) => {
     setHiddenRiskKeys(prev => 
@@ -37,14 +83,20 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
     if (showLoading) setLoading(true)
     setError('')
     try {
-      const [dash, members, time] = await Promise.all([
+      const [dash, members, time, analytics, vel, burnup] = await Promise.all([
         getProjectDashboard(projectId),
         getMemberReport(projectId),
-        getTimeReport(projectId)
+        getTimeReport(projectId),
+        getProjectAnalyticsSummary(projectId).catch(() => null),
+        getProjectVelocity(projectId).catch(() => null),
+        getProjectBurnup(projectId).catch(() => null)
       ])
       setDashboard(dash)
       setMemberReport(members)
       setTimeReport(time)
+      setAnalyticsSummary(analytics)
+      setVelocityData(vel)
+      setBurnupData(burnup)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi tải dữ liệu báo cáo')
     } finally {
@@ -69,13 +121,72 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
     }
   }
 
+  const handleExportProjectExcel = async () => {
+    setExportingProject(true)
+    try {
+      await exportProjectExcelReport(projectId, exportFilters)
+      toast.success('Đã xuất báo cáo Excel dự án thành công!')
+      setExportModalOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo Excel dự án')
+    } finally {
+      setExportingProject(false)
+    }
+  }
+
+  const handleExportSprintExcel = async () => {
+    if (!selectedSprintId) return
+    setExportingSprint(true)
+    try {
+      await exportSprintExcelReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo Excel Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo Excel Sprint')
+    } finally {
+      setExportingSprint(false)
+    }
+  }
+
+  const handleExportProjectPdf = async () => {
+    setExportingProjectPdf(true)
+    try {
+      await exportProjectPdfReport(projectId, exportFilters)
+      toast.success('Đã xuất báo cáo PDF dự án thành công!')
+      setExportModalOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo PDF dự án')
+    } finally {
+      setExportingProjectPdf(false)
+    }
+  }
+
+  const handleExportSprintPdf = async () => {
+    if (!selectedSprintId) return
+    setExportingSprintPdf(true)
+    try {
+      await exportSprintPdfReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo PDF Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo PDF Sprint')
+    } finally {
+      setExportingSprintPdf(false)
+    }
+  }
+
   useEffect(() => {
     if (selectedSprintId) {
-      getSprintReport(projectId, selectedSprintId)
-        .then(setSprintReport)
+      Promise.all([
+        getSprintReport(projectId, selectedSprintId),
+        getSprintCumulativeFlow(projectId, selectedSprintId).catch(() => null)
+      ])
+        .then(([sRep, cfd]) => {
+          setSprintReport(sRep)
+          setCumulativeFlowData(cfd)
+        })
         .catch(console.error)
     } else {
       setSprintReport(null)
+      setCumulativeFlowData(null)
     }
   }, [projectId, selectedSprintId])
 
@@ -91,24 +202,179 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
 
   return (
     <div className="space-y-6">
-      {/* 1. Tổng quan cơ bản */}
+      {/* Header Action Bar: Xuất Báo Cáo Excel */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-line shadow-xs">
+        <div>
+          <h3 className="font-extrabold text-base text-ink flex items-center gap-2">
+            Báo cáo & Export Dự án
+          </h3>
+          <p className="text-xs text-muted font-medium mt-0.5">Xuất dữ liệu Excel (.xlsx) / PDF (.pdf) báo cáo đa chiều.</p>
+        </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setExportModalOpen(true)}
+            leadingIcon={<FileSpreadsheet size={16} className="text-emerald-600" />}
+            className="!px-3.5 font-bold text-xs"
+          >
+            Xuất Báo Cáo (Excel / PDF)
+          </Button>
+        </div>
+      </div>
+
+      {/* 1. Tổng quan cơ bản & Analytics Summary */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-muted">Tổng số Task</p>
-          <p className="mt-1 text-2xl font-bold">{taskSummary.totalTasks}</p>
+          <p className="mt-1 text-2xl font-bold">{analyticsSummary?.totalTasks ?? taskSummary.totalTasks}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-muted">Task hoàn thành</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{taskSummary.completedTasks}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600">{analyticsSummary?.completedTasks ?? taskSummary.completedTasks}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-muted">Task trễ hạn</p>
-          <p className="mt-1 text-2xl font-bold text-rose-600">{taskSummary.overdueTasks}</p>
+          <p className="text-sm font-medium text-muted">Task trễ hạn / Blocked</p>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-2xl font-bold text-rose-600">{analyticsSummary?.overdueTasks ?? taskSummary.overdueTasks}</span>
+            <span className="text-xs text-muted font-semibold">({analyticsSummary?.blockedTasks ?? 0} nghẽn)</span>
+          </div>
         </div>
         <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-muted">Hoàn thành (%)</p>
-          <p className="mt-1 text-2xl font-bold text-blue-600">{taskSummary.completionRate.toFixed(1)}%</p>
+          <p className="mt-1 text-2xl font-bold text-blue-600">{(analyticsSummary?.taskCompletionRate ?? taskSummary.completionRate).toFixed(1)}%</p>
         </div>
+      </div>
+
+      {/* Analytics Charts Grid: Velocity & Burnup */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Velocity Chart */}
+        <section className="rounded-xl border border-line bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
+            <h3 className="font-bold text-base text-ink flex items-center gap-2">
+              <TrendingUp size={18} className="text-brand" /> Biểu đồ Velocity
+            </h3>
+            {velocityData && (
+              <span className="text-xs font-semibold text-slate-500">
+                TB Hoàn thành: <span className="font-extrabold text-brand">{velocityData.averageCompletedStoryPoints} pt</span> ({velocityData.averageCompletedItems} mục)
+              </span>
+            )}
+          </div>
+          <div className="h-64 w-full">
+            {velocityData && velocityData.points.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={velocityData.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="sprintName" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                    formatter={(value: any, name: any) => [
+                      `${value} pts`,
+                      name === 'committedStoryPoints' ? 'Cam kết' : 'Hoàn thành'
+                    ]}
+                  />
+                  {!hiddenVelocityBars.includes('committedStoryPoints') && (
+                    <Bar dataKey="committedStoryPoints" fill="#cbd5e1" radius={[4, 4, 0, 0]} name="committedStoryPoints" />
+                  )}
+                  {!hiddenVelocityBars.includes('completedStoryPoints') && (
+                    <Bar dataKey="completedStoryPoints" fill="#f7941d" radius={[4, 4, 0, 0]} name="completedStoryPoints" />
+                  )}
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed">Chưa có dữ liệu Velocity Sprint</div>
+            )}
+          </div>
+          {velocityData && velocityData.points.length > 0 && (
+            <div className="flex items-center justify-center gap-3 pt-3 border-t border-line mt-3">
+              {[
+                { key: 'committedStoryPoints', name: 'Cam kết', color: '#cbd5e1' },
+                { key: 'completedStoryPoints', name: 'Hoàn thành', color: '#f7941d' }
+              ].map(item => {
+                const isHidden = hiddenVelocityBars.includes(item.key)
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => toggleVelocityBar(item.key)}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                      isHidden 
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                    }`}
+                    title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                  >
+                    <span className="size-2.5 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : item.color }} />
+                    <span>{item.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Burnup Chart */}
+        <section className="rounded-xl border border-line bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
+            <h3 className="font-bold text-base text-ink flex items-center gap-2">
+              <ActivityIcon size={18} className="text-indigo-600" /> Biểu đồ Burnup
+            </h3>
+          </div>
+          <div className="h-64 w-full">
+            {burnupData && burnupData.points.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={burnupData.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={val => formatShortDate(val)} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                    labelFormatter={val => `Ngày: ${formatShortDate(val)}`}
+                    formatter={(value: any, name: any) => [
+                      `${value} tasks`,
+                      name === 'totalScope' ? 'Tổng phạm vi' : 'Đã hoàn thành'
+                    ]}
+                  />
+                  {!hiddenBurnupLines.includes('totalScope') && (
+                    <Line type="monotone" dataKey="totalScope" stroke="#94a3b8" strokeWidth={2} dot={false} name="totalScope" />
+                  )}
+                  {!hiddenBurnupLines.includes('completedScope') && (
+                    <Line type="monotone" dataKey="completedScope" stroke="#10b981" strokeWidth={2.5} dot={false} name="completedScope" />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs font-medium text-slate-400 bg-slate-50 rounded-xl border border-dashed">Chưa có dữ liệu Burnup Chart</div>
+            )}
+          </div>
+          {burnupData && burnupData.points.length > 0 && (
+            <div className="flex items-center justify-center gap-3 pt-3 border-t border-line mt-3">
+              {[
+                { key: 'totalScope', name: 'Tổng phạm vi', color: '#94a3b8' },
+                { key: 'completedScope', name: 'Đã hoàn thành', color: '#10b981' }
+              ].map(item => {
+                const isHidden = hiddenBurnupLines.includes(item.key)
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => toggleBurnupLine(item.key)}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                      isHidden 
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                    }`}
+                    title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                  >
+                    <span className="size-2.5 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : item.color }} />
+                    <span>{item.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
 
@@ -455,11 +721,99 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
                 ...sprints.map(s => ({ label: s.name, value: s.id }))
               ]}
             />
+            {selectedSprintId && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportSprintExcel}
+                  loading={exportingSprint}
+                  leadingIcon={<Download size={15} className="text-emerald-600" />}
+                  className="!px-3 font-bold text-xs shrink-0"
+                >
+                  Xuất Excel Sprint
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportSprintPdf}
+                  loading={exportingSprintPdf}
+                  leadingIcon={<FileText size={15} className="text-rose-600" />}
+                  className="!px-3 font-bold text-xs shrink-0 !border-rose-200 !bg-rose-50/70 hover:!bg-rose-100/80 !text-rose-800"
+                >
+                  Xuất PDF Sprint
+                </Button>
+              </div>
+            )}
           </div>
         </header>
 
         {sprintReport ? (
-          <div className="mt-4">
+          <div className="mt-4 space-y-6">
+            {/* Cumulative Flow Diagram (CFD) for Sprint */}
+            {cumulativeFlowData && cumulativeFlowData.points.length > 0 && (
+              <div className="p-4 rounded-xl border border-line bg-slate-50/50">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-2">
+                  <Layers size={16} className="text-blue-600" /> Cumulative Flow Diagram (CFD Sprint)
+                </h4>
+                <div className="h-56 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={cumulativeFlowData.points} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={val => formatShortDate(val)} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} 
+                        labelFormatter={val => `Ngày: ${formatShortDate(val)}`}
+                      />
+                      {!hiddenCfdAreas.includes('done') && (
+                        <Area type="monotone" dataKey="done" stackId="1" stroke="#10b981" fill="#10b981" name="Hoàn thành" />
+                      )}
+                      {!hiddenCfdAreas.includes('inReview') && (
+                        <Area type="monotone" dataKey="inReview" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" name="Đang review" />
+                      )}
+                      {!hiddenCfdAreas.includes('inProgress') && (
+                        <Area type="monotone" dataKey="inProgress" stackId="1" stroke="#f59e0b" fill="#f59e0b" name="Đang làm" />
+                      )}
+                      {!hiddenCfdAreas.includes('blocked') && (
+                        <Area type="monotone" dataKey="blocked" stackId="1" stroke="#ef4444" fill="#ef4444" name="Nghẽn" />
+                      )}
+                      {!hiddenCfdAreas.includes('todo') && (
+                        <Area type="monotone" dataKey="todo" stackId="1" stroke="#3b82f6" fill="#3b82f6" name="Cần làm" />
+                      )}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-3 border-t border-line/60 mt-3 flex-wrap">
+                  {[
+                    { key: 'done', name: 'Hoàn thành', color: '#10b981' },
+                    { key: 'inReview', name: 'Đang review', color: '#8b5cf6' },
+                    { key: 'inProgress', name: 'Đang làm', color: '#f59e0b' },
+                    { key: 'blocked', name: 'Nghẽn', color: '#ef4444' },
+                    { key: 'todo', name: 'Cần làm', color: '#3b82f6' }
+                  ].map(item => {
+                    const isHidden = hiddenCfdAreas.includes(item.key)
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => toggleCfdArea(item.key)}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                          isHidden 
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
+                            : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
+                        }`}
+                        title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                      >
+                        <span className="size-2.5 rounded-full shrink-0 transition-transform duration-200" style={{ backgroundColor: isHidden ? '#cbd5e1' : item.color }} />
+                        <span>{item.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <SprintStatisticsView 
               statistics={sprintReport.statistics as unknown as SprintTaskStatistics}
               burndown={sprintReport.burndown as unknown as SprintBurndown}
@@ -565,6 +919,83 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal Xuất Báo Cáo Dự Án Excel / PDF */}
+      <Modal open={exportModalOpen} title="Xuất Báo cáo Dự án (Excel / PDF)" onClose={() => setExportModalOpen(false)}>
+        <div className="space-y-4 py-2">
+          <p className="text-xs text-muted font-medium">
+            Báo cáo bao gồm thông tin chi tiết SPRINT_SUMMARY, PROJECT_SUMMARY, SPRINTS, TASKS, BACKLOG_ITEMS, TIME_LOGS, MEMBER_PERFORMANCE, BUG_SUMMARY & BUG_LIST.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1">Từ ngày (From Date)</label>
+              <Input
+                type="date"
+                value={exportFilters.fromDate}
+                onChange={e => setExportFilters({ ...exportFilters, fromDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1">Đến ngày (To Date)</label>
+              <Input
+                type="date"
+                value={exportFilters.toDate}
+                onChange={e => setExportFilters({ ...exportFilters, toDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1">Lọc theo Sprint</label>
+              <Select
+                value={exportFilters.sprintId}
+                onChange={e => setExportFilters({ ...exportFilters, sprintId: e.target.value })}
+                options={[
+                  { label: '-- Tất cả Sprint --', value: '' },
+                  ...sprints.map(s => ({ label: s.name, value: s.id }))
+                ]}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1">Lọc theo Thành viên</label>
+              <Select
+                value={exportFilters.userId}
+                onChange={e => setExportFilters({ ...exportFilters, userId: e.target.value })}
+                options={[
+                  { label: '-- Tất cả Thành viên --', value: '' },
+                  ...(memberReport?.members.map(m => ({ label: `${m.username} (${m.email})`, value: m.userId })) ?? [])
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
+            <Button variant="secondary" size="sm" onClick={() => setExportModalOpen(false)}>Hủy</Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={exportingProjectPdf}
+              onClick={handleExportProjectPdf}
+              leadingIcon={<FileText size={16} className="text-rose-600" />}
+              className="!border-rose-200 !bg-rose-50/70 hover:!bg-rose-100/80 !text-rose-800 font-bold"
+            >
+              Tải PDF (.pdf)
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={exportingProject}
+              onClick={handleExportProjectExcel}
+              leadingIcon={<FileSpreadsheet size={16} />}
+              className="!bg-emerald-600 hover:!bg-emerald-700 !text-white font-bold"
+            >
+              Tải Excel (.xlsx)
+            </Button>
+          </div>
+        </div>
       </Modal>
 
     </div>

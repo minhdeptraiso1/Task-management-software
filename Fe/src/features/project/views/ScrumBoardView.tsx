@@ -1,9 +1,10 @@
 import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
-import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter, CheckCircle2, ListTodo, Ban } from 'lucide-react'
+import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter, CheckCircle2, ListTodo, Ban, FileSpreadsheet, FileText } from 'lucide-react'
 import { 
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart 
 } from 'recharts'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel, toast } from '../../../components/ui'
+import { exportSprintExcelReport, exportSprintPdfReport } from '../services/report.service'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
 import AttachmentSection from '../components/AttachmentSection'
@@ -906,6 +907,7 @@ const getStatusColors = (status: TaskStatus) => {
 }
 
 function SprintTaskKanban({
+  projectId,
   sprints,
   selectedSprintId,
   board,
@@ -928,6 +930,7 @@ function SprintTaskKanban({
   onExportSprintTasks,
   members,
 }: {
+  projectId: string
   sprints: Sprint[]
   selectedSprintId: string | null
   board: KanbanBoard | undefined
@@ -955,6 +958,34 @@ function SprintTaskKanban({
   const [isTemplateAnim, setIsTemplateAnim] = useState(false)
   const [isImportAnim, setIsImportAnim] = useState(false)
   const [hiddenChartSeries, setHiddenChartSeries] = useState<Record<string, boolean>>({})
+  const [exportingExcel, setExportingExcel] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const handleExportSprintExcel = async () => {
+    if (!selectedSprintId) return
+    setExportingExcel(true)
+    try {
+      await exportSprintExcelReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo Excel Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo Excel Sprint')
+    } finally {
+      setExportingExcel(false)
+    }
+  }
+
+  const handleExportSprintPdf = async () => {
+    if (!selectedSprintId) return
+    setExportingPdf(true)
+    try {
+      await exportSprintPdfReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo PDF Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo PDF Sprint')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
 
   const toggleChartSeries = (key: string) => {
     setHiddenChartSeries(prev => ({ ...prev, [key]: !prev[key] }))
@@ -1097,6 +1128,28 @@ function SprintTaskKanban({
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {selectedSprintId && (
+          <>
+            <Button
+              leadingIcon={<FileSpreadsheet size={16} className="text-emerald-600" />}
+              variant="secondary"
+              className="!border-emerald-200 !bg-emerald-50/70 hover:!bg-emerald-100/80 !text-emerald-800 font-bold text-xs"
+              onClick={handleExportSprintExcel}
+              loading={exportingExcel}
+            >
+              Xuất Excel
+            </Button>
+            <Button
+              leadingIcon={<FileText size={16} className="text-rose-600" />}
+              variant="secondary"
+              className="!border-rose-200 !bg-rose-50/70 hover:!bg-rose-100/80 !text-rose-800 font-bold text-xs"
+              onClick={handleExportSprintPdf}
+              loading={exportingPdf}
+            >
+              Xuất PDF
+            </Button>
+          </>
+        )}
         {selectedSprintId && <Button leadingIcon={<BarChart3 size={17} />} variant="outline-blue" onClick={onOpenStatistics}>Thống kê</Button>}
         {selectedSprintId && <Button leadingIcon={<CheckCheck size={17} />} variant="outline-green" onClick={onOpenClosing}>Tổng kết</Button>}
       </div>
@@ -1665,6 +1718,40 @@ export function ScrumBoardView({
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [taskBoardOpen, setTaskBoardOpen] = useState(false)
+  const [exportingSprintExcel, setExportingSprintExcel] = useState(false)
+  const [exportingSprintPdfBoard, setExportingSprintPdfBoard] = useState(false)
+
+  const handleExportSprintBoardExcel = async () => {
+    if (!selectedSprintId) {
+      toast.error('Vui lòng chọn 1 Sprint để xuất báo cáo Excel!')
+      return
+    }
+    setExportingSprintExcel(true)
+    try {
+      await exportSprintExcelReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo Excel Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo Excel Sprint')
+    } finally {
+      setExportingSprintExcel(false)
+    }
+  }
+
+  const handleExportSprintBoardPdf = async () => {
+    if (!selectedSprintId) {
+      toast.error('Vui lòng chọn 1 Sprint để xuất báo cáo PDF!')
+      return
+    }
+    setExportingSprintPdfBoard(true)
+    try {
+      await exportSprintPdfReport(projectId, selectedSprintId)
+      toast.success('Đã xuất báo cáo PDF Sprint thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo PDF Sprint')
+    } finally {
+      setExportingSprintPdfBoard(false)
+    }
+  }
 
   const [sprintFilters, setSprintFilters] = useState<SprintFilters>({
     keyword: '',
@@ -1749,6 +1836,7 @@ export function ScrumBoardView({
         />
       ) : (
         <SprintTaskKanban
+          projectId={projectId}
           sprints={filteredSprints}
           selectedSprintId={selectedSprintId}
           board={selectedSprintId ? kanbanBoards[selectedSprintId] : undefined}
@@ -1788,6 +1876,30 @@ export function ScrumBoardView({
           className={`!px-3 ${showSprintFilters ? '!bg-brand/10 !text-brand border-brand/20' : ''}`}
           leadingIcon={<Filter size={16} />}
         />
+        {selectedSprintId && (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportSprintBoardExcel}
+              loading={exportingSprintExcel}
+              leadingIcon={<FileSpreadsheet size={16} className="text-emerald-600" />}
+              className="!px-3 font-bold text-xs !border-emerald-200 !bg-emerald-50/70 hover:!bg-emerald-100/80 !text-emerald-800"
+            >
+              Xuất Excel Sprint
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportSprintBoardPdf}
+              loading={exportingSprintPdfBoard}
+              leadingIcon={<FileText size={16} className="text-rose-600" />}
+              className="!px-3 font-bold text-xs !border-rose-200 !bg-rose-50/70 hover:!bg-rose-100/80 !text-rose-800"
+            >
+              Xuất PDF Sprint
+            </Button>
+          </>
+        )}
         {canManage && <>
           <Button variant="secondary" leadingIcon={<ListPlus size={17} />} onClick={() => setBacklogOpen(true)}>Tạo item</Button>
           <Button leadingIcon={<Plus size={17} />} onClick={() => setSprintOpen(true)}>Tạo Sprint</Button>

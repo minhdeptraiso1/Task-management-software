@@ -74,7 +74,8 @@ import {
   getQaMetrics,
   unassignBug,
   updateBugSeverity,
-  updateBugPriority
+  updateBugPriority,
+  exportBugReportExcel
 } from '../services/bug.service'
 
 interface BugViewProps {
@@ -321,6 +322,26 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
 
   // Sub-tab state
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'dashboard'>('list')
+  const [exportingExcel, setExportingExcel] = useState(false)
+
+  const handleExportExcel = async (customFilters?: BugReportFilters) => {
+    setExportingExcel(true)
+    try {
+      const activeFilters: BugReportFilters = customFilters || {
+        sprintId: filters.sprintId,
+        assigneeUserId: filters.assigneeUserId,
+        status: filters.status as any,
+        severity: filters.severity as any,
+        priority: filters.priority as any,
+      }
+      await exportBugReportExcel(projectId, activeFilters)
+      toast.success('Xuất báo cáo Excel Bug/QA thành công!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Lỗi khi xuất báo cáo Excel Bug/QA')
+    } finally {
+      setExportingExcel(false)
+    }
+  }
 
   // Dashboard & QA Metrics state
   const [qaMetrics, setQaMetrics] = useState<QaMetrics | null>(null)
@@ -774,8 +795,9 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                 <Button 
                   variant="outline-teal" 
                   leadingIcon={<Download size={15} />}
-                  onClick={() => toast.success('Xuất báo cáo thành công!')}
-                  className="!px-3 text-xs"
+                  onClick={() => handleExportExcel()}
+                  loading={exportingExcel}
+                  className="!px-3 text-xs font-bold"
                 >
                   Xuất Excel
                 </Button>
@@ -982,7 +1004,9 @@ export function BugView({ projectId, members, backlogItems, tasks, sprints, open
                 <Button 
                   variant="outline-teal" 
                   leadingIcon={<Download size={16} />}
-                  onClick={() => toast.success('Xuất báo cáo Excel thành công!')}
+                  onClick={() => handleExportExcel(reportFilters)}
+                  loading={exportingExcel}
+                  className="font-bold"
                 >
                   Xuất Excel
                 </Button>

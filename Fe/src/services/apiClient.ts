@@ -161,10 +161,10 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, ret
   return (await parse<T>(response)).data
 }
 
-export async function downloadExcelFile(path: string, defaultFileName: string) {
+export async function downloadFile(path: string, defaultFileName: string, errorMessage = 'Không thể xuất file') {
   const response = await apiFetch(path, { method: 'GET' })
   if (!response.ok) {
-    throw new Error('Không thể xuất file Excel')
+    throw new Error(errorMessage)
   }
   const blob = await response.blob()
   let filename = defaultFileName
@@ -185,6 +185,14 @@ export async function downloadExcelFile(path: string, defaultFileName: string) {
   a.click()
   a.remove()
   window.URL.revokeObjectURL(url)
+}
+
+export function downloadPdfFile(path: string, defaultFileName: string) {
+  return downloadFile(path, defaultFileName, 'Không thể xuất file PDF')
+}
+
+export function downloadExcelFile(path: string, defaultFileName: string) {
+  return downloadFile(path, defaultFileName, 'Không thể xuất file Excel')
 }
 
 export { tokenStore }

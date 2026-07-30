@@ -968,6 +968,18 @@ public enum ErrorCode {
             "Xuất file Excel thất bại"
     ),
 
+    REPORT_EXPORT_FAILED(
+            500991,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Xuất báo cáo thất bại"
+    ),
+
+    REPORT_PDF_EXPORT_FAILED(
+            500992,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Xuất báo cáo PDF thất bại"
+    ),
+
     DASHBOARD_TASK_FILTER_INVALID(
             400901,
             HttpStatus.BAD_REQUEST,

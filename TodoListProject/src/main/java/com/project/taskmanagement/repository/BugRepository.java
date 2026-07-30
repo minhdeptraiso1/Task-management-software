@@ -55,11 +55,11 @@ public interface BugRepository
             SELECT COUNT(b)
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -82,11 +82,11 @@ public interface BugRepository
             SELECT COUNT(b)
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
               AND b.status = :status
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -109,11 +109,11 @@ public interface BugRepository
             SELECT COUNT(b)
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND b.dueDate IS NOT NULL
               AND b.dueDate < :today
               AND b.status NOT IN :doneStatuses
@@ -137,11 +137,11 @@ public interface BugRepository
             SELECT COALESCE(SUM(b.reopenedCount), 0)
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -164,11 +164,11 @@ public interface BugRepository
             SELECT b.status AS status, COUNT(b) AS total
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -192,11 +192,11 @@ public interface BugRepository
             SELECT b.severity AS severity, COUNT(b) AS total
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -220,11 +220,11 @@ public interface BugRepository
             SELECT b.priority AS priority, COUNT(b) AS total
             FROM Bug b
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -258,11 +258,11 @@ public interface BugRepository
             FROM Bug b
             LEFT JOIN User u ON u.id = b.assigneeUserId
             WHERE b.projectId = :projectId
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
               AND (:overdueOnly = FALSE OR (b.dueDate IS NOT NULL AND b.dueDate < :today AND b.status NOT IN :doneStatuses))
               AND b.createdAt >= :fromDateStart
               AND b.createdAt < :toDateExclusive
@@ -321,11 +321,11 @@ public interface BugRepository
             WHERE b.projectId = :projectId
               AND b.createdAt >= :fromInstant
               AND b.createdAt < :toInstantExclusive
-              AND (:sprintId IS NULL OR b.sprintId = :sprintId)
-              AND (:assigneeUserId IS NULL OR b.assigneeUserId = :assigneeUserId)
-              AND (:status IS NULL OR b.status = :status)
-              AND (:severity IS NULL OR b.severity = :severity)
-              AND (:priority IS NULL OR b.priority = :priority)
+              AND (CAST(:sprintId AS java.util.UUID) IS NULL OR b.sprintId = :sprintId)
+              AND (CAST(:assigneeUserId AS java.util.UUID) IS NULL OR b.assigneeUserId = :assigneeUserId)
+              AND (CAST(:status AS com.project.taskmanagement.enums.BugStatus) IS NULL OR b.status = :status)
+              AND (CAST(:severity AS com.project.taskmanagement.enums.BugSeverity) IS NULL OR b.severity = :severity)
+              AND (CAST(:priority AS com.project.taskmanagement.enums.TaskPriority) IS NULL OR b.priority = :priority)
             ORDER BY b.createdAt DESC
             """)
     List<BugExportRowView> findBugExportRows(

@@ -79,4 +79,10 @@ public final class CacheNames {
     public static final String ATTACHMENT_USAGE = "attachment_usage";
     public static final String ATTACHMENT_SECURITY_SUMMARY = "attachment_security_summary";
     public static final String FILE_CLEANUP_RESULT = "file_cleanup_result";
+
+    public static final String ANALYTICS_VELOCITY = "analytics_velocity";
+    public static final String ANALYTICS_PROJECT_BURNUP = "analytics_project_burnup";
+    public static final String ANALYTICS_SPRINT_BURNUP = "analytics_sprint_burnup";
+    public static final String ANALYTICS_CUMULATIVE_FLOW = "analytics_cumulative_flow";
+    public static final String ANALYTICS_SUMMARY = "analytics_summary";
 }

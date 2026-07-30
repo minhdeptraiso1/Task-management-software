@@ -2,6 +2,7 @@ package com.project.taskmanagement.repository;
 
 import com.project.taskmanagement.entity.Task;
 import com.project.taskmanagement.enums.TaskStatus;
+import com.project.taskmanagement.repository.projection.report.ReportMemberPerformanceExcelView;
 import com.project.taskmanagement.repository.projection.taskexport.SprintTaskExportRowView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -342,6 +344,11 @@ public interface TaskRepository
             UUID projectId
     );
 
+    long countByProjectIdAndStatus(
+            UUID projectId,
+            TaskStatus status
+    );
+
     @Query("""
             SELECT t.status,
                    COUNT(t)
@@ -603,6 +610,81 @@ public interface TaskRepository
     List<SprintTaskExportRowView> findSprintTaskExportRows(
             @Param("projectId") UUID projectId,
             @Param("sprintId") UUID sprintId
+    );
+
+    @Query("""
+            SELECT u.id AS userId,
+                   u.username AS username,
+                   u.email AS email,
+                   COUNT(DISTINCT t.id) AS totalTasks,
+                   COUNT(DISTINCT CASE
+                       WHEN t.status = com.project.taskmanagement.enums.TaskStatus.DONE
+                       THEN t.id
+                       ELSE NULL
+                   END) AS doneTasks,
+                   COUNT(DISTINCT CASE
+                       WHEN t.status NOT IN (
+                           com.project.taskmanagement.enums.TaskStatus.DONE,
+                           com.project.taskmanagement.enums.TaskStatus.CANCELLED
+                       )
+                       THEN t.id
+                       ELSE NULL
+                   END) AS activeTasks,
+                   COUNT(DISTINCT CASE
+                       WHEN t.status = com.project.taskmanagement.enums.TaskStatus.BLOCKED
+                       THEN t.id
+                       ELSE NULL
+                   END) AS blockedTasks,
+                   COUNT(DISTINCT CASE
+                       WHEN t.dueDate < :today
+                        AND t.status NOT IN (
+                            com.project.taskmanagement.enums.TaskStatus.DONE,
+                            com.project.taskmanagement.enums.TaskStatus.CANCELLED
+                        )
+                       THEN t.id
+                       ELSE NULL
+                   END) AS overdueTasks,
+                   COALESCE(SUM(DISTINCT t.estimatedMinutes), 0) AS estimatedMinutes,
+                   COALESCE(SUM(tl.minutes), 0) AS spentMinutes
+            FROM ProjectMember pm
+            JOIN User u
+                ON u.id = pm.userId
+            LEFT JOIN Task t
+                ON t.assigneeUserId = u.id
+               AND t.projectId = pm.projectId
+               AND (
+                    CAST(:sprintId AS java.util.UUID) IS NULL
+                    OR t.currentSprintId = :sprintId
+                    OR t.originSprintId = :sprintId
+               )
+            LEFT JOIN TaskTimeLog tl
+                ON tl.taskId = t.id
+               AND tl.userId = u.id
+               AND (
+                    CAST(:fromDate AS java.time.LocalDate) IS NULL
+                    OR tl.workDate >= :fromDate
+               )
+               AND (
+                    CAST(:toDate AS java.time.LocalDate) IS NULL
+                    OR tl.workDate <= :toDate
+               )
+            WHERE pm.projectId = :projectId
+              AND (
+                    CAST(:userId AS java.util.UUID) IS NULL
+                    OR u.id = :userId
+              )
+            GROUP BY u.id,
+                     u.username,
+                     u.email
+            ORDER BY u.username ASC
+            """)
+    List<ReportMemberPerformanceExcelView> findMemberPerformanceForExcelReport(
+            @Param("projectId") UUID projectId,
+            @Param("sprintId") UUID sprintId,
+            @Param("userId") UUID userId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("today") LocalDate today
     );
 
 }

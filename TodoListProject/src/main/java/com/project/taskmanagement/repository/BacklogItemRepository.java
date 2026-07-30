@@ -72,6 +72,44 @@ public interface BacklogItemRepository
             UUID sprintId
     );
 
+    long countByProjectIdAndSprintIdAndStatus(
+            UUID projectId,
+            UUID sprintId,
+            BacklogItemStatus status
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(b.storyPoints), 0)
+            FROM BacklogItem b
+            WHERE b.projectId = :projectId
+              AND b.sprintId = :sprintId
+            """)
+    Long sumStoryPointsBySprint(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(b.storyPoints), 0)
+            FROM BacklogItem b
+            WHERE b.projectId = :projectId
+              AND b.sprintId = :sprintId
+              AND b.status = :status
+            """)
+    Long sumStoryPointsBySprintAndStatus(
+            @Param("projectId")
+            UUID projectId,
+
+            @Param("sprintId")
+            UUID sprintId,
+
+            @Param("status")
+            BacklogItemStatus status
+    );
+
     boolean existsByProjectIdAndSprintId(
             UUID projectId,
             UUID sprintId

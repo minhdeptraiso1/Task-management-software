@@ -1,6 +1,7 @@
 package com.project.taskmanagement.repository;
 
 import com.project.taskmanagement.entity.TaskTimeLog;
+import com.project.taskmanagement.repository.projection.report.ReportTimeLogExcelView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeDailyView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeMemberView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeTaskView;
@@ -151,6 +152,18 @@ public interface TaskTimeLogRepository
     Long sumMinutesByTaskIds(
             @Param("taskIds")
             List<UUID> taskIds
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(tl.minutes), 0)
+            FROM TaskTimeLog tl
+            JOIN Task t
+                ON t.id = tl.taskId
+            WHERE t.projectId = :projectId
+            """)
+    Long sumProjectMinutes(
+            @Param("projectId")
+            UUID projectId
     );
 
     @Query("""
@@ -724,6 +737,59 @@ public interface TaskTimeLogRepository
             @Param("projectId") UUID projectId,
             @Param("userId") UUID userId,
             @Param("taskId") UUID taskId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
+
+    @Query(value = """
+            SELECT tl.id AS "timeLogId",
+                   t.project_id AS "projectId",
+                   t.id AS "taskId",
+                   t.title AS "taskTitle",
+                   t.current_sprint_id AS "sprintId",
+                   t.backlog_item_id AS "backlogItemId",
+                   u.id AS "userId",
+                   u.username AS "username",
+                   u.email AS "email",
+                   tl.work_date AS "workDate",
+                   tl.minutes AS "minutes",
+                   tl.description AS "description",
+                   tl.created_at AS "createdAt"
+            FROM task_time_logs tl
+            JOIN tasks t
+                ON t.id = tl.task_id
+               AND t.deleted_at IS NULL
+            JOIN users u
+                ON u.id = tl.user_id
+               AND u.deleted_at IS NULL
+            WHERE tl.deleted_at IS NULL
+              AND t.project_id = CAST(:projectId AS uuid)
+              AND (
+                    CAST(:sprintId AS uuid) IS NULL
+                    OR t.current_sprint_id = CAST(:sprintId AS uuid)
+                    OR t.origin_sprint_id = CAST(:sprintId AS uuid)
+              )
+              AND (
+                    CAST(:userId AS uuid) IS NULL
+                    OR tl.user_id = CAST(:userId AS uuid)
+              )
+              AND (
+                    CAST(:fromDate AS date) IS NULL
+                    OR tl.work_date >= CAST(:fromDate AS date)
+              )
+              AND (
+                    CAST(:toDate AS date) IS NULL
+                    OR tl.work_date <= CAST(:toDate AS date)
+              )
+            ORDER BY tl.work_date ASC,
+                     u.username ASC,
+                     t.title ASC,
+                     tl.created_at ASC
+            """, nativeQuery = true)
+    List<ReportTimeLogExcelView> findTimeLogsForExcelReport(
+            @Param("projectId") UUID projectId,
+            @Param("sprintId") UUID sprintId,
+            @Param("userId") UUID userId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate
     );

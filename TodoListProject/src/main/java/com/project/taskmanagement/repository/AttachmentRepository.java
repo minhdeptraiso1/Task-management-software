@@ -40,6 +40,12 @@ public interface AttachmentRepository extends JpaRepository<Attachment, UUID> {
             """)
     Long sumSizeBytesByProjectId(@Param("projectId") UUID projectId);
 
+    @Query("""
+            SELECT COALESCE(SUM(a.sizeBytes), 0)
+            FROM Attachment a
+            """)
+    Long sumTotalSizeBytes();
+
     @Query(
             value = """
                     SELECT id AS id,

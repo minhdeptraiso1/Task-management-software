@@ -44,6 +44,7 @@ public interface NotificationRecipientRepository
                 n.projectId AS projectId,
                 n.entityType AS entityType,
                 n.entityId AS entityId,
+                n.targetUrl AS targetUrl,
                 n.createdAt AS createdAt,
                 nr.deliveredAt AS deliveredAt,
                 nr.readAt AS readAt

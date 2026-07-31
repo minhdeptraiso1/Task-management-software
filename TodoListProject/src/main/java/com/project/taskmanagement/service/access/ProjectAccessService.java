@@ -200,27 +200,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean canManage =
-                membership.getRole()
-                        == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.PRODUCT_OWNER;
-
-        if (!canManage) {
-            throw new BusinessException(
-                    ErrorCode.BACKLOG_ACCESS_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public ProjectMember requireSprintManagementAccess(
@@ -270,29 +253,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean canManage =
-                membership.getRole()
-                        == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.SCRUM_MASTER
-                        || membership.getRole()
-                        == ProjectMemberRole.PRODUCT_OWNER;
-
-        if (!canManage) {
-            throw new BusinessException(
-                    ErrorCode.SPRINT_BACKLOG_ACCESS_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public ProjectMember requireTaskManagementAccess(
@@ -307,29 +271,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean canManage =
-                membership.getRole()
-                        == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.SCRUM_MASTER
-                        || membership.getRole()
-                        == ProjectMemberRole.PRODUCT_OWNER;
-
-        if (!canManage) {
-            throw new BusinessException(
-                    ErrorCode.TASK_ACCESS_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public void requireTaskCommentAccess(
@@ -363,27 +308,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean canAssign =
-                membership.getRole()
-                        == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.SCRUM_MASTER;
-
-        if (!canAssign) {
-            throw new BusinessException(
-                    ErrorCode.TASK_ASSIGN_ACCESS_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public ProjectMember requireTaskStatusUpdateAccess(
@@ -399,31 +327,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean isManager =
-                membership.getRole() == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.SCRUM_MASTER;
-
-        boolean isAssignedUser =
-                task.getAssigneeUserId() != null
-                        && task.getAssigneeUserId()
-                        .equals(currentUser.getId());
-
-        if (!isManager && !isAssignedUser) {
-            throw new BusinessException(
-                    ErrorCode.TASK_STATUS_UPDATE_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public boolean canModerateTaskComments(
@@ -465,33 +372,10 @@ public class ProjectAccessService {
             );
         }
 
-        ProjectMember membership =
-                getMembershipOrThrow(
-                        projectId,
-                        currentUser.getId()
-                );
-
-        boolean isManager =
-                membership.getRole()
-                        == ProjectMemberRole.OWNER
-                        || membership.getRole()
-                        == ProjectMemberRole.PROJECT_MANAGER
-                        || membership.getRole()
-                        == ProjectMemberRole.SCRUM_MASTER;
-
-        boolean isAssignedUser =
-                task.getAssigneeUserId() != null
-                        && task.getAssigneeUserId()
-                        .equals(currentUser.getId());
-
-        if (!isManager && !isAssignedUser) {
-            throw new BusinessException(
-                    ErrorCode
-                            .TASK_TIME_LOG_CREATE_DENIED
-            );
-        }
-
-        return membership;
+        return getMembershipOrThrow(
+                projectId,
+                currentUser.getId()
+        );
     }
 
     public boolean canModerateTaskTimeLogs(

@@ -7,6 +7,7 @@ export interface NotificationItem {
   projectId: string | null
   entityType: string | null
   entityId: string | null
+  targetUrl?: string | null
   createdAt: string
   deliveredAt: string | null
   readAt: string | null

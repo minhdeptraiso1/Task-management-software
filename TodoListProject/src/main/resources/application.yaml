@@ -66,3 +66,10 @@ app:
       analytics_sprint_burnup: ${CACHE_TTL_ANALYTICS_SPRINT_BURNUP:PT2M}
       analytics_cumulative_flow: ${CACHE_TTL_ANALYTICS_CUMULATIVE_FLOW:PT2M}
       analytics_summary: ${CACHE_TTL_ANALYTICS_SUMMARY:PT2M}
+      admin_dashboard: ${CACHE_TTL_ADMIN_DASHBOARD:PT2M}
+      admin_audit_search: ${CACHE_TTL_ADMIN_AUDIT_SEARCH:PT1M}
+      admin_audit_detail: ${CACHE_TTL_ADMIN_AUDIT_DETAIL:PT5M}
+      admin_audit_summary: ${CACHE_TTL_ADMIN_AUDIT_SUMMARY:PT1M}
+      admin_import_audit_search: ${CACHE_TTL_ADMIN_IMPORT_AUDIT_SEARCH:PT1M}
+      admin_file_audit_search: ${CACHE_TTL_ADMIN_FILE_AUDIT_SEARCH:PT1M}
+      admin_user_activity_audit: ${CACHE_TTL_ADMIN_USER_ACTIVITY_AUDIT:PT1M}

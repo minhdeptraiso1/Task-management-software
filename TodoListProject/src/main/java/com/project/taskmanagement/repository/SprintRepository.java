@@ -51,4 +51,8 @@ public interface SprintRepository
             UUID projectId,
             SprintStatus status
     );
+
+    long countByStatus(
+            SprintStatus status
+    );
 }

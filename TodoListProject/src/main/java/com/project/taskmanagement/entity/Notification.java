@@ -61,6 +61,19 @@ public class Notification
     @Column(name = "entity_id")
     UUID entityId;
 
+    @Column(
+            name = "dedup_key",
+            length = 255,
+            unique = true
+    )
+    String dedupKey;
+
+    @Column(
+            name = "target_url",
+            length = 500
+    )
+    String targetUrl;
+
     @CreationTimestamp
     @Column(
             name = "created_at",

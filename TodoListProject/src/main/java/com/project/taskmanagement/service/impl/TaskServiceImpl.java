@@ -21,6 +21,7 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.task.TaskViewHelper;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.PageableValidator;
@@ -66,6 +67,7 @@ public class TaskServiceImpl
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
     TaskViewHelper taskViewHelper;
+    KanbanRealtimePublisher kanbanRealtimePublisher;
 
     SprintRepository sprintRepository;
 
@@ -305,6 +307,12 @@ public class TaskServiceImpl
                     assigneeUserId
             );
         }
+
+        kanbanRealtimePublisher.publishTaskCreated(
+                savedTask,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
 
         return toResponse(savedTask);
     }
@@ -731,6 +739,12 @@ public class TaskServiceImpl
                 )
         );
 
+        kanbanRealtimePublisher.publishTaskUpdated(
+                savedTask,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(savedTask);
     }
 
@@ -876,6 +890,12 @@ public class TaskServiceImpl
                 newAssigneeId
         );
 
+        kanbanRealtimePublisher.publishTaskAssigned(
+                savedTask,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(savedTask);
     }
 
@@ -1017,6 +1037,12 @@ public class TaskServiceImpl
                 )
         );
 
+        kanbanRealtimePublisher.publishTaskUnassigned(
+                savedTask,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(savedTask);
     }
 
@@ -1146,6 +1172,12 @@ public class TaskServiceImpl
                         oldValue,
                         null
                 )
+        );
+
+        kanbanRealtimePublisher.publishTaskDeleted(
+                task,
+                currentUser.getId(),
+                currentUser.getUsername()
         );
     }
 
@@ -1459,7 +1491,8 @@ public class TaskServiceImpl
                     projectId,
                     task,
                     request.position(),
-                    currentUser.getId()
+                    currentUser.getId(),
+                    currentUser.getUsername()
             );
         }
 
@@ -1576,6 +1609,16 @@ public class TaskServiceImpl
                 newStatus
         );
 
+        kanbanRealtimePublisher.publishTaskStatusChanged(
+                savedTask,
+                oldStatus,
+                newStatus,
+                oldPosition,
+                newPosition,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(savedTask);
     }
 
@@ -1664,7 +1707,8 @@ public class TaskServiceImpl
                 projectId,
                 task,
                 request.position(),
-                currentUser.getId()
+                currentUser.getId(),
+                currentUser.getUsername()
         );
     }
 
@@ -1867,7 +1911,8 @@ public class TaskServiceImpl
             UUID projectId,
             Task task,
             Long requestedPosition,
-            UUID actorUserId
+            UUID actorUserId,
+            String actorUsername
     ) {
         UUID sprintId =
                 task.getCurrentSprintId();
@@ -1940,6 +1985,14 @@ public class TaskServiceImpl
                                 newPosition
                         )
                 )
+        );
+
+        kanbanRealtimePublisher.publishTaskPositionChanged(
+                savedTask,
+                oldPosition,
+                newPosition,
+                actorUserId,
+                actorUsername
         );
 
         return toResponse(savedTask);
@@ -2336,6 +2389,16 @@ public class TaskServiceImpl
                 request.reason()
         );
 
+        kanbanRealtimePublisher.publishTaskStatusChanged(
+                savedTask,
+                oldStatus,
+                newStatus,
+                oldPosition,
+                newPosition,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(savedTask);
     }
 
@@ -2572,6 +2635,16 @@ public class TaskServiceImpl
                 savedTask,
                 currentUser.getId(),
                 request.reason()
+        );
+
+        kanbanRealtimePublisher.publishTaskStatusChanged(
+                savedTask,
+                oldStatus,
+                targetStatus,
+                oldPosition,
+                newPosition,
+                currentUser.getId(),
+                currentUser.getUsername()
         );
 
         return toResponse(savedTask);

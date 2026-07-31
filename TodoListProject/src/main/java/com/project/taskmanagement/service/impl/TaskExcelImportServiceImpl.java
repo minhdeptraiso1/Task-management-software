@@ -1,5 +1,6 @@
 package com.project.taskmanagement.service.impl;
 
+import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.response.taskimport.TaskImportErrorResponse;
 import com.project.taskmanagement.dto.response.taskimport.TaskImportResponse;
 import com.project.taskmanagement.entity.*;
@@ -9,16 +10,21 @@ import com.project.taskmanagement.excel.TaskExcelHeaders;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.*;
+import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.TaskExcelImportService;
 import com.project.taskmanagement.service.TaskImportBatchStateService;
 import com.project.taskmanagement.service.TaskImportWriterService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.model.SystemAuditCommand;
 import com.project.taskmanagement.service.model.TaskImportRowData;
 import com.project.taskmanagement.service.model.TaskImportValidationResult;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,8 +64,15 @@ public class TaskExcelImportServiceImpl
 
     TaskImportWriterService taskImportWriterService;
     TaskImportBatchStateService taskImportBatchStateService;
+    SystemAuditService systemAuditService;
+    AuditRequestHelper auditRequestHelper;
+    HttpServletRequest httpServletRequest;
 
     @Override
+    @CacheEvict(
+            value = CacheNames.ADMIN_IMPORT_AUDIT_SEARCH,
+            allEntries = true
+    )
     public TaskImportResponse importTasks(
             UUID projectId,
             UUID sprintId,
@@ -101,6 +114,21 @@ public class TaskExcelImportServiceImpl
                         currentUser.getId(),
                         file.getOriginalFilename()
                 );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        currentUser.getId(),
+                        SystemAuditAction.IMPORT_EXECUTED,
+                        SystemAuditResourceType.TASK_IMPORT_BATCH,
+                        batch.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        importAuditValue(batch),
+                        true,
+                        null
+                )
+        );
 
         try (
                 InputStream inputStream =
@@ -296,6 +324,28 @@ public class TaskExcelImportServiceImpl
         return taskImportBatchRepository.save(
                 batch
         );
+    }
+
+    private Map<String, Object> importAuditValue(
+            TaskImportBatch batch
+    ) {
+        Map<String, Object> value =
+                new LinkedHashMap<>();
+
+        value.put("batchId", batch.getId());
+        value.put("projectId", batch.getProjectId());
+        value.put("sprintId", batch.getSprintId());
+        value.put("fileName", batch.getOriginalFileName());
+        value.put("status", batch.getStatus());
+        value.put("totalRows", batch.getTotalRows());
+        value.put("successRows", batch.getSuccessRows());
+        value.put("failedRows", batch.getFailedRows());
+        value.put("importedByUserId", batch.getImportedByUserId());
+        value.put("startedAt", batch.getStartedAt());
+        value.put("completedAt", batch.getCompletedAt());
+        value.put("errorMessage", batch.getErrorMessage());
+
+        return value;
     }
 
     private void validateHeaders(

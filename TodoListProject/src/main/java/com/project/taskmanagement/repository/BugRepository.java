@@ -43,6 +43,14 @@ public interface BugRepository
             BugSeverity severity
     );
 
+    long countByStatus(
+            BugStatus status
+    );
+
+    long countBySeverity(
+            BugSeverity severity
+    );
+
     long countByProjectIdAndAssigneeUserIdIsNull(
             UUID projectId
     );

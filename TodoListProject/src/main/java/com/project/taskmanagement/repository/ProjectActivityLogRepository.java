@@ -24,6 +24,12 @@ public interface ProjectActivityLogRepository
             Pageable pageable
     );
 
+    Page<ProjectActivityLog>
+    findAllByPerformedByUserIdOrderByCreatedAtDesc(
+            UUID performedByUserId,
+            Pageable pageable
+    );
+
     Optional<ProjectActivityLog>
     findByIdAndProjectId(
             UUID id,

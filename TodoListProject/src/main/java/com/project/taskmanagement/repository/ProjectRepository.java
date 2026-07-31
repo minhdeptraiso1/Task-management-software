@@ -1,6 +1,7 @@
 package com.project.taskmanagement.repository;
 
 import com.project.taskmanagement.entity.Project;
+import com.project.taskmanagement.enums.ProjectStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -22,5 +23,9 @@ public interface ProjectRepository
     boolean existsByCodeIgnoreCaseAndIdNot(
             String code,
             UUID id
+    );
+
+    long countByStatus(
+            ProjectStatus status
     );
 }

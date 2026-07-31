@@ -1,41 +1,58 @@
 package com.project.taskmanagement.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.project.taskmanagement.security.websocket.JwtHandshakeHandler;
+import com.project.taskmanagement.security.websocket.JwtHandshakeInterceptor;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.*;
 
-import java.util.Arrays;
-
 @Configuration
 @EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+@RequiredArgsConstructor
+@FieldDefaults(
+        level = AccessLevel.PRIVATE,
+        makeFinal = true
+)
+public class WebSocketConfig
+        implements WebSocketMessageBrokerConfigurer {
 
-    private final String[] allowedOrigins;
+    JwtHandshakeInterceptor jwtHandshakeInterceptor;
+    JwtHandshakeHandler jwtHandshakeHandler;
 
-    public WebSocketConfig(
-            @Value("${app.cors.allowed-origins:http://localhost:5173}")
-            String allowedOrigins
+    @Override
+    public void configureMessageBroker(
+            MessageBrokerRegistry registry
     ) {
-        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isBlank())
-                .toArray(String[]::new);
+        registry.enableSimpleBroker(
+                "/topic",
+                "/queue"
+        );
+
+        registry.setApplicationDestinationPrefixes(
+                "/app"
+        );
+
+        registry.setUserDestinationPrefix(
+                "/user"
+        );
     }
 
-
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
-        config.setApplicationDestinationPrefixes("/app");
-    }
-
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+    public void registerStompEndpoints(
+            StompEndpointRegistry registry
+    ) {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
+                .addInterceptors(jwtHandshakeInterceptor)
+                .setHandshakeHandler(jwtHandshakeHandler);
+
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*")
+                .addInterceptors(jwtHandshakeInterceptor)
+                .setHandshakeHandler(jwtHandshakeHandler)
                 .withSockJS();
     }
 }

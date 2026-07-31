@@ -11,7 +11,7 @@ import type {
   ProjectPage,
   ProjectStatus,
 } from '../models/project.model'
-import type { NotificationPage } from '../models/notification.model'
+import type { NotificationItem, NotificationPage } from '../models/notification.model'
 import type { BacklogItem, BacklogItemPage, BacklogItemStatus, BacklogPriority, Sprint, SprintPage, SprintCapacityResponse, SprintHealthResponse, SprintRiskResponse, SprintProgress } from '../models/scrum.model'
 import type { KanbanBoard, SprintBurndown, SprintTaskStatistics, Task, TaskCommentPage, TaskImportResult, TaskPriority, TaskStatus, TaskTimeLogPage, TaskTimeSummary, TaskType, TaskDependency, TaskRisk, TaskRiskSummary } from '../models/task.model'
 import {
@@ -88,6 +88,8 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notification.service'
+import { subscribeRealtimeNotifications } from '../services/notification.websocket'
+import { subscribeKanbanEvents } from '../services/kanban.websocket'
 import { ProjectWorkspaceView } from '../views/ProjectWorkspaceView'
 import type { SearchResultItem } from '../models/search.model'
 import { searchProjectCandidateUsers } from '../../user/services/user.service'
@@ -138,7 +140,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [openBugId, setOpenBugId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
@@ -303,6 +305,50 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     void Promise.resolve().then(loadNotifications)
   }, [loadNotifications])
 
+  useEffect(() => {
+    return subscribeRealtimeNotifications({
+      onNotification: event => {
+        const titleFormatted = event.title ? event.title.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : 'Thông báo mới'
+        const contentFormatted = event.content ? event.content.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : 'Bạn có thông báo mới'
+        toast.info(contentFormatted, titleFormatted)
+        
+        if (typeof event.unreadCount === 'number') {
+          setUnreadCount(event.unreadCount)
+        } else {
+          setUnreadCount(prev => prev + 1)
+        }
+
+        const newItem: NotificationItem = {
+          id: event.notificationId || String(Date.now()),
+          type: event.type,
+          title: event.title,
+          content: event.content,
+          actorUserId: event.actorUserId,
+          projectId: event.projectId,
+          entityType: event.entityType ?? null,
+          entityId: event.entityId ?? null,
+          targetUrl: event.targetUrl ?? null,
+          createdAt: event.createdAt || new Date().toISOString(),
+          deliveredAt: new Date().toISOString(),
+          readAt: null,
+          read: false,
+        }
+
+        setNotifications(prev => {
+          if (!prev) return prev
+          if (prev.content.some(item => item.id === newItem.id)) return prev
+          return {
+            ...prev,
+            content: [newItem, ...prev.content],
+            totalElements: (prev.totalElements || 0) + 1,
+            numberOfElements: (prev.numberOfElements || 0) + 1,
+            empty: false,
+          }
+        })
+      },
+    })
+  }, [])
+
   const handleCreateProject = async (data: { code: string; name: string; description: string; startDate: string; endDate: string }) => {
     setSaving(true)
     setError('')
@@ -411,6 +457,23 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const reloadBoard = async () => {
     if (selectedProject) await loadScrumBoard(selectedProject.id, { silent: true })
   }
+
+  useEffect(() => {
+    if (!selectedProject?.id || !selectedSprintId) return undefined
+
+    return subscribeKanbanEvents({
+      projectId: selectedProject.id,
+      sprintId: selectedSprintId,
+      onKanbanEvent: event => {
+        if (event.actorUserId !== user.id) {
+          void reloadBoard()
+          if (selectedTask?.id && event.taskId === selectedTask.id) {
+            void loadSelectedTask(event.taskId)
+          }
+        }
+      },
+    })
+  }, [selectedProject?.id, selectedSprintId, user.id, selectedTask?.id])
 
   const loadSelectedTask = async (taskId: string) => {
     if (!selectedProject) return

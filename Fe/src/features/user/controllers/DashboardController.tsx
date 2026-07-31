@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ConfirmDialog } from '../../../components/ui'
+import { ConfirmDialog, toast } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
 import { createUser, deleteUser, getUserRoles, searchUsers, updateUser } from '../services/user.service'
-import { getAuditLogs } from '../services/audit-log.service'
 import { subscribeAuditLogs } from '../services/audit-log.websocket'
 import type { CreateUserData, User, UserFilters, UserPage, UserRole } from '../models/user.model'
 import { DashboardView } from '../views/DashboardView'
 import { UserFormModal } from '../views/UserFormModal'
 
+import { getAdminDashboard, enableUser, disableUser, updateUserRole, searchSystemAuditLogs, getAuditSummary } from '../services/admin.service'
+import type { AdminDashboardResponse, AdminAuditSummaryResponse } from '../models/admin.model'
+import { AdminUserActivityModal } from '../views/AdminUserActivityModal'
+
 const emptyPage: UserPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 8 }
 const emptyAuditPage: AuditLogPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 12, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: UserFilters = { keyword: '', role: '', enabled: '' }
 const fallbackRoles: UserRole[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
-type AdminSection = 'members' | 'audit' | 'files'
+export type AdminSection = 'overview' | 'members' | 'audit' | 'files'
 
 export function DashboardController({ me, onLogout, onOpenSettings }: { me: User; onLogout: () => void; onOpenSettings: () => void }) {
   const [users, setUsers] = useState(emptyPage)
-  const [activeSection, setActiveSection] = useState<AdminSection>('members')
+  const [activeSection, setActiveSection] = useState<AdminSection>('overview')
   const [roles, setRoles] = useState<UserRole[]>(fallbackRoles)
   const [filters, setFilters] = useState(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState(initialFilters)
@@ -32,6 +35,26 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<User | null>(null)
   const [pendingDelete, setPendingDelete] = useState<User | null>(null)
+
+  const [adminDashboard, setAdminDashboard] = useState<AdminDashboardResponse | null>(null)
+  const [adminDashboardLoading, setAdminDashboardLoading] = useState(false)
+  const [adminDashboardError, setAdminDashboardError] = useState('')
+
+  const loadAdminDashboard = useCallback(async () => {
+    setAdminDashboardLoading(true)
+    setAdminDashboardError('')
+    try {
+      setAdminDashboard(await getAdminDashboard())
+    } catch (err) {
+      setAdminDashboardError(err instanceof Error ? err.message : 'Không thể tải Admin Dashboard')
+    } finally {
+      setAdminDashboardLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void Promise.resolve().then(loadAdminDashboard)
+  }, [loadAdminDashboard])
 
   useEffect(() => {
     getUserRoles()
@@ -55,17 +78,33 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     void Promise.resolve().then(loadUsers)
   }, [loadUsers])
 
+  const [auditActionFilter, setAuditActionFilter] = useState('')
+  const [auditKeywordFilter, setAuditKeywordFilter] = useState('')
+  const [auditSummary, setAuditSummary] = useState<AdminAuditSummaryResponse | null>(null)
+
   const loadAuditLogs = useCallback(async () => {
     setAuditLoading(true)
     setAuditError('')
     try {
-      setAuditLogs(await getAuditLogs(auditPage))
+      const [res, summaryRes] = await Promise.all([
+        searchSystemAuditLogs({
+          page: auditPage,
+          size: 12,
+          action: auditActionFilter || undefined,
+          keyword: auditKeywordFilter || undefined,
+        }),
+        getAuditSummary({
+          keyword: auditKeywordFilter || undefined,
+        }).catch(() => null)
+      ])
+      setAuditLogs(res as any)
+      if (summaryRes) setAuditSummary(summaryRes)
     } catch (error) {
       setAuditError(error instanceof Error ? error.message : 'Không tải được lịch sử hoạt động')
     } finally {
       setAuditLoading(false)
     }
-  }, [auditPage])
+  }, [auditPage, auditActionFilter, auditKeywordFilter])
 
   useEffect(() => {
     if (activeSection === 'audit') void Promise.resolve().then(loadAuditLogs)
@@ -77,14 +116,14 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     return subscribeAuditLogs({
       onStatusChange: setAuditRealtimeStatus,
       onLog: log => {
-        setAuditLogs(current => {
-          if (auditPage !== 0 || current.content.some(item => item.id === log.id)) return current
+        setAuditLogs((current: any) => {
+          if (!current || auditPage !== 0 || current.content?.some((item: any) => item.id === log.id)) return current
 
           return {
             ...current,
             content: [log, ...current.content].slice(0, current.size),
-            totalElements: current.totalElements + 1,
-            numberOfElements: Math.min(current.numberOfElements + 1, current.size),
+            totalElements: (current.totalElements || 0) + 1,
+            numberOfElements: Math.min((current.numberOfElements || 0) + 1, current.size),
             empty: false,
           }
         })
@@ -92,15 +131,64 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     })
   }, [activeSection, auditPage])
 
+  const [activityUser, setActivityUser] = useState<User | null>(null)
+
+  const handleToggleEnable = async (targetUser: User) => {
+    setSaving(true)
+    setError('')
+    try {
+      if (targetUser.enabled) {
+        await disableUser(targetUser.id)
+        toast.success(`Đã vô hiệu hóa tài khoản ${targetUser.username}`)
+      } else {
+        await enableUser(targetUser.id)
+        toast.success(`Đã kích hoạt tài khoản ${targetUser.username}`)
+      }
+      await loadUsers()
+      await loadAdminDashboard()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Không thể thay đổi trạng thái tài khoản'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdateRole = async (targetUser: User, newRole: UserRole) => {
+    setSaving(true)
+    setError('')
+    try {
+      await updateUserRole(targetUser.id, newRole)
+      toast.success(`Đã cập nhật quyền thành viên ${targetUser.username} thành ${newRole}`)
+      await loadUsers()
+      await loadAdminDashboard()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyền người dùng'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const save = async (data: CreateUserData | { role: UserRole; enabled: boolean; password?: string }) => {
     setSaving(true)
     try {
-      if (selected) await updateUser(selected.id, data)
-      else await createUser(data as CreateUserData)
+      if (selected) {
+        await updateUser(selected.id, data)
+        toast.success(`Đã cập nhật tài khoản ${selected.username}`)
+      } else {
+        await createUser(data as CreateUserData)
+        toast.success(`Đã tạo tài khoản thành công`)
+      }
       setModalOpen(false)
       await loadUsers()
+      await loadAdminDashboard()
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Không thể lưu thành viên')
+      const msg = error instanceof Error ? error.message : 'Không thể lưu thành viên'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -110,12 +198,20 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     if (!pendingDelete) return
     setSaving(true)
     try {
-      if (pendingDelete.enabled) await updateUser(pendingDelete.id, { enabled: false })
-      else await deleteUser(pendingDelete.id)
+      if (pendingDelete.enabled) {
+        await disableUser(pendingDelete.id)
+        toast.success(`Đã vô hiệu hóa tài khoản ${pendingDelete.username}`)
+      } else {
+        await deleteUser(pendingDelete.id)
+        toast.success(`Đã xóa tài khoản ${pendingDelete.username}`)
+      }
       setPendingDelete(null)
       await loadUsers()
+      await loadAdminDashboard()
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Không thể cập nhật tài khoản')
+      const msg = error instanceof Error ? error.message : 'Không thể cập nhật tài khoản'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -125,8 +221,13 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     <DashboardView
       me={me}
       activeSection={activeSection}
+      adminDashboard={adminDashboard}
+      adminDashboardLoading={adminDashboardLoading}
+      adminDashboardError={adminDashboardError}
+      onRefreshAdminDashboard={loadAdminDashboard}
       users={users}
       auditLogs={auditLogs}
+      auditSummary={auditSummary}
       roles={roles}
       filters={filters}
       loading={loading}
@@ -149,6 +250,11 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       onPageChange={setPage}
       onAuditPageChange={setAuditPage}
       onAuditRefresh={loadAuditLogs}
+      onAuditFilterChange={({ action, keyword }) => {
+        setAuditActionFilter(action ?? '')
+        setAuditKeywordFilter(keyword ?? '')
+        setAuditPage(0)
+      }}
       onCreate={() => {
         setSelected(null)
         setModalOpen(true)
@@ -158,6 +264,9 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
         setModalOpen(true)
       }}
       onDelete={setPendingDelete}
+      onToggleEnable={handleToggleEnable}
+      onUpdateRole={handleUpdateRole}
+      onViewActivities={setActivityUser}
       onLogout={onLogout}
       onOpenSettings={onOpenSettings}
     />
@@ -170,6 +279,12 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
         loading={saving}
         onClose={() => setModalOpen(false)}
         onSave={save}
+      />
+    )}
+    {activityUser && (
+      <AdminUserActivityModal
+        user={activityUser}
+        onClose={() => setActivityUser(null)}
       />
     )}
     <ConfirmDialog

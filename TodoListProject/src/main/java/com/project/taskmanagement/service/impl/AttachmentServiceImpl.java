@@ -12,6 +12,8 @@ import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.ActivityEntityType;
 import com.project.taskmanagement.enums.AttachmentEntityType;
 import com.project.taskmanagement.enums.ProjectActivityAction;
+import com.project.taskmanagement.enums.SystemAuditAction;
+import com.project.taskmanagement.enums.SystemAuditResourceType;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.AttachmentRepository;
@@ -19,13 +21,17 @@ import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.AttachmentService;
 import com.project.taskmanagement.service.FileStorageService;
 import com.project.taskmanagement.service.ProjectActivityService;
+import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.attachment.AttachmentEntityResolver;
+import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.LoadedFile;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.model.StoredFile;
+import com.project.taskmanagement.service.model.SystemAuditCommand;
 import com.project.taskmanagement.service.validation.FileSecurityValidator;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -57,6 +63,9 @@ public class AttachmentServiceImpl implements AttachmentService {
     ProjectActivityService projectActivityService;
     AttachmentEntityResolver attachmentEntityResolver;
     FileSecurityProperties fileSecurityProperties;
+    SystemAuditService systemAuditService;
+    AuditRequestHelper auditRequestHelper;
+    HttpServletRequest httpServletRequest;
 
     @Override
     @Transactional
@@ -105,6 +114,19 @@ public class AttachmentServiceImpl implements AttachmentService {
                     currentUser.getId(),
                     null,
                     snapshot(saved)
+            ));
+
+            systemAuditService.log(new SystemAuditCommand(
+                    currentUser.getId(),
+                    SystemAuditAction.FILE_UPLOADED,
+                    SystemAuditResourceType.ATTACHMENT,
+                    saved.getId(),
+                    auditRequestHelper.getClientIp(httpServletRequest),
+                    auditRequestHelper.getUserAgent(httpServletRequest),
+                    null,
+                    snapshot(saved),
+                    true,
+                    null
             ));
 
             return toResponse(saved, currentUser);
@@ -178,6 +200,19 @@ public class AttachmentServiceImpl implements AttachmentService {
         Attachment attachment = getAttachmentOrThrow(projectId, attachmentId);
         attachmentEntityResolver.validateEntityExists(projectId, attachment.getEntityType(), attachment.getEntityId());
 
+        systemAuditService.log(new SystemAuditCommand(
+                currentUser.getId(),
+                SystemAuditAction.FILE_DOWNLOADED,
+                SystemAuditResourceType.ATTACHMENT,
+                attachment.getId(),
+                auditRequestHelper.getClientIp(httpServletRequest),
+                auditRequestHelper.getUserAgent(httpServletRequest),
+                null,
+                snapshot(attachment),
+                true,
+                null
+        ));
+
         return fileStorageService.load(
                 attachment.getStoragePath(),
                 attachment.getOriginalFileName(),
@@ -214,6 +249,19 @@ public class AttachmentServiceImpl implements AttachmentService {
                 ProjectActivityAction.ATTACHMENT_DELETED,
                 currentUser.getId(),
                 oldValue,
+                null
+        ));
+
+        systemAuditService.log(new SystemAuditCommand(
+                currentUser.getId(),
+                SystemAuditAction.FILE_DELETED,
+                SystemAuditResourceType.ATTACHMENT,
+                attachment.getId(),
+                auditRequestHelper.getClientIp(httpServletRequest),
+                auditRequestHelper.getUserAgent(httpServletRequest),
+                oldValue,
+                null,
+                true,
                 null
         ));
     }

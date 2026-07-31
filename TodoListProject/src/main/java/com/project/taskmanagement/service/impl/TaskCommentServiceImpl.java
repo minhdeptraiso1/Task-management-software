@@ -3,6 +3,7 @@ package com.project.taskmanagement.service.impl;
 import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.request.taskcomment.CreateTaskCommentRequest;
 import com.project.taskmanagement.dto.request.taskcomment.UpdateTaskCommentRequest;
+import com.project.taskmanagement.dto.realtime.KanbanRealtimeEventType;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentPageResponse;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentReplyResponse;
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentResponse;
@@ -25,6 +26,7 @@ import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.mention.CommentMentionResolver;
 import com.project.taskmanagement.service.mention.MentionedUser;
 import com.project.taskmanagement.service.validation.TaskCommentValidator;
@@ -61,6 +63,7 @@ public class TaskCommentServiceImpl
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
     CommentMentionResolver commentMentionResolver;
+    KanbanRealtimePublisher kanbanRealtimePublisher;
 
     // ===================== CREATE =====================
 
@@ -215,6 +218,13 @@ public class TaskCommentServiceImpl
                 savedComment,
                 currentUser,
                 mentionedUsers
+        );
+
+        kanbanRealtimePublisher.publishGeneric(
+                task,
+                KanbanRealtimeEventType.TASK_COMMENTED,
+                currentUser.getId(),
+                currentUser.getUsername()
         );
 
         return toCommentResponse(

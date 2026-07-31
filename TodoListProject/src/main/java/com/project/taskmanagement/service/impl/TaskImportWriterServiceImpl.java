@@ -7,6 +7,8 @@ import com.project.taskmanagement.entity.TaskImportBatch;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.ActivityEntityType;
 import com.project.taskmanagement.enums.ProjectActivityAction;
+import com.project.taskmanagement.enums.SystemAuditAction;
+import com.project.taskmanagement.enums.SystemAuditResourceType;
 import com.project.taskmanagement.enums.TaskImportStatus;
 import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
@@ -14,9 +16,13 @@ import com.project.taskmanagement.repository.TaskImportBatchRepository;
 import com.project.taskmanagement.repository.TaskRepository;
 import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.ProjectActivityService;
+import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.TaskImportWriterService;
+import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.model.SystemAuditCommand;
 import com.project.taskmanagement.service.model.TaskImportRowData;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,6 +49,9 @@ public class TaskImportWriterServiceImpl
     UserRepository userRepository;
 
     ProjectActivityService projectActivityService;
+    SystemAuditService systemAuditService;
+    AuditRequestHelper auditRequestHelper;
+    HttpServletRequest httpServletRequest;
 
     @Override
     @Transactional
@@ -66,6 +75,10 @@ public class TaskImportWriterServiceImpl
             @CacheEvict(
                     value = CacheNames.SPRINT_BURNDOWN,
                     allEntries = true
+            ),
+            @CacheEvict(
+                    value = CacheNames.ADMIN_IMPORT_AUDIT_SEARCH,
+                    allEntries = true
             )
     })
     public List<UUID> importAll(
@@ -75,6 +88,9 @@ public class TaskImportWriterServiceImpl
             List<TaskImportRowData> rows,
             TaskImportBatch batch
     ) {
+        Map<String, Object> oldValue =
+                importAuditValue(batch);
+
         batch.setStatus(
                 TaskImportStatus.IMPORTING
         );
@@ -225,6 +241,21 @@ public class TaskImportWriterServiceImpl
 
         taskImportBatchRepository.save(batch);
 
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        actorUserId,
+                        SystemAuditAction.IMPORT_COMPLETED,
+                        SystemAuditResourceType.TASK_IMPORT_BATCH,
+                        batch.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        oldValue,
+                        importAuditValue(batch),
+                        true,
+                        null
+                )
+        );
+
         return savedTasks
                 .stream()
                 .map(Task::getId)
@@ -264,6 +295,28 @@ public class TaskImportWriterServiceImpl
         }
 
         return result;
+    }
+
+    private Map<String, Object> importAuditValue(
+            TaskImportBatch batch
+    ) {
+        Map<String, Object> value =
+                new LinkedHashMap<>();
+
+        value.put("batchId", batch.getId());
+        value.put("projectId", batch.getProjectId());
+        value.put("sprintId", batch.getSprintId());
+        value.put("fileName", batch.getOriginalFileName());
+        value.put("status", batch.getStatus());
+        value.put("totalRows", batch.getTotalRows());
+        value.put("successRows", batch.getSuccessRows());
+        value.put("failedRows", batch.getFailedRows());
+        value.put("importedByUserId", batch.getImportedByUserId());
+        value.put("startedAt", batch.getStartedAt());
+        value.put("completedAt", batch.getCompletedAt());
+        value.put("errorMessage", batch.getErrorMessage());
+
+        return value;
     }
 
     private String normalizeEmail(

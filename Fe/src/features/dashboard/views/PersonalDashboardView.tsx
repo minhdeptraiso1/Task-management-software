@@ -6,6 +6,7 @@ import type { MyDashboardResponse, MyTaskPageResponse, MyTimeSummaryResponse } f
 import { Button } from '../../../components/ui'
 import { taskStatusLabels, taskPriorityLabels, taskRiskReasonLabels } from '../../project/models/task.model'
 import { TimesheetView } from '../../project/components/TimesheetView'
+import { UserGuideModal } from '../../user/views/UserGuideModal'
 
 const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
 
@@ -64,6 +65,7 @@ export function PersonalDashboardView({
   onTaskPageChange
 }: PersonalDashboardViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'timesheet'>('overview')
+  const [showGuideModal, setShowGuideModal] = useState(false)
   const isOverview = activeSubTab === 'overview'
   const isTimesheet = activeSubTab === 'timesheet'
 
@@ -443,11 +445,32 @@ export function PersonalDashboardView({
               </div>
             </section>
           )}
+
+          {/* Dedicated Hướng dẫn sử dụng Card (1 ô riêng dưới Thời gian làm việc) */}
+          <section className="rounded-2xl border border-line/70 bg-white shadow-xs p-6 space-y-4">
+            <div className="border-b border-line/60 pb-3">
+              <h2 className="font-bold text-ink text-sm">Hướng dẫn sử dụng</h2>
+              <p className="text-[11px] text-muted mt-0.5">Xem quy trình vận hành dự án từ A đến Z, phân quyền vai trò và giao diện mẫu</p>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full justify-center bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-2.5 shadow-xs"
+              onClick={() => setShowGuideModal(true)}
+            >
+              Xem Hướng dẫn sử dụng
+            </Button>
+          </section>
         </div>
       </div>
     </>
   )}
 </div>
+
+<UserGuideModal
+  open={showGuideModal}
+  onClose={() => setShowGuideModal(false)}
+/>
 </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Activity,
@@ -19,6 +20,7 @@ import {
 import { Button, Input, Select } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
 import { roleLabels, type User, type UserFilters, type UserPage, type UserRole } from '../models/user.model'
+import { UserGuideModal } from './UserGuideModal'
 import { AuditLogView } from './AuditLogView'
 import { AdminFileCleanupView } from './AdminFileCleanupView'
 import { AdminDashboardOverviewView } from './AdminDashboardOverviewView'
@@ -203,6 +205,7 @@ export function DashboardView({
   onLogout,
   onOpenSettings,
 }: Props) {
+  const [guideModalOpen, setGuideModalOpen] = useState(false)
   const active = users.content.filter(user => user.enabled).length
   const adminCount = users.content.filter(user => user.role === 'ADMIN').length
   const roleOptions = [
@@ -537,5 +540,10 @@ export function DashboardView({
         </div>
       </motion.div>
     </main>
+
+    <UserGuideModal
+      open={guideModalOpen}
+      onClose={() => setGuideModalOpen(false)}
+    />
   </div>
 }

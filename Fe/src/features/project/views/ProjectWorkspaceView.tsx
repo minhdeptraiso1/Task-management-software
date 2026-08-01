@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
+import { UserGuideModal } from '../../user/views/UserGuideModal'
 import {
   entityTypeLabels,
   projectActivityLabels,
@@ -577,6 +578,7 @@ export function ProjectWorkspaceView({
   const canCreateProject = user.role === 'MANAGER'
   const canManageMembers = selectedProject?.currentUserRole === 'OWNER' || selectedProject?.currentUserRole === 'PROJECT_MANAGER'
   const canManageTasks = !!selectedProject?.currentUserRole
+  const [guideModalOpen, setGuideModalOpen] = useState(false)
 
   const keywordStr = filters.keyword?.trim() || ''
   const dropdownOptions = keywordStr
@@ -1455,6 +1457,11 @@ export function ProjectWorkspaceView({
         </div>
       </Modal>
     )}
+
+    <UserGuideModal
+      open={guideModalOpen}
+      onClose={() => setGuideModalOpen(false)}
+    />
   </div>
 }
 

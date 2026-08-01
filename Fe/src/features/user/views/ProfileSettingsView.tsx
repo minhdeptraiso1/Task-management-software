@@ -3,14 +3,16 @@ import { AlertCircle, ArrowLeft, KeyRound, LogOut } from 'lucide-react'
 import { Button, Input, ConfirmDialog } from '../../../components/ui'
 import { changePassword, logoutAll } from '../../auth/services/auth.service'
 import type { User } from '../models/user.model'
+import { UserGuideModal } from './UserGuideModal'
 
 interface ProfileSettingsViewProps {
   user: User
   onBack: () => void
   onSuccessLogoutAll: () => void
+  onOpenGuide?: () => void
 }
 
-export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll }: ProfileSettingsViewProps) {
+export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll, onOpenGuide }: ProfileSettingsViewProps) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -18,6 +20,7 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll }: Profil
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +126,23 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll }: Profil
               </div>
             </form>
 
+            <div className="space-y-4 pt-4 border-t border-line">
+              <h4 className="font-semibold border-b border-line pb-2">
+                Trợ giúp & Hướng dẫn sử dụng
+              </h4>
+              <p className="text-sm text-body">
+                Xem quy trình vận hành dự án từ lúc khởi tạo đến khi đóng Sprint (A → Z), phân quyền từng vai trò và chi tiết các tính năng hệ thống.
+              </p>
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full justify-center bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3 shadow-md transition-all hover:shadow-lg"
+                onClick={() => onOpenGuide ? onOpenGuide() : setShowGuide(true)}
+              >
+                Xem Hướng dẫn sử dụng dự án (A → Z)
+              </Button>
+            </div>
+
             <div className="space-y-4 pt-4">
               <h4 className="font-semibold border-b border-line pb-2">Bảo mật</h4>
               <p className="text-sm text-body">
@@ -141,6 +161,11 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll }: Profil
           </div>
         </div>
       </main>
+
+      <UserGuideModal
+        open={showGuide}
+        onClose={() => setShowGuide(false)}
+      />
 
       <ConfirmDialog
         open={showLogoutConfirm}

@@ -853,13 +853,6 @@ function TaskCard({ task, canDrag, onDragStart, onDragEnd, onOpen }: { task: Kan
               </span>
             )}
           </div>
-          
-          {/* Subtle drag indicator that appears on hover */}
-          {canDrag && (
-            <div className="text-slate-300 transition-colors group-hover:text-slate-400">
-              <GripVertical size={14} />
-            </div>
-          )}
         </div>
 
         {/* Title */}

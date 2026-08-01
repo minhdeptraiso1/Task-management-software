@@ -85,4 +85,12 @@ public final class CacheNames {
     public static final String ANALYTICS_SPRINT_BURNUP = "analytics_sprint_burnup";
     public static final String ANALYTICS_CUMULATIVE_FLOW = "analytics_cumulative_flow";
     public static final String ANALYTICS_SUMMARY = "analytics_summary";
+
+    public static final String ADMIN_DASHBOARD = "admin_dashboard";
+    public static final String ADMIN_AUDIT_SEARCH = "admin_audit_search";
+    public static final String ADMIN_AUDIT_DETAIL = "admin_audit_detail";
+    public static final String ADMIN_AUDIT_SUMMARY = "admin_audit_summary";
+    public static final String ADMIN_IMPORT_AUDIT_SEARCH = "admin_import_audit_search";
+    public static final String ADMIN_FILE_AUDIT_SEARCH = "admin_file_audit_search";
+    public static final String ADMIN_USER_ACTIVITY_AUDIT = "admin_user_activity_audit";
 }

@@ -3,6 +3,7 @@ package com.project.taskmanagement.service.impl;
 import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.request.tasktimelog.CreateTaskTimeLogRequest;
 import com.project.taskmanagement.dto.request.tasktimelog.UpdateTaskTimeLogRequest;
+import com.project.taskmanagement.dto.realtime.KanbanRealtimeEventType;
 import com.project.taskmanagement.dto.response.tasktimelog.TaskTimeLogPageResponse;
 import com.project.taskmanagement.dto.response.tasktimelog.TaskTimeLogResponse;
 import com.project.taskmanagement.dto.response.tasktimelog.TaskTimeSummaryResponse;
@@ -23,6 +24,7 @@ import com.project.taskmanagement.service.TaskTimeLogService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
+import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.validation.TaskTimeLogValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class TaskTimeLogServiceImpl
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
     ProjectActivityService projectActivityService;
+    KanbanRealtimePublisher kanbanRealtimePublisher;
 
     // ===================== CREATE =====================
 
@@ -230,6 +233,13 @@ public class TaskTimeLogServiceImpl
                 )
         );
 
+        kanbanRealtimePublisher.publishGeneric(
+                task,
+                KanbanRealtimeEventType.TASK_TIME_LOGGED,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(
                 projectId,
                 savedTimeLog,
@@ -271,7 +281,8 @@ public class TaskTimeLogServiceImpl
                         currentUser
                 );
 
-        getTaskOrThrow(
+        Task task =
+                getTaskOrThrow(
                 projectId,
                 taskId
         );
@@ -386,10 +397,11 @@ public class TaskTimeLogServiceImpl
                         currentUser
                 );
 
-        getTaskOrThrow(
-                projectId,
-                taskId
-        );
+        Task task =
+                getTaskOrThrow(
+                        projectId,
+                        taskId
+                );
 
         TaskTimeLog timeLog =
                 getTimeLogOrThrow(
@@ -483,6 +495,13 @@ public class TaskTimeLogServiceImpl
                 )
         );
 
+        kanbanRealtimePublisher.publishGeneric(
+                task,
+                KanbanRealtimeEventType.TASK_TIME_LOGGED,
+                currentUser.getId(),
+                currentUser.getUsername()
+        );
+
         return toResponse(
                 projectId,
                 savedTimeLog,
@@ -560,7 +579,8 @@ public class TaskTimeLogServiceImpl
                         currentUser
                 );
 
-        getTaskOrThrow(
+        Task task =
+                getTaskOrThrow(
                 projectId,
                 taskId
         );
@@ -613,6 +633,13 @@ public class TaskTimeLogServiceImpl
                         oldValue,
                         null
                 )
+        );
+
+        kanbanRealtimePublisher.publishGeneric(
+                task,
+                KanbanRealtimeEventType.TASK_TIME_LOGGED,
+                currentUser.getId(),
+                currentUser.getUsername()
         );
     }
 

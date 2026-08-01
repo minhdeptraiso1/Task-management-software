@@ -6,6 +6,8 @@ import com.project.taskmanagement.dto.response.auth.AuthResponse;
 import com.project.taskmanagement.entity.TokenSession;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.AuditAction;
+import com.project.taskmanagement.enums.SystemAuditAction;
+import com.project.taskmanagement.enums.SystemAuditResourceType;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.TokenSessionRepository;
@@ -15,6 +17,10 @@ import com.project.taskmanagement.security.LoginRateLimiter;
 import com.project.taskmanagement.security.TokenBlacklistService;
 import com.project.taskmanagement.service.AuditLogService;
 import com.project.taskmanagement.service.AuthService;
+import com.project.taskmanagement.service.SystemAuditService;
+import com.project.taskmanagement.service.audit.AuditRequestHelper;
+import com.project.taskmanagement.service.model.SystemAuditCommand;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +37,8 @@ import java.util.Locale;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -46,6 +54,9 @@ public class AuthServiceImpl implements AuthService {
     LoginRateLimiter loginRateLimiter;
     AuditLogService auditLogService;
     PasswordEncoder passwordEncoder;
+    SystemAuditService systemAuditService;
+    AuditRequestHelper auditRequestHelper;
+    HttpServletRequest httpServletRequest;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -67,11 +78,13 @@ public class AuthServiceImpl implements AuthService {
             );
 
         } catch (BadCredentialsException ex) {
+            logAuthFailure(email, "Invalid credentials");
             throw new BusinessException(
                     ErrorCode.INVALID_CREDENTIALS
             );
 
         } catch (DisabledException ex) {
+            logAuthFailure(email, "Account disabled");
             throw new BusinessException(
                     ErrorCode.ACCOUNT_DISABLED
             );
@@ -121,6 +134,26 @@ public class AuthServiceImpl implements AuthService {
         auditLogService.log(
                 user.getId(),
                 AuditAction.LOGIN.name()
+        );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        user.getId(),
+                        SystemAuditAction.LOGIN_SUCCESS,
+                        SystemAuditResourceType.AUTH,
+                        user.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "username",
+                                user.getUsername(),
+                                "email",
+                                user.getEmail()
+                        ),
+                        true,
+                        null
+                )
         );
 
         return new AuthResponse(
@@ -204,6 +237,26 @@ public class AuthServiceImpl implements AuthService {
                         user.getRole().name()
                 );
 
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        user.getId(),
+                        SystemAuditAction.REFRESH_TOKEN_USED,
+                        SystemAuditResourceType.AUTH,
+                        session.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "sessionId",
+                                session.getId(),
+                                "userId",
+                                user.getId()
+                        ),
+                        true,
+                        null
+                )
+        );
+
         return new AuthResponse(
                 newAccessToken,
                 refreshToken
@@ -258,6 +311,21 @@ public class AuthServiceImpl implements AuthService {
                     userId,
                     AuditAction.LOGOUT.name()
             );
+
+            systemAuditService.log(
+                    new SystemAuditCommand(
+                            userId,
+                            SystemAuditAction.LOGOUT,
+                            SystemAuditResourceType.AUTH,
+                            userId,
+                            auditRequestHelper.getClientIp(httpServletRequest),
+                            auditRequestHelper.getUserAgent(httpServletRequest),
+                            null,
+                            Map.of("userId", userId),
+                            true,
+                            null
+                    )
+            );
         }
     }
 
@@ -310,6 +378,46 @@ public class AuthServiceImpl implements AuthService {
         auditLogService.log(
                 user.getId(),
                 AuditAction.CHANGE_PASSWORD.name()
+        );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        user.getId(),
+                        SystemAuditAction.PASSWORD_CHANGED,
+                        SystemAuditResourceType.USER,
+                        user.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "userId",
+                                user.getId(),
+                                "logoutAllAt",
+                                user.getLogoutAllAt()
+                        ),
+                        true,
+                        null
+                )
+        );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        user.getId(),
+                        SystemAuditAction.REFRESH_TOKEN_REVOKED,
+                        SystemAuditResourceType.AUTH,
+                        user.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "reason",
+                                "PASSWORD_CHANGED",
+                                "userId",
+                                user.getId()
+                        ),
+                        true,
+                        null
+                )
         );
     }
 
@@ -378,8 +486,78 @@ public class AuthServiceImpl implements AuthService {
                 userId,
                 AuditAction.LOGOUT_ALL.name()
         );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        userId,
+                        SystemAuditAction.REFRESH_TOKEN_REVOKED,
+                        SystemAuditResourceType.AUTH,
+                        userId,
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "reason",
+                                "LOGOUT_ALL",
+                                "userId",
+                                userId
+                        ),
+                        true,
+                        null
+                )
+        );
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        userId,
+                        SystemAuditAction.LOGOUT,
+                        SystemAuditResourceType.AUTH,
+                        userId,
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        Map.of(
+                                "scope",
+                                "ALL_DEVICES",
+                                "userId",
+                                userId
+                        ),
+                        true,
+                        null
+                )
+        );
     }
     //=======================HELPER=======================
+    private void logAuthFailure(
+            String email,
+            String errorMessage
+    ) {
+        UUID userId =
+                userRepository
+                        .findByEmailIgnoreCase(email)
+                        .map(User::getId)
+                        .orElse(null);
+
+        Map<String, Object> value =
+                new LinkedHashMap<>();
+        value.put("email", email);
+
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        userId,
+                        SystemAuditAction.LOGIN_FAILED,
+                        SystemAuditResourceType.AUTH,
+                        userId,
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        value,
+                        false,
+                        errorMessage
+                )
+        );
+    }
+
     private String normalizeEmail(String email) {
         if (email == null) {
             return "";

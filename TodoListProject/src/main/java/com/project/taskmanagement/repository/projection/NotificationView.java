@@ -24,6 +24,8 @@ public interface NotificationView {
 
     UUID getEntityId();
 
+    String getTargetUrl();
+
     Instant getCreatedAt();
 
     Instant getDeliveredAt();

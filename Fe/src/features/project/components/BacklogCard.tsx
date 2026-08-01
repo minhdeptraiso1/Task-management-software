@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from 'react'
-import { GripVertical, Pencil, Save, Trash2 } from 'lucide-react'
+import { Pencil, Save, Trash2 } from 'lucide-react'
 import { ActionItem, ActionMenu, Button, Input, Select, Modal } from '../../../components/ui'
 import type { BacklogItem, BacklogItemStatus, BacklogItemType, BacklogPriority } from '../models/scrum.model'
 import { backlogPriorityLabels, backlogStatusLabels, backlogTypeLabels } from '../models/scrum.model'
@@ -99,7 +99,12 @@ export function BacklogCard({
   return (
     <>
       <article
+        draggable={canManage}
+        onDragStart={event => onDragStart(event, item)}
+        onDragEnd={onDragEnd}
         className={`group relative flex rounded-xl border bg-white transition-all duration-300 ${
+          canManage ? 'cursor-grab active:cursor-grabbing' : ''
+        } ${
           dragging 
             ? '!border-brand/40 !bg-brand/5 opacity-70 ring-4 ring-brand/10 scale-95 shadow-2xl z-10' 
             : 'hover:border-brand/30 hover:shadow-lg hover:-translate-y-0.5 border-slate-200'
@@ -109,18 +114,6 @@ export function BacklogCard({
         <div className={`w-1.5 shrink-0 rounded-l-xl transition-colors ${priorityIndicatorClass(item.priority)} group-hover:opacity-90`} />
 
       <div className="flex flex-1 items-start gap-3 p-4">
-        <button
-          type="button"
-          draggable={canManage}
-          aria-label={`Kéo backlog item ${item.title}`}
-          disabled={!canManage}
-          onDragStart={event => onDragStart(event, item)}
-          onDragEnd={onDragEnd}
-          className="mt-0.5 shrink-0 cursor-grab rounded-md p-1 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          <GripVertical size={16} />
-        </button>
-        
         <div className="min-w-0 flex-1">
           {/* Vertical Metadata Layout requested by User */}
           <div className="mb-2.5 flex items-start justify-between gap-2 w-full">

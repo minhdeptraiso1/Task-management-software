@@ -94,6 +94,7 @@ interface ScrumBoardViewProps {
   taskDetailLoading: boolean
   saving: boolean
   canManage: boolean
+  currentUserId?: string
   onCreateBacklog: (data: { title: string; description: string; type: BacklogItemType; priority: BacklogPriority; storyPoints: number }) => void
   onCreateSprint: (data: { name: string; goal: string; startDate: string; endDate: string }) => void
   onUpdateBacklog: (itemId: string, data: { title?: string; description?: string; type?: BacklogItemType; priority?: BacklogPriority; storyPoints?: number }) => void
@@ -852,13 +853,6 @@ function TaskCard({ task, canDrag, onDragStart, onDragEnd, onOpen }: { task: Kan
               </span>
             )}
           </div>
-          
-          {/* Subtle drag indicator that appears on hover */}
-          {canDrag && (
-            <div className="text-slate-300 transition-colors group-hover:text-slate-400">
-              <GripVertical size={14} />
-            </div>
-          )}
         </div>
 
         {/* Title */}
@@ -917,6 +911,7 @@ function SprintTaskKanban({
   progress,
   importResult,
   canManage,
+  currentUserId,
   onSelectSprint,
   onTaskStatusChange,
   onOpenTask,
@@ -940,6 +935,7 @@ function SprintTaskKanban({
   progress: SprintProgress | null
   importResult: TaskImportResult | null
   canManage: boolean
+  currentUserId?: string
   onSelectSprint: (sprintId: string) => void
   onTaskStatusChange: ScrumBoardViewProps['onTaskStatusChange']
   onOpenTask: ScrumBoardViewProps['onOpenTask']
@@ -1034,7 +1030,7 @@ function SprintTaskKanban({
 
   const handleDragStart = (event: DragEvent<HTMLElement>, task: KanbanTask) => {
     event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, status: task.status }))
+    event.dataTransfer.setData('application/json', JSON.stringify({ taskId: task.id, status: task.status, assigneeUserId: task.assigneeUserId }))
     const preview = createDragPreview(task.title)
     event.dataTransfer.setDragImage(preview, 16, 16)
     window.requestAnimationFrame(() => preview.remove())
@@ -1045,7 +1041,12 @@ function SprintTaskKanban({
     if (selectedSprintId && file) onImportTasks(selectedSprintId, file)
     event.target.value = ''
   }
-  const canMoveTask = canManage && board?.sprintStatus === 'ACTIVE'
+  const isSprintActive = board?.sprintStatus === 'ACTIVE'
+  const canUserDragTask = (task: KanbanTask) => {
+    if (!isSprintActive) return false
+    if (canManage) return true
+    return !!currentUserId && task.assigneeUserId === currentUserId
+  }
   const allTasks = board?.columns.flatMap(column => column.tasks) ?? []
   const selectedBacklogItemExists = userStories.some(item => item.id === selectedBacklogItemId)
   const activeBacklogItemId = selectedBacklogItemExists ? selectedBacklogItemId : (userStories[0]?.id ?? '')
@@ -1610,15 +1611,18 @@ function SprintTaskKanban({
 
             return <div
               key={column.status}
-              onDragOver={event => { if (canMoveTask) { event.preventDefault(); setDragOver(column.status) } }}
+              onDragOver={event => { if (isSprintActive) { event.preventDefault(); setDragOver(column.status) } }}
               onDragLeave={() => setDragOver(null)}
               onDrop={event => {
                 event.preventDefault()
                 setDragOver(null)
-                const payload = JSON.parse(event.dataTransfer.getData('application/json')) as { taskId: string; status: TaskStatus }
+                const payload = JSON.parse(event.dataTransfer.getData('application/json')) as { taskId: string; status: TaskStatus; assigneeUserId?: string | null }
                 if (payload.status === 'CANCELLED') return
                 if (payload.status === 'DONE' && column.status === 'TODO') return
-                if (canMoveTask && payload.status !== column.status) onTaskStatusChange(payload.taskId, column.status, (originalColumn?.tasks.length ?? column.tasks.length) + 1)
+                const canDropTask = canManage || (!!currentUserId && payload.assigneeUserId === currentUserId)
+                if (isSprintActive && canDropTask && payload.status !== column.status) {
+                  onTaskStatusChange(payload.taskId, column.status, (originalColumn?.tasks.length ?? column.tasks.length) + 1)
+                }
               }}
               className={`flex h-[620px] min-w-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition ${dragOver === column.status ? `${colors.activeBorder} ring-2 ${colors.ringColor}` : colors.borderColor}`}
             >
@@ -1627,7 +1631,7 @@ function SprintTaskKanban({
                 <span className={`grid size-8 place-items-center rounded-lg text-sm font-bold text-white shadow-sm ${colors.badgeBg}`}>{column.taskCount}</span>
               </div>
               <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto p-3 ${colors.bodyBg}`}>
-                {column.tasks.map(task => <TaskCard key={task.id} task={task} canDrag={canMoveTask} onDragStart={handleDragStart} onDragEnd={() => setDragOver(null)} onOpen={onOpenTask} />)}
+                {column.tasks.map(task => <TaskCard key={task.id} task={task} canDrag={canUserDragTask(task)} onDragStart={handleDragStart} onDragEnd={() => setDragOver(null)} onOpen={onOpenTask} />)}
                 {!column.tasks.length && <p className="rounded-xl border border-dashed border-line p-5 text-center text-sm text-muted">Thả task vào đây.</p>}
               </div>
             </div>
@@ -1663,6 +1667,7 @@ export function ScrumBoardView({
   taskDetailLoading,
   saving,
   canManage,
+  currentUserId,
   onCreateBacklog,
   onCreateSprint,
   onUpdateBacklog,
@@ -1804,6 +1809,7 @@ export function ScrumBoardView({
           progress={sprintProgress}
           importResult={taskImportResult}
           canManage={canManage}
+          currentUserId={currentUserId}
           onSelectSprint={onSelectSprint}
           onTaskStatusChange={onTaskStatusChange}
           onOpenTask={onOpenTask}

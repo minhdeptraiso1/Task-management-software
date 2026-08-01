@@ -5,11 +5,12 @@ import type { User } from '../models/user.model'
 import { getMe } from '../services/user.service'
 import { DashboardController } from './DashboardController'
 import { ProfileSettingsView } from '../views/ProfileSettingsView'
+import { UserGuidePage } from '../views/UserGuidePage'
 
 export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState('')
-  const [currentView, setCurrentView] = useState<'main' | 'settings'>('main')
+  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'guide'>('main')
 
   useEffect(() => {
     getMe()
@@ -36,8 +37,12 @@ export function RoleRouterController({ onLogout }: { onLogout: () => void }) {
     </div>
   }
 
+  if (currentView === 'guide') {
+    return <UserGuidePage onBack={() => setCurrentView('main')} />
+  }
+
   if (currentView === 'settings') {
-    return <ProfileSettingsView user={user} onBack={() => setCurrentView('main')} onSuccessLogoutAll={onLogout} />
+    return <ProfileSettingsView user={user} onBack={() => setCurrentView('main')} onSuccessLogoutAll={onLogout} onOpenGuide={() => setCurrentView('guide')} />
   }
 
   return user.role === 'ADMIN'

@@ -54,6 +54,24 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "Định dạng UUID không hợp lệ"
     ),
+    USER_CANNOT_DISABLE_SELF(
+            400110,
+            HttpStatus.BAD_REQUEST,
+            "Không thể disable chính tài khoản đang đăng nhập"
+    ),
+
+    USER_CANNOT_DISABLE_LAST_ADMIN(
+            400111,
+            HttpStatus.BAD_REQUEST,
+            "Không thể disable ADMIN cuối cùng của hệ thống"
+    ),
+
+    USER_CANNOT_DEMOTE_LAST_ADMIN(
+            400112,
+            HttpStatus.BAD_REQUEST,
+            "Không thể hạ quyền ADMIN cuối cùng của hệ thống"
+    ),
+
     CURRENT_PASSWORD_INVALID(
             400009,
             HttpStatus.BAD_REQUEST,
@@ -364,6 +382,17 @@ public enum ErrorCode {
             HttpStatus.FORBIDDEN,
             "Bạn không có quyền phân công Task"
     ),
+    ADMIN_ONLY(
+            403991,
+            HttpStatus.FORBIDDEN,
+            "Chỉ ADMIN được phép thực hiện thao tác này"
+    ),
+
+    SCHEDULER_RUN_FORBIDDEN(
+            403995,
+            HttpStatus.FORBIDDEN,
+            "Bạn không có quyền chạy scheduler thủ công"
+    ),
     // ============================================================
     // 404xxx - NOT FOUND
     // ============================================================
@@ -433,6 +462,12 @@ public enum ErrorCode {
     // ============================================================
     // 405xxx - METHOD NOT ALLOWED
     // ============================================================
+    SYSTEM_AUDIT_LOG_NOT_FOUND(
+            404991,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy system audit log"
+    ),
+
     METHOD_NOT_ALLOWED(
             405001,
             HttpStatus.METHOD_NOT_ALLOWED,
@@ -635,6 +670,12 @@ public enum ErrorCode {
             "Task hiện chưa được phân công"
     ),
 
+    USER_ROLE_CONFLICT_WITH_PROJECT_ROLE(
+            409110,
+            HttpStatus.CONFLICT,
+            "System role mới không phù hợp với vai trò hiện tại trong Project"
+    ),
+
     // ============================================================
     // 415xxx - UNSUPPORTED MEDIA TYPE
     // ============================================================
@@ -760,6 +801,12 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Không thể xử lý file Excel nhập Task"
     ),
+    TASK_IMPORT_BATCH_NOT_FOUND(
+            404901,
+            HttpStatus.NOT_FOUND,
+            "Không tìm thấy batch import Task"
+    ),
+
     TASK_COMMENT_NOT_FOUND(
             404701,
             HttpStatus.NOT_FOUND,
@@ -980,6 +1027,12 @@ public enum ErrorCode {
             "Xuất báo cáo PDF thất bại"
     ),
 
+    TASK_IMPORT_DATE_RANGE_INVALID(
+            400917,
+            HttpStatus.BAD_REQUEST,
+            "Khoảng thời gian tìm kiếm import không hợp lệ"
+    ),
+
     DASHBOARD_TASK_FILTER_INVALID(
             400901,
             HttpStatus.BAD_REQUEST,
@@ -1143,6 +1196,12 @@ public enum ErrorCode {
             500008,
             HttpStatus.INTERNAL_SERVER_ERROR,
             "Lỗi xử lý WebSocket"
+    ),
+
+    DAILY_DIGEST_SEND_FAILED(
+            500995,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Gửi daily digest thất bại"
     );
 
 

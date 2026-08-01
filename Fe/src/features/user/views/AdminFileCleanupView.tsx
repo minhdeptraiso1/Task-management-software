@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cleanupDeletedFiles, cleanupOrphanFiles } from '../../project/services/attachment.service'
+import { getFileAudits } from '../services/admin.service'
 import type { FileCleanupResult } from '../../project/models/attachment.model'
 import { Button, Input } from '../../../components/ui'
 import { ShieldAlert, Trash2, ShieldCheck, RefreshCcw, AlertTriangle } from 'lucide-react'
@@ -175,6 +176,111 @@ export function AdminFileCleanupView() {
           </div>
         </div>
       </div>
+
+      {/* System-wide File Audits Section */}
+      <AdminFileAuditList />
+    </div>
+  )
+}
+
+function AdminFileAuditList() {
+  const [fileAudits, setFileAudits] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(0)
+
+  const fetchFileAudits = async () => {
+    setLoading(true)
+    try {
+      const res = await getFileAudits(page, 10)
+      setFileAudits(res)
+    } catch {
+      // Ignore
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void Promise.resolve().then(fetchFileAudits)
+  }, [page])
+
+  const items = fileAudits?.content || []
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-ink text-sm flex items-center gap-2">
+            <ShieldCheck className="text-emerald-600" size={18} />
+            Nhật ký kiểm toán Tệp tin Toàn hệ thống (System-wide File Audits)
+          </h3>
+          <p className="text-xs text-muted mt-0.5">
+            Lịch sử thao tác tải xuống (FILE_DOWNLOADED) và xóa (FILE_DELETED) tệp tin của người dùng.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" leadingIcon={<RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />} onClick={fetchFileAudits}>
+          Tải lại
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-line/60">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-line/60">
+            <tr>
+              <th className="px-4 py-3">HÀNH ĐỘNG</th>
+              <th className="px-4 py-3">NGƯỜI THỰC HIỆN</th>
+              <th className="px-4 py-3">FILE / TÀI NGUYÊN</th>
+              <th className="px-4 py-3">IP ADDRESS</th>
+              <th className="px-4 py-3">THỜI GIAN</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line/40">
+            {items.map((log: any) => (
+              <tr key={log.id} className="hover:bg-slate-50/80">
+                <td className="px-4 py-3 font-bold">
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] ${
+                    log.action === 'FILE_DELETED'
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}>
+                    {log.action === 'FILE_DELETED' ? 'Xóa file đính kèm' : 'Tải file đính kèm'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-bold text-slate-800">{log.actorUsername || 'Hệ thống'}</p>
+                  {log.actorEmail && <p className="text-[10px] text-slate-400">{log.actorEmail}</p>}
+                </td>
+                <td className="px-4 py-3 font-mono text-[11px] text-slate-600">
+                  {log.resourceType}: {log.resourceId || 'N/A'}
+                </td>
+                <td className="px-4 py-3 font-mono text-slate-500">{log.ipAddress || 'Không có'}</td>
+                <td className="px-4 py-3 text-slate-500">{new Date(log.createdAt).toLocaleString('vi-VN')}</td>
+              </tr>
+            ))}
+            {!items.length && !loading && (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
+                  Chưa có nhật ký kiểm toán tệp tin nào.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {fileAudits && fileAudits.totalPages > 1 && (
+        <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
+          <span>Trang <strong>{page + 1}</strong> / {fileAudits.totalPages}</span>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)}>
+              Trước
+            </Button>
+            <Button variant="secondary" size="sm" disabled={page + 1 >= fileAudits.totalPages || loading} onClick={() => setPage(p => p + 1)}>
+              Sau
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

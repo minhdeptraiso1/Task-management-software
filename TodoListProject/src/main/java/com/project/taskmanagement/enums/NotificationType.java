@@ -1,6 +1,8 @@
 package com.project.taskmanagement.enums;
 
 public enum NotificationType {
+    DAILY_DIGEST,
+
     PROJECT_MEMBER_ADDED,
     PROJECT_MEMBER_REMOVED,
     PROJECT_MEMBER_ROLE_CHANGED,

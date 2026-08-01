@@ -331,6 +331,68 @@ public interface TaskRepository
             List<TaskStatus> excludedStatuses
     );
 
+    @Query("""
+            SELECT t
+            FROM Task t
+            WHERE t.dueDate BETWEEN :fromDate AND :toDate
+              AND t.status NOT IN :excludedStatuses
+              AND t.assigneeUserId IS NOT NULL
+            ORDER BY t.dueDate ASC,
+                     t.priority DESC,
+                     t.createdAt ASC
+            """)
+    List<Task> findDueSoonTasks(
+            @Param("fromDate")
+            LocalDate fromDate,
+
+            @Param("toDate")
+            LocalDate toDate,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT t
+            FROM Task t
+            WHERE t.dueDate < :today
+              AND t.status NOT IN :excludedStatuses
+            ORDER BY t.dueDate ASC,
+                     t.priority DESC,
+                     t.createdAt ASC
+            """)
+    List<Task> findOverdueTasks(
+            @Param("today")
+            LocalDate today,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses
+    );
+
+    @Query("""
+            SELECT t
+            FROM Task t
+            WHERE t.assigneeUserId = :userId
+              AND t.status NOT IN :excludedStatuses
+              AND (
+                    t.dueDate <= :dueSoonToDate
+                    OR t.status = com.project.taskmanagement.enums.TaskStatus.BLOCKED
+              )
+            ORDER BY t.dueDate ASC,
+                     t.priority DESC,
+                     t.createdAt DESC
+            """)
+    List<Task> findTasksForDailyDigest(
+            @Param("userId")
+            UUID userId,
+
+            @Param("excludedStatuses")
+            List<TaskStatus> excludedStatuses,
+
+            @Param("dueSoonToDate")
+            LocalDate dueSoonToDate
+    );
+
     List<Task> findAllByProjectId(
             UUID projectId
     );
@@ -347,6 +409,15 @@ public interface TaskRepository
     long countByProjectIdAndStatus(
             UUID projectId,
             TaskStatus status
+    );
+
+    long countByStatus(
+            TaskStatus status
+    );
+
+    long countByDueDateBeforeAndStatusNotIn(
+            LocalDate today,
+            List<TaskStatus> excludedStatuses
     );
 
     @Query("""

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Activity,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleUserRound,
@@ -10,16 +12,19 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  Trash2,
   UserX,
   UsersRound,
   HardDrive,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Button, Input, Select } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
 import { roleLabels, type User, type UserFilters, type UserPage, type UserRole } from '../models/user.model'
+import { UserGuideModal } from './UserGuideModal'
 import { AuditLogView } from './AuditLogView'
 import { AdminFileCleanupView } from './AdminFileCleanupView'
+import { AdminDashboardOverviewView } from './AdminDashboardOverviewView'
+import type { AdminDashboardResponse } from '../models/admin.model'
 
 const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
 
@@ -128,19 +133,24 @@ const tableRowVariants = {
   },
 }
 
-type AdminSection = 'members' | 'audit' | 'files'
+type AdminSection = 'overview' | 'members' | 'audit' | 'files'
 
 interface Props {
   me: User
   activeSection: AdminSection
+  adminDashboard: AdminDashboardResponse | null
+  adminDashboardLoading: boolean
+  adminDashboardError: string
+  onRefreshAdminDashboard: () => void
   users: UserPage
   auditLogs: AuditLogPage
   roles: UserRole[]
   filters: UserFilters
+  auditSummary?: any | null
   loading: boolean
   auditLoading: boolean
   auditRealtimeStatus: 'connected' | 'disconnected' | 'error'
-  error: string
+  error?: string
   auditError: string
   page: number
   auditPage: number
@@ -150,9 +160,13 @@ interface Props {
   onPageChange: (page: number) => void
   onAuditPageChange: (page: number) => void
   onAuditRefresh: () => void
+  onAuditFilterChange?: (filters: { action?: string; keyword?: string }) => void
   onCreate: () => void
   onEdit: (user: User) => void
   onDelete: (user: User) => void
+  onToggleEnable?: (user: User) => void
+  onUpdateRole?: (user: User, role: UserRole) => void
+  onViewActivities?: (user: User) => void
   onLogout: () => void
   onOpenSettings: () => void
 }
@@ -160,14 +174,18 @@ interface Props {
 export function DashboardView({
   me,
   activeSection,
+  adminDashboard,
+  adminDashboardLoading,
+  adminDashboardError,
+  onRefreshAdminDashboard,
   users,
   auditLogs,
+  auditSummary,
   roles,
   filters,
   loading,
   auditLoading,
   auditRealtimeStatus,
-  error,
   auditError,
   page,
   auditPage,
@@ -177,12 +195,17 @@ export function DashboardView({
   onPageChange,
   onAuditPageChange,
   onAuditRefresh,
+  onAuditFilterChange,
   onCreate,
   onEdit,
   onDelete,
+  onToggleEnable,
+  onUpdateRole,
+  onViewActivities,
   onLogout,
   onOpenSettings,
 }: Props) {
+  const [guideModalOpen, setGuideModalOpen] = useState(false)
   const active = users.content.filter(user => user.enabled).length
   const adminCount = users.content.filter(user => user.role === 'ADMIN').length
   const roleOptions = [
@@ -233,6 +256,14 @@ export function DashboardView({
         <span className="mb-2 block px-3 text-[11px] font-bold uppercase tracking-[.14em] text-white/35">Quản trị</span>
         <Button
           variant="ghost"
+          className={`relative w-full !justify-start ${activeSection === 'overview' ? '!bg-brand/10 !text-brand before:absolute before:bottom-1 before:left-0 before:top-1 before:w-0.5 before:bg-brand font-bold' : '!text-white/65 hover:!bg-white/5 hover:!text-white'}`}
+          leadingIcon={<LayoutDashboard size={18} />}
+          onClick={() => onSectionChange('overview')}
+        >
+          Tổng quan
+        </Button>
+        <Button
+          variant="ghost"
           className={`relative w-full !justify-start ${activeSection === 'members' ? '!bg-brand/10 !text-brand before:absolute before:bottom-1 before:left-0 before:top-1 before:w-0.5 before:bg-brand font-bold' : '!text-white/65 hover:!bg-white/5 hover:!text-white'}`}
           leadingIcon={<UsersRound size={18} />}
           onClick={() => onSectionChange('members')}
@@ -276,17 +307,9 @@ export function DashboardView({
           <span className="text-2xl tracking-[-.08em] lg:hidden">HI<span className="text-brand">CAS</span></span>
           <span className="h-6 w-px bg-white/20 lg:hidden" />
           <motion.div variants={titleVariants}>
-            <p className="text-[11px] text-white/45 font-medium">Quản trị / {activeSection === 'members' ? 'Thành viên' : activeSection === 'audit' ? 'Hoạt động' : 'Quản lý File'}</p>
-            <h1 className="text-sm font-bold">{activeSection === 'members' ? 'Quản lý thành viên' : activeSection === 'audit' ? 'Quản lý hoạt động' : 'Quản lý File & Dọn dẹp'}</h1>
+            <p className="text-[11px] text-white/45 font-medium">Quản trị / {activeSection === 'overview' ? 'Tổng quan' : activeSection === 'members' ? 'Thành viên' : activeSection === 'audit' ? 'Hoạt động' : 'Quản lý File'}</p>
+            <h1 className="text-sm font-bold">{activeSection === 'overview' ? 'Admin Dashboard Tổng quan' : activeSection === 'members' ? 'Quản lý thành viên' : activeSection === 'audit' ? 'Quản lý hoạt động' : 'Quản lý File & Dọn dẹp'}</h1>
           </motion.div>
-        </div>
-
-        <div className="flex-1 max-w-md mx-6 hidden md:block">
-          <div className="w-full flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3.5 py-2 text-left text-xs text-white/50 hover:bg-white/15 hover:text-white/80 transition-all">
-            <Search size={14} className="shrink-0 text-white/50" />
-            <span>Tìm kiếm thành viên, audit log, file... (Ctrl + K)</span>
-            <kbd className="ml-auto rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold text-white/40 border border-white/5">Ctrl K</kbd>
-          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -312,19 +335,31 @@ export function DashboardView({
         animate="animate"
         className="p-5 md:p-6 space-y-6"
       >
-        <motion.section variants={statsContainerVariants} className="grid gap-5 sm:grid-cols-3">
-          {stats.map(({ value, icon: Icon, badgeText, iconBoxClass }) => (
-            <motion.article key={badgeText} variants={statCardVariants} style={{ willChange: 'transform, opacity' }} className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex items-center gap-4">
-              <span className={`grid size-14 place-items-center rounded-2xl shrink-0 ${iconBoxClass}`}>
-                <Icon size={24} />
-              </span>
-              <div>
-                <p className="text-[11px] font-bold text-muted uppercase tracking-wider">{badgeText}</p>
-                <p className="text-3xl font-black text-ink mt-0.5">{String(value).padStart(2, '0')}</p>
-              </div>
-            </motion.article>
-          ))}
-        </motion.section>
+        {activeSection === 'overview' && (
+          <AdminDashboardOverviewView
+            dashboard={adminDashboard}
+            loading={adminDashboardLoading}
+            error={adminDashboardError}
+            onRefresh={onRefreshAdminDashboard}
+            onNavigateSection={section => onSectionChange(section)}
+          />
+        )}
+
+        {activeSection !== 'overview' && (
+          <motion.section variants={statsContainerVariants} className="grid gap-5 sm:grid-cols-3">
+            {stats.map(({ value, icon: Icon, badgeText, iconBoxClass }) => (
+              <motion.article key={badgeText} variants={statCardVariants} style={{ willChange: 'transform, opacity' }} className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex items-center gap-4">
+                <span className={`grid size-14 place-items-center rounded-2xl shrink-0 ${iconBoxClass}`}>
+                  <Icon size={24} />
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">{badgeText}</p>
+                  <p className="text-3xl font-black text-ink mt-0.5">{String(value).padStart(2, '0')}</p>
+                </div>
+              </motion.article>
+            ))}
+          </motion.section>
+        )}
 
         <div>
           {activeSection === 'members' && (
@@ -364,12 +399,6 @@ export function DashboardView({
               </div>
             </motion.div>
 
-            {error && (
-              <div className="m-5 rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-700 animate-enter">
-                {error}
-              </div>
-            )}
-
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-panel text-xs font-extrabold uppercase tracking-wider text-muted-dark border-b border-line/60">
@@ -395,9 +424,26 @@ export function DashboardView({
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="inline-block rounded-full bg-brand-soft border border-brand-line/60 px-3 py-1 text-xs font-extrabold text-brand-dark">
-                          {roleLabels[user.role] ?? user.role}
-                        </span>
+                        <div className="relative inline-flex items-center">
+                          <select
+                            className={`appearance-none rounded-full px-3.5 py-1 pr-7 text-xs font-extrabold cursor-pointer border outline-none transition-all shadow-2xs ${
+                              user.role === 'ADMIN'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/80 focus:ring-2 focus:ring-amber-400/40'
+                                : user.role === 'MANAGER'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80 focus:ring-2 focus:ring-blue-400/40'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80 focus:ring-2 focus:ring-emerald-400/40'
+                            }`}
+                            value={user.role}
+                            onChange={e => onUpdateRole?.(user, e.target.value as UserRole)}
+                          >
+                            {roles.map(r => (
+                              <option key={r} value={r} className="bg-white text-slate-800 font-bold py-1">
+                                {roleLabels[r] ?? r}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown size={13} className="pointer-events-none absolute right-2.5 text-current opacity-70" />
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-extrabold border ${
@@ -408,7 +454,17 @@ export function DashboardView({
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex justify-center gap-2">
+                        <div className="flex justify-center items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            iconOnly
+                            className="!size-9 !rounded-xl border border-blue-200/90 bg-blue-50/90 !text-blue-600 hover:!bg-blue-100 hover:!border-blue-400 hover:!text-blue-700 active:scale-95 transition-all shadow-2xs"
+                            leadingIcon={<Activity size={16} />}
+                            aria-label={`Xem nhật ký ${user.username}`}
+                            title="Xem nhật ký hoạt động"
+                            onClick={() => onViewActivities?.(user)}
+                          />
                           <Button
                             variant="ghost"
                             size="sm"
@@ -416,18 +472,22 @@ export function DashboardView({
                             className="!size-9 !rounded-xl border border-amber-200/90 bg-amber-50/90 !text-amber-600 hover:!bg-amber-100 hover:!border-amber-400 hover:!text-amber-700 active:scale-95 transition-all shadow-2xs"
                             leadingIcon={<Pencil size={16} />}
                             aria-label={`Sửa ${user.username}`}
-                            title="Sửa"
+                            title="Sửa thông tin / vai trò"
                             onClick={() => onEdit(user)}
                           />
                           <Button
                             variant="ghost"
                             size="sm"
                             iconOnly
-                            className="!size-9 !rounded-xl border border-rose-200/90 bg-rose-50/90 !text-rose-600 hover:!bg-rose-100 hover:!border-rose-400 hover:!text-rose-700 active:scale-95 transition-all shadow-2xs"
-                            leadingIcon={user.enabled ? <UserX size={16} /> : <Trash2 size={16} />}
-                            aria-label={`${user.enabled ? 'Vô hiệu hóa' : 'Xóa'} ${user.username}`}
-                            title={user.enabled ? 'Vô hiệu hóa' : 'Xóa'}
-                            onClick={() => onDelete(user)}
+                            className={`!size-9 !rounded-xl border active:scale-95 transition-all shadow-2xs ${
+                              user.enabled
+                                ? 'border-rose-200/90 bg-rose-50/90 !text-rose-600 hover:!bg-rose-100 hover:!border-rose-400 hover:!text-rose-700'
+                                : 'border-emerald-200/90 bg-emerald-50/90 !text-emerald-600 hover:!bg-emerald-100 hover:!border-emerald-400 hover:!text-emerald-700'
+                            }`}
+                            leadingIcon={user.enabled ? <UserX size={16} /> : <ShieldCheck size={16} />}
+                            aria-label={`${user.enabled ? 'Vô hiệu hóa' : 'Kích hoạt'} ${user.username}`}
+                            title={user.enabled ? 'Vô hiệu hóa tài khoản' : 'Kích hoạt tài khoản'}
+                            onClick={() => onToggleEnable ? onToggleEnable(user) : onDelete(user)}
                           />
                         </div>
                       </td>
@@ -456,6 +516,7 @@ export function DashboardView({
           <div className="mt-6">
             <AuditLogView
               logs={auditLogs}
+              summary={auditSummary}
               loading={auditLoading}
               realtimeStatus={auditRealtimeStatus}
               error={auditError}
@@ -466,6 +527,7 @@ export function DashboardView({
               }, {})}
               onPageChange={onAuditPageChange}
               onRefresh={onAuditRefresh}
+              onFilterChange={onAuditFilterChange}
             />
           </div>
         )}
@@ -478,5 +540,10 @@ export function DashboardView({
         </div>
       </motion.div>
     </main>
+
+    <UserGuideModal
+      open={guideModalOpen}
+      onClose={() => setGuideModalOpen(false)}
+    />
   </div>
 }

@@ -217,12 +217,13 @@ public class NotificationQueryServiceImpl
             NotificationView view
     ) {
         String targetUrl =
-                notificationTargetUrlResolver
-                        .resolve(
-                                view.getProjectId(),
-                                view.getEntityType(),
-                                view.getEntityId()
-                        );
+                view.getTargetUrl() != null
+                        ? view.getTargetUrl()
+                        : notificationTargetUrlResolver.resolve(
+                        view.getProjectId(),
+                        view.getEntityType(),
+                        view.getEntityId()
+                );
 
         return new NotificationResponse(
                 view.getId(),
@@ -246,12 +247,13 @@ public class NotificationQueryServiceImpl
             NotificationRecipient recipient
     ) {
         String targetUrl =
-                notificationTargetUrlResolver
-                        .resolve(
-                                notification.getProjectId(),
-                                notification.getEntityType(),
-                                notification.getEntityId()
-                        );
+                notification.getTargetUrl() != null
+                        ? notification.getTargetUrl()
+                        : notificationTargetUrlResolver.resolve(
+                        notification.getProjectId(),
+                        notification.getEntityType(),
+                        notification.getEntityId()
+                );
 
         return new NotificationResponse(
                 notification.getId(),

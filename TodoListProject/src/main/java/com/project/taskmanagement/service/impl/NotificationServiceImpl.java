@@ -1,12 +1,15 @@
 package com.project.taskmanagement.service.impl;
 
 import com.project.taskmanagement.config.CacheNames;
+import com.project.taskmanagement.dto.realtime.RealtimeNotificationPayload;
 import com.project.taskmanagement.entity.Notification;
 import com.project.taskmanagement.entity.NotificationRecipient;
 import com.project.taskmanagement.repository.NotificationRecipientRepository;
 import com.project.taskmanagement.repository.NotificationRepository;
 import com.project.taskmanagement.service.NotificationService;
+import com.project.taskmanagement.service.RealtimeNotificationService;
 import com.project.taskmanagement.service.model.NotificationCommand;
+import com.project.taskmanagement.service.notification.NotificationTargetUrlResolver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,8 +33,9 @@ public class NotificationServiceImpl
         implements NotificationService {
 
     NotificationRepository notificationRepository;
-    NotificationRecipientRepository
-            notificationRecipientRepository;
+    NotificationRecipientRepository notificationRecipientRepository;
+    RealtimeNotificationService realtimeNotificationService;
+    NotificationTargetUrlResolver notificationTargetUrlResolver;
 
     @Override
     @Transactional
@@ -48,25 +52,13 @@ public class NotificationServiceImpl
             return;
         }
 
-        /*
-         * Loại bỏ userId trùng nhau nhưng vẫn giữ
-         * đúng thứ tự ban đầu.
-         */
         LinkedHashSet<UUID> uniqueRecipients =
                 new LinkedHashSet<>(
                         command.recipientUserIds()
                 );
 
-        /*
-         * Loại bỏ recipient null nếu dữ liệu đầu vào
-         * có chứa phần tử null.
-         */
         uniqueRecipients.remove(null);
 
-        /*
-         * Không gửi thông báo cho chính người
-         * thực hiện hành động.
-         */
         if (command.actorUserId() != null) {
             uniqueRecipients.remove(
                     command.actorUserId()
@@ -77,23 +69,23 @@ public class NotificationServiceImpl
             return;
         }
 
+        if (command.dedupKey() != null
+                && notificationRepository
+                .existsByDedupKey(command.dedupKey())) {
+            return;
+        }
+
         Notification notification =
                 Notification.builder()
                         .type(command.type())
                         .title(command.title())
                         .content(command.content())
-                        .actorUserId(
-                                command.actorUserId()
-                        )
-                        .projectId(
-                                command.projectId()
-                        )
-                        .entityType(
-                                command.entityType()
-                        )
-                        .entityId(
-                                command.entityId()
-                        )
+                        .actorUserId(command.actorUserId())
+                        .projectId(command.projectId())
+                        .entityType(command.entityType())
+                        .entityId(command.entityId())
+                        .dedupKey(command.dedupKey())
+                        .targetUrl(command.targetUrl())
                         .build();
 
         Notification savedNotification =
@@ -110,7 +102,6 @@ public class NotificationServiceImpl
                 );
 
         for (UUID userId : uniqueRecipients) {
-
             NotificationRecipient recipient =
                     NotificationRecipient.builder()
                             .notificationId(
@@ -124,15 +115,69 @@ public class NotificationServiceImpl
             recipients.add(recipient);
         }
 
-        notificationRecipientRepository
-                .saveAll(recipients);
+        notificationRecipientRepository.saveAll(
+                recipients
+        );
 
-        /*
-         * Sau này gọi WebSocket tại đây.
-         *
-         * Việc gửi WebSocket nên được xử lý riêng
-         * và không làm rollback giao dịch chính
-         * nếu kết nối real-time thất bại.
-         */
+        notificationRecipientRepository.flush();
+
+        sendRealtimeNotification(
+                savedNotification,
+                uniqueRecipients
+        );
+    }
+
+    private void sendRealtimeNotification(
+            Notification notification,
+            Iterable<UUID> recipientUserIds
+    ) {
+        if (notification == null
+                || recipientUserIds == null) {
+            return;
+        }
+
+        String targetUrl =
+                notification.getTargetUrl() != null
+                        ? notification.getTargetUrl()
+                        : notificationTargetUrlResolver.resolve(
+                        notification.getProjectId(),
+                        notification.getEntityType(),
+                        notification.getEntityId()
+                );
+
+        List<UUID> userIds =
+                new ArrayList<>();
+
+        for (UUID userId : recipientUserIds) {
+            userIds.add(userId);
+        }
+
+        try {
+            for (UUID userId : userIds) {
+                RealtimeNotificationPayload payload =
+                        new RealtimeNotificationPayload(
+                                notification.getId(),
+                                notification.getType(),
+                                notification.getTitle(),
+                                notification.getContent(),
+                                notification.getProjectId(),
+                                targetUrl,
+                                notification.getActorUserId(),
+                                notification.getCreatedAt(),
+                                notificationRecipientRepository
+                                        .countUnreadByUserId(userId)
+                        );
+
+                realtimeNotificationService.sendToUser(
+                        userId,
+                        payload
+                );
+            }
+        } catch (RuntimeException ignored) {
+            /*
+             * Realtime is a fast delivery layer only.
+             * Database + REST Notification API remain the source of truth.
+             */
+        }
     }
 }

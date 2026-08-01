@@ -7,6 +7,8 @@ import com.project.taskmanagement.dto.request.user.UserSearchRequest;
 import com.project.taskmanagement.dto.response.user.UserResponse;
 import com.project.taskmanagement.dto.response.user.UserPageResponse;
 import com.project.taskmanagement.entity.User;
+import com.project.taskmanagement.enums.SystemAuditAction;
+import com.project.taskmanagement.enums.SystemAuditResourceType;
 import com.project.taskmanagement.enums.UserRole;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
@@ -14,6 +16,10 @@ import com.project.taskmanagement.mapper.UserMapper;
 import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.repository.spec.UserSpecification;
 import com.project.taskmanagement.security.CurrentUser;
+import com.project.taskmanagement.service.SystemAuditService;
+import com.project.taskmanagement.service.audit.AuditRequestHelper;
+import com.project.taskmanagement.service.model.SystemAuditCommand;
+import jakarta.servlet.http.HttpServletRequest;
 import com.project.taskmanagement.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
@@ -30,7 +36,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -41,6 +49,9 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    SystemAuditService systemAuditService;
+    AuditRequestHelper auditRequestHelper;
+    HttpServletRequest httpServletRequest;
 
     @Override
     @Cacheable(
@@ -304,6 +315,21 @@ public class UserServiceImpl implements UserService {
         User savedUser =
                 userRepository.save(user);
 
+        systemAuditService.log(
+                new SystemAuditCommand(
+                        currentActorIdOrNull(),
+                        SystemAuditAction.USER_CREATED,
+                        SystemAuditResourceType.USER,
+                        savedUser.getId(),
+                        auditRequestHelper.getClientIp(httpServletRequest),
+                        auditRequestHelper.getUserAgent(httpServletRequest),
+                        null,
+                        snapshot(savedUser),
+                        true,
+                        null
+                )
+        );
+
         return userMapper.toResponse(savedUser);
     }
 
@@ -359,5 +385,31 @@ public class UserServiceImpl implements UserService {
         }
 
         return username.trim();
+    }
+
+    private UUID currentActorIdOrNull() {
+        try {
+            return userRepository
+                    .findByUsername(CurrentUser.username())
+                    .map(User::getId)
+                    .orElse(null);
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private Map<String, Object> snapshot(User user) {
+        Map<String, Object> value =
+                new LinkedHashMap<>();
+
+        value.put("id", user.getId());
+        value.put("username", user.getUsername());
+        value.put("email", user.getEmail());
+        value.put("role", user.getRole());
+        value.put("enabled", user.isEnabled());
+        value.put("createdAt", user.getCreatedAt());
+        value.put("updatedAt", user.getUpdatedAt());
+
+        return value;
     }
 }

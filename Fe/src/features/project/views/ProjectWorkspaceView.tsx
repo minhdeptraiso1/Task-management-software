@@ -22,11 +22,13 @@ import {
   User as UserIcon,
   UserPlus,
   UsersRound,
+  FileSpreadsheet,
   RotateCcw,
   Paperclip,
 } from 'lucide-react'
 import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
+import { UserGuideModal } from '../../user/views/UserGuideModal'
 import {
   entityTypeLabels,
   projectActivityLabels,
@@ -99,6 +101,7 @@ import { ScrumBoardView } from './ScrumBoardView'
 import { PersonalDashboardController } from '../../dashboard/controllers/PersonalDashboardController'
 import { ProjectDashboardTab } from './ProjectDashboardTab'
 import { ProjectAttachmentsTab } from './ProjectAttachmentsTab'
+import { ProjectTaskImportHistoryTab } from './ProjectTaskImportHistoryTab'
 import { TimesheetView } from '../components/TimesheetView'
 import { BugView } from '../components/BugView'
 import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
@@ -141,7 +144,7 @@ interface Props {
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -163,7 +166,7 @@ interface Props {
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -574,6 +577,8 @@ export function ProjectWorkspaceView({
 
   const canCreateProject = user.role === 'MANAGER'
   const canManageMembers = selectedProject?.currentUserRole === 'OWNER' || selectedProject?.currentUserRole === 'PROJECT_MANAGER'
+  const canManageTasks = !!selectedProject?.currentUserRole
+  const [guideModalOpen, setGuideModalOpen] = useState(false)
 
   const keywordStr = filters.keyword?.trim() || ''
   const dropdownOptions = keywordStr
@@ -937,6 +942,9 @@ export function ProjectWorkspaceView({
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
               </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'imports' ? '!bg-emerald-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FileSpreadsheet size={16} />} onClick={() => onTabChange('imports')}>Lịch sử Import</Button>
+              </motion.div>
             </div>
           </div>
 
@@ -1087,7 +1095,8 @@ export function ProjectWorkspaceView({
               loading={detailLoading}
               taskDetailLoading={taskDetailLoading}
               saving={saving}
-              canManage={canManageMembers}
+              canManage={canManageTasks}
+              currentUserId={user.id}
               onCreateBacklog={onCreateBacklog}
               onCreateSprint={onCreateSprint}
               onUpdateBacklog={onUpdateBacklog}
@@ -1331,10 +1340,10 @@ export function ProjectWorkspaceView({
                     >
                       <button type="button" className="flex-1 text-left" onClick={() => onReadNotification(item.id)}>
                         <div className="flex items-center gap-2 font-semibold">
-                          {item.title}
+                          <span>{item.title ? item.title.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : ''}</span>
                           {!item.read && <span className="size-2 rounded-full bg-brand" />}
                         </div>
-                        <p className="mt-1 text-sm text-muted">{item.content}</p>
+                        <p className="mt-1 text-sm text-muted">{item.content ? item.content.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : ''}</p>
                         <p className="mt-2 text-xs text-muted font-medium">{formatDate(item.createdAt)}</p>
                       </button>
                       <Button
@@ -1376,6 +1385,10 @@ export function ProjectWorkspaceView({
 
             {activeTab === 'attachments' && (
               <ProjectAttachmentsTab projectId={selectedProject.id} />
+            )}
+
+            {activeTab === 'imports' && (
+              <ProjectTaskImportHistoryTab projectId={selectedProject.id} />
             )}
           </div>
           </motion.div>
@@ -1444,6 +1457,11 @@ export function ProjectWorkspaceView({
         </div>
       </Modal>
     )}
+
+    <UserGuideModal
+      open={guideModalOpen}
+      onClose={() => setGuideModalOpen(false)}
+    />
   </div>
 }
 

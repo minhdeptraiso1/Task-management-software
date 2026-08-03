@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
-import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, GripVertical, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter, CheckCircle2, ListTodo, Ban, FileSpreadsheet, FileText } from 'lucide-react'
+import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, Import, ListPlus, MessageSquare, Pencil, Play, Plus, Save, Target, Trash2, UserRound, X, BarChart3, CheckCheck, ShieldAlert, AlertTriangle, Filter, CheckCircle2, ListTodo, Ban, FileSpreadsheet, FileText } from 'lucide-react'
 import { 
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart 
 } from 'recharts'

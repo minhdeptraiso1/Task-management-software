@@ -2,6 +2,7 @@ package com.project.taskmanagement.security.websocket;
 
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.repository.UserRepository;
+import com.project.taskmanagement.repository.TokenSessionRepository;
 import com.project.taskmanagement.security.JwtTokenProvider;
 import com.project.taskmanagement.security.TokenBlacklistService;
 import io.jsonwebtoken.Claims;
@@ -36,6 +37,7 @@ public class JwtHandshakeInterceptor
     JwtTokenProvider jwtTokenProvider;
     TokenBlacklistService tokenBlacklistService;
     UserRepository userRepository;
+    TokenSessionRepository tokenSessionRepository;
 
     @Override
     public boolean beforeHandshake(
@@ -62,6 +64,18 @@ public class JwtHandshakeInterceptor
 
             UUID userId =
                     jwtTokenProvider.getUserId(token);
+
+            String accessTokenJti = claims.getId();
+
+            if (accessTokenJti == null
+                    || accessTokenJti.isBlank()
+                    || !tokenSessionRepository
+                    .existsByUserIdAndAccessTokenJtiAndRevokedFalse(
+                            userId,
+                            accessTokenJti
+                    )) {
+                return false;
+            }
 
             User user =
                     userRepository

@@ -19,6 +19,7 @@ import com.project.taskmanagement.security.CurrentUser;
 import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.model.SystemAuditCommand;
+import com.project.taskmanagement.service.validation.TextInputSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import com.project.taskmanagement.service.UserService;
 import jakarta.transaction.Transactional;
@@ -84,7 +85,7 @@ public class UserServiceImpl implements UserService {
     ) {
         String keyword =
                 request != null
-                        ? request.keyword()
+                        ? TextInputSanitizer.normalizeKeyword(request.keyword())
                         : null;
 
         UserRole role =
@@ -129,7 +130,7 @@ public class UserServiceImpl implements UserService {
     ) {
         String keyword =
                 request != null
-                        ? request.keyword()
+                        ? TextInputSanitizer.normalizeKeyword(request.keyword())
                         : null;
 
         UserRole role =

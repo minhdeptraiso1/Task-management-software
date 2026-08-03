@@ -699,6 +699,12 @@ public enum ErrorCode {
             HttpStatus.TOO_MANY_REQUESTS,
             "Bạn đăng nhập sai quá nhiều lần, vui lòng thử lại sau"
     ),
+
+    RATE_LIMIT_EXCEEDED(
+            429003,
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Bạn thao tác quá nhanh, vui lòng thử lại sau"
+    ),
     // ============================================================
     // Lỗi tổng hợp sắp xếp sau
     // ============================================================
@@ -1073,6 +1079,12 @@ public enum ErrorCode {
             400986,
             HttpStatus.BAD_REQUEST,
             "Loại đối tượng đính kèm không được hỗ trợ"
+    ),
+
+    FILE_MIME_TYPE_INVALID(
+            400987,
+            HttpStatus.BAD_REQUEST,
+            "MIME type của tệp tin không hợp lệ"
     ),
 
     FILE_MIME_TYPE_NOT_ALLOWED(

@@ -21,6 +21,7 @@ public class WebSocketConfig
 
     JwtHandshakeInterceptor jwtHandshakeInterceptor;
     JwtHandshakeHandler jwtHandshakeHandler;
+    CorsProperties corsProperties;
 
     @Override
     public void configureMessageBroker(
@@ -45,12 +46,12 @@ public class WebSocketConfig
             StompEndpointRegistry registry
     ) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(corsProperties.allowedOriginArray())
                 .addInterceptors(jwtHandshakeInterceptor)
                 .setHandshakeHandler(jwtHandshakeHandler);
 
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins(corsProperties.allowedOriginArray())
                 .addInterceptors(jwtHandshakeInterceptor)
                 .setHandshakeHandler(jwtHandshakeHandler)
                 .withSockJS();

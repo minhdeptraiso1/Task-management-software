@@ -14,6 +14,7 @@ import com.project.taskmanagement.repository.TokenSessionRepository;
 import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.security.JwtTokenProvider;
 import com.project.taskmanagement.security.LoginRateLimiter;
+import com.project.taskmanagement.security.TokenHashHelper;
 import com.project.taskmanagement.security.TokenBlacklistService;
 import com.project.taskmanagement.service.AuditLogService;
 import com.project.taskmanagement.service.AuthService;
@@ -50,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
     JwtTokenProvider jwtTokenProvider;
     UserRepository userRepository;
     TokenSessionRepository tokenSessionRepository;
+    TokenHashHelper tokenHashHelper;
     TokenBlacklistService tokenBlacklistService;
     LoginRateLimiter loginRateLimiter;
     AuditLogService auditLogService;
@@ -106,21 +108,32 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        String accessTokenJti =
+                UUID.randomUUID().toString();
+
+        String refreshTokenJti =
+                UUID.randomUUID().toString();
+
         TokenSession session = TokenSession.builder()
                 .userId(user.getId())
+                .accessTokenJti(accessTokenJti)
+                .refreshTokenJti(refreshTokenJti)
                 .revoked(false)
                 .expiredAt(
-                        Instant.now()
-                                .plus(7, ChronoUnit.DAYS)
+                        jwtTokenProvider
+                                .getRefreshTokenExpiry()
                 )
                 .build();
 
         String refreshToken =
                 jwtTokenProvider.generateRefreshToken(
-                        session.getId()
+                        session.getId(),
+                        refreshTokenJti
                 );
 
-        session.setRefreshToken(refreshToken);
+        session.setRefreshTokenHash(
+                tokenHashHelper.sha256(refreshToken)
+        );
 
         tokenSessionRepository.save(session);
 
@@ -128,7 +141,8 @@ public class AuthServiceImpl implements AuthService {
                 jwtTokenProvider.generateAccessToken(
                         user.getId(),
                         user.getUsername(),
-                        user.getRole().name()
+                        user.getRole().name(),
+                        accessTokenJti
                 );
 
         auditLogService.log(
@@ -163,10 +177,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse refresh(String refreshToken) {
 
         UUID sessionId;
+        String refreshTokenJti;
 
         try {
             sessionId =
@@ -174,6 +189,9 @@ public class AuthServiceImpl implements AuthService {
                             .getSessionIdFromRefreshToken(
                                     refreshToken
                             );
+
+            refreshTokenJti =
+                    jwtTokenProvider.getJti(refreshToken);
 
         } catch (ExpiredJwtException ex) {
             throw new BusinessException(
@@ -187,25 +205,27 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        String refreshTokenHash =
+                tokenHashHelper.sha256(refreshToken);
+
         TokenSession session =
-                tokenSessionRepository.findById(sessionId)
+                tokenSessionRepository
+                        .findByIdAndRefreshTokenHashAndRevokedFalse(
+                                sessionId,
+                                refreshTokenHash
+                        )
                         .orElseThrow(() ->
                                 new BusinessException(
                                         ErrorCode.REFRESH_TOKEN_INVALID
                                 )
                         );
 
-        if (!refreshToken.equals(
-                session.getRefreshToken()
-        )) {
+        if (session.getRefreshTokenJti() == null
+                || refreshTokenJti == null
+                || !session.getRefreshTokenJti()
+                .equals(refreshTokenJti)) {
             throw new BusinessException(
                     ErrorCode.REFRESH_TOKEN_INVALID
-            );
-        }
-
-        if (session.isRevoked()) {
-            throw new BusinessException(
-                    ErrorCode.TOKEN_REVOKED
             );
         }
 
@@ -230,11 +250,45 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        session.revoke(Instant.now());
+        tokenSessionRepository.save(session);
+
+        String newAccessTokenJti =
+                UUID.randomUUID().toString();
+
+        String newRefreshTokenJti =
+                UUID.randomUUID().toString();
+
+        TokenSession newSession =
+                TokenSession.builder()
+                        .userId(user.getId())
+                        .accessTokenJti(newAccessTokenJti)
+                        .refreshTokenJti(newRefreshTokenJti)
+                        .revoked(false)
+                        .expiredAt(
+                                jwtTokenProvider
+                                        .getRefreshTokenExpiry()
+                        )
+                        .build();
+
+        String newRefreshToken =
+                jwtTokenProvider.generateRefreshToken(
+                        newSession.getId(),
+                        newRefreshTokenJti
+                );
+
+        newSession.setRefreshTokenHash(
+                tokenHashHelper.sha256(newRefreshToken)
+        );
+
+        tokenSessionRepository.save(newSession);
+
         String newAccessToken =
                 jwtTokenProvider.generateAccessToken(
                         user.getId(),
                         user.getUsername(),
-                        user.getRole().name()
+                        user.getRole().name(),
+                        newAccessTokenJti
                 );
 
         systemAuditService.log(
@@ -249,6 +303,8 @@ public class AuthServiceImpl implements AuthService {
                         Map.of(
                                 "sessionId",
                                 session.getId(),
+                                "newSessionId",
+                                newSession.getId(),
                                 "userId",
                                 user.getId()
                         ),
@@ -259,7 +315,7 @@ public class AuthServiceImpl implements AuthService {
 
         return new AuthResponse(
                 newAccessToken,
-                refreshToken
+                newRefreshToken
         );
     }
 
@@ -299,10 +355,15 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        String refreshTokenHash =
+                tokenHashHelper.sha256(refreshToken);
+
         tokenSessionRepository
-                .findByRefreshToken(refreshToken)
+                .findByRefreshTokenHashAndRevokedFalse(
+                        refreshTokenHash
+                )
                 .ifPresent(session -> {
-                    session.setRevoked(true);
+                    session.revoke(Instant.now());
                     tokenSessionRepository.save(session);
                 });
 
@@ -365,15 +426,21 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+        Instant revokedAt =
+                Instant.now();
+
         user.setPassword(
                 passwordEncoder.encode(request.newPassword())
         );
-        user.setLogoutAllAt(Instant.now());
+        user.setLogoutAllAt(revokedAt);
 
         userRepository.save(user);
 
         // Thu hồi tất cả refresh token cũ.
-        tokenSessionRepository.revokeAllByUserId(user.getId());
+        tokenSessionRepository.revokeAllByUserId(
+                user.getId(),
+                revokedAt
+        );
 
         auditLogService.log(
                 user.getId(),
@@ -443,14 +510,20 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Thu hồi toàn bộ refresh token của user.
-        tokenSessionRepository.revokeAllByUserId(userId);
+        Instant revokedAt =
+                Instant.now();
+
+        tokenSessionRepository.revokeAllByUserId(
+                userId,
+                revokedAt
+        );
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new BusinessException(ErrorCode.USER_NOT_FOUND)
                 );
 
-        user.setLogoutAllAt(Instant.now());
+        user.setLogoutAllAt(revokedAt);
         userRepository.save(user);
 
         // Đưa access token hiện tại vào blacklist

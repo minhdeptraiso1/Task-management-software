@@ -1,4 +1,4 @@
-import { apiRequest, tokenStore } from '../../../services/apiClient'
+import { apiRequest, broadcastAuthExpired, tokenStore } from '../../../services/apiClient'
 import { endpoints } from '../../../services/endpoints'
 import type { AuthTokens, LoginCredentials, ChangePasswordData } from '../models/auth.model'
 
@@ -10,7 +10,10 @@ export async function login(credentials: LoginCredentials) {
 export async function logout() {
   const refreshToken = tokenStore.refresh()
   try { if (refreshToken) await apiRequest<void>(endpoints.logout, { method: 'POST', body: JSON.stringify({ refreshToken }) }, false) }
-  finally { tokenStore.clear() }
+  finally {
+    tokenStore.clear()
+    broadcastAuthExpired('logout')
+  }
 }
 
 export async function changePassword(passwordData: ChangePasswordData) {
@@ -20,4 +23,5 @@ export async function changePassword(passwordData: ChangePasswordData) {
 export async function logoutAll() {
   await apiRequest<void>(endpoints.logoutAll, { method: 'POST' })
   tokenStore.clear()
+  broadcastAuthExpired('logout-all')
 }

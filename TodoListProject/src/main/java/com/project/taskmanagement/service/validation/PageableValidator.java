@@ -18,8 +18,10 @@ public final class PageableValidator {
             return;
         }
 
-        if (pageable.getPageSize() > MAX_PAGE_SIZE) {
-            throw new BusinessException(ErrorCode.FILTER_PAGE_SIZE_INVALID);
+        validate(pageable);
+
+        if (allowedSortFields == null || allowedSortFields.isEmpty()) {
+            return;
         }
 
         pageable.getSort().forEach(order -> {
@@ -27,5 +29,19 @@ public final class PageableValidator {
                 throw new BusinessException(ErrorCode.FILTER_SORT_FIELD_INVALID);
             }
         });
+    }
+
+    public static void validate(Pageable pageable) {
+        if (pageable == null) {
+            return;
+        }
+
+        if (pageable.getPageSize() > MAX_PAGE_SIZE) {
+            throw new BusinessException(ErrorCode.FILTER_PAGE_SIZE_INVALID);
+        }
+
+        if (pageable.getPageSize() < 1) {
+            throw new BusinessException(ErrorCode.FILTER_PAGE_SIZE_INVALID);
+        }
     }
 }

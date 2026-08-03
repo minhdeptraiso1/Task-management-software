@@ -80,7 +80,7 @@ public class FileSecurityValidator {
 
         Set<String> allowedMimeTypes = ALLOWED_MIME_BY_EXTENSION.getOrDefault(extension, Set.of());
         if (!allowedMimeTypes.contains(contentType)) {
-            throw new BusinessException(ErrorCode.FILE_MIME_TYPE_NOT_ALLOWED);
+            throw new BusinessException(ErrorCode.FILE_MIME_TYPE_INVALID);
         }
     }
 

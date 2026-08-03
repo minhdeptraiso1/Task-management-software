@@ -9,7 +9,10 @@ import com.project.taskmanagement.dto.response.admin.SystemAuditLogPageResponse;
 import com.project.taskmanagement.dto.response.admin.SystemAuditLogResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.AdminAuditManagementService;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -35,11 +39,18 @@ import java.util.UUID;
 )
 public class AdminAuditManagementController {
 
+    private static final Set<String> AUDIT_SORT_FIELDS =
+            Set.of("createdAt", "updatedAt", "actorUserId", "action", "resourceType", "resourceId", "success");
+
+    private static final Set<String> IMPORT_AUDIT_SORT_FIELDS =
+            Set.of("createdAt", "updatedAt", "status", "originalFileName", "totalRows", "successRows", "failedRows", "startedAt", "completedAt");
+
     AdminAuditManagementService adminAuditManagementService;
 
     @Operation(summary = "Danh sach system audit log")
     @GetMapping("/audit-logs")
     public ApiResponseSever<SystemAuditLogPageResponse> getAuditLogs(
+            @Valid
             @ParameterObject
             SystemAuditSearchRequest request,
 
@@ -50,6 +61,9 @@ public class AdminAuditManagementController {
             @ParameterObject
             Pageable pageable
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+        PageableValidator.validate(pageable, AUDIT_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 adminAuditManagementService.getAuditLogs(
                         request,
@@ -61,9 +75,12 @@ public class AdminAuditManagementController {
     @Operation(summary = "Tong hop system audit log")
     @GetMapping("/audit-logs/summary")
     public ApiResponseSever<AdminAuditSummaryResponse> getAuditSummary(
+            @Valid
             @ParameterObject
             SystemAuditSearchRequest request
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+
         return ApiResponseSever.ok(
                 adminAuditManagementService.getAuditSummary(request)
         );
@@ -83,6 +100,7 @@ public class AdminAuditManagementController {
     @Operation(summary = "Danh sach import audit")
     @GetMapping("/import-audits")
     public ApiResponseSever<AdminImportAuditPageResponse> getImportAudits(
+            @Valid
             @ParameterObject
             AdminImportAuditSearchRequest request,
 
@@ -93,6 +111,9 @@ public class AdminAuditManagementController {
             @ParameterObject
             Pageable pageable
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+        PageableValidator.validate(pageable, IMPORT_AUDIT_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 adminAuditManagementService.getImportAudits(
                         request,
@@ -104,6 +125,7 @@ public class AdminAuditManagementController {
     @Operation(summary = "Danh sach file audit")
     @GetMapping("/file-audits")
     public ApiResponseSever<SystemAuditLogPageResponse> getFileAudits(
+            @Valid
             @ParameterObject
             AdminFileAuditSearchRequest request,
 
@@ -114,6 +136,9 @@ public class AdminAuditManagementController {
             @ParameterObject
             Pageable pageable
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+        PageableValidator.validate(pageable, AUDIT_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 adminAuditManagementService.getFileAudits(
                         request,
@@ -128,6 +153,7 @@ public class AdminAuditManagementController {
             @PathVariable
             UUID userId,
 
+            @Valid
             @ParameterObject
             SystemAuditSearchRequest request,
 
@@ -138,6 +164,9 @@ public class AdminAuditManagementController {
             @ParameterObject
             Pageable pageable
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+        PageableValidator.validate(pageable, AUDIT_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 adminAuditManagementService.getUserActivities(
                         userId,

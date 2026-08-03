@@ -1,19 +1,18 @@
 package com.project.taskmanagement.security;
 
+import com.project.taskmanagement.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
@@ -34,27 +33,16 @@ public class JwtTokenProvider {
             "REFRESH";
 
     Key key;
-    long accessTokenExpiration;
-    long refreshTokenExpiration;
+    JwtProperties jwtProperties;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret}") String secret,
-
-            @Value("${jwt.access-token-expiration}")
-            long accessTokenExpiration,
-
-            @Value("${jwt.refresh-token-expiration}")
-            long refreshTokenExpiration
+            JwtProperties jwtProperties
     ) {
+        this.jwtProperties = jwtProperties;
         this.key = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
+                jwtProperties.getSecret()
+                        .getBytes(StandardCharsets.UTF_8)
         );
-
-        this.accessTokenExpiration =
-                accessTokenExpiration * 1000;
-
-        this.refreshTokenExpiration =
-                refreshTokenExpiration * 1000;
     }
 
     // ===================== ACCESS TOKEN =====================
@@ -62,52 +50,56 @@ public class JwtTokenProvider {
     public String generateAccessToken(
             UUID userId,
             String username,
-            String role
+            String role,
+            String jti
     ) {
-        Date now = new Date();
+        Instant now = Instant.now();
 
-        Date expiry = new Date(
-                now.getTime() + accessTokenExpiration
-        );
+        Instant expiry =
+                now.plus(
+                        jwtProperties.getAccessTokenExpirationMinutes(),
+                        ChronoUnit.MINUTES
+                );
 
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .claim("username", username)
                 .claim("role", role)
+                .setId(jti)
                 .claim(
                         TOKEN_TYPE_CLAIM,
                         ACCESS_TOKEN_TYPE
                 )
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(
-                        key,
-                        SignatureAlgorithm.HS256
-                )
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiry))
+                .signWith(key)
                 .compact();
     }
 
     // ===================== REFRESH TOKEN =====================
 
-    public String generateRefreshToken(UUID sessionId) {
-        Date now = new Date();
+    public String generateRefreshToken(
+            UUID sessionId,
+            String jti
+    ) {
+        Instant now = Instant.now();
 
-        Date expiry = new Date(
-                now.getTime() + refreshTokenExpiration
-        );
+        Instant expiry =
+                now.plus(
+                        jwtProperties.getRefreshTokenExpirationDays(),
+                        ChronoUnit.DAYS
+                );
 
         return Jwts.builder()
                 .setSubject(sessionId.toString())
+                .setId(jti)
                 .claim(
                         TOKEN_TYPE_CLAIM,
                         REFRESH_TOKEN_TYPE
                 )
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(
-                        key,
-                        SignatureAlgorithm.HS256
-                )
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(expiry))
+                .signWith(key)
                 .compact();
     }
 
@@ -167,6 +159,11 @@ public class JwtTokenProvider {
         );
     }
 
+    public String getJti(String token) {
+        return getClaims(token)
+                .getId();
+    }
+
     // ===================== REFRESH TOKEN HELPERS =====================
 
     public UUID getSessionIdFromRefreshToken(
@@ -186,7 +183,7 @@ public class JwtTokenProvider {
 
     // ===================== COMMON HELPERS =====================
 
-    public Duration getRemainingDuration(String token) {
+    public java.time.Duration getRemainingDuration(String token) {
         Date expiration = getClaims(token)
                 .getExpiration();
 
@@ -195,12 +192,20 @@ public class JwtTokenProvider {
                         - Instant.now().toEpochMilli();
 
         if (remainingMillis <= 0) {
-            return Duration.ZERO;
+            return java.time.Duration.ZERO;
         }
 
-        return Duration.ofMillis(
+        return java.time.Duration.ofMillis(
                 remainingMillis
         );
+    }
+
+    public Instant getRefreshTokenExpiry() {
+        return Instant.now()
+                .plus(
+                        jwtProperties.getRefreshTokenExpirationDays(),
+                        ChronoUnit.DAYS
+                );
     }
 
     private void validateTokenType(

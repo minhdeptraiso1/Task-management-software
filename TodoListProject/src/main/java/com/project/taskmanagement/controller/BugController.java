@@ -64,6 +64,7 @@ public class BugController {
             @PathVariable
             UUID projectId,
 
+            @Valid
             @ParameterObject
             BugSearchRequest request,
 

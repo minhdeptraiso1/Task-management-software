@@ -70,6 +70,7 @@ public class TaskController {
             @PathVariable
             UUID projectId,
 
+            @Valid
             @ParameterObject
             TaskSearchRequest request,
 

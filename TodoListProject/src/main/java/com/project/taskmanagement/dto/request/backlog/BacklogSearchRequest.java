@@ -4,6 +4,7 @@ import com.project.taskmanagement.enums.BacklogItemStatus;
 import com.project.taskmanagement.enums.BacklogItemType;
 import com.project.taskmanagement.enums.BacklogPriority;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ public record BacklogSearchRequest(
         @Schema(
                 description = "Tìm theo tiêu đề hoặc mô tả"
         )
+        @Size(max = 150, message = "Từ khóa tìm kiếm backlog không được vượt quá 150 ký tự")
         String keyword,
 
         BacklogItemStatus status,

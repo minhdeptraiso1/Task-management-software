@@ -35,7 +35,19 @@ public class TokenSession extends BaseIdEntity {
             nullable = false,
             columnDefinition = "TEXT"
     )
-    String refreshToken;
+    String refreshTokenHash;
+
+    @Column(
+            name = "access_token_jti",
+            length = 100
+    )
+    String accessTokenJti;
+
+    @Column(
+            name = "refresh_token_jti",
+            length = 100
+    )
+    String refreshTokenJti;
 
     @Builder.Default
     @Column(
@@ -44,9 +56,19 @@ public class TokenSession extends BaseIdEntity {
     )
     boolean revoked = false;
 
+    @Column(name = "revoked_at")
+    Instant revokedAt;
+
     @Column(
             name = "expired_at",
             nullable = false
     )
     Instant expiredAt;
+
+    public void revoke(
+            Instant revokedAt
+    ) {
+        this.revoked = true;
+        this.revokedAt = revokedAt;
+    }
 }

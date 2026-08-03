@@ -15,12 +15,14 @@ interface UserGuideModalProps {
 function KanbanInteractiveSimulator() {
   const [simTasks, setSimTasks] = useState([
     { id: 'TASK-101', title: 'Xây dựng api đăng nhập', project: 'qwe', status: 'TODO', priority: 'Vừa', tag: 'DEV', isOverdue: true, logged: '0h/1h', assignee: 'Chưa giao' },
-    { id: 'TASK-102', title: 'Đi mua sting', project: 'qwe', status: 'TODO', priority: 'Vừa', tag: 'DEV', isOverdue: false, logged: '0h/0h', assignee: 'Chưa giao' },
     { id: 'TASK-103', title: 'Xây dựng product backlog', project: 'qwe', status: 'TODO', priority: 'Vừa', tag: 'DEV', isOverdue: false, logged: '0h/1h', assignee: 'Chưa giao' },
-    { id: 'TASK-104', title: 'Mua cơm gà', project: 'qwe', status: 'IN_PROGRESS', priority: 'Vừa', tag: 'DEV', isOverdue: false, logged: '0h/0h', assignee: 'Chưa giao' },
+    { id: 'TASK-108', title: 'Tích hợp refresh token tự động', project: 'qwe', status: 'IN_PROGRESS', priority: 'Cao', tag: 'BE', isOverdue: false, logged: '2h/4h', assignee: 'Dev_Minh' },
     { id: 'TASK-105', title: 'Xây dựng api đăng nhập OAuth', project: 'qwe', status: 'WAITING', priority: 'Vừa', tag: 'DEV', isOverdue: true, logged: '1h 30m/1h', assignee: 'Tuấn Anh' },
     { id: 'TASK-106', title: 'Kiểm thử giao diện Scrum Board', project: 'qwe', status: 'IN_REVIEW', priority: 'Cao', tag: 'QA', isOverdue: false, logged: '2h/3h', assignee: 'Minh' },
+    { id: 'TASK-109', title: 'Rà soát popup import Excel', project: 'qwe', status: 'IN_REVIEW', priority: 'Vừa', tag: 'QA', isOverdue: false, logged: '1h/2h', assignee: 'QA_Linh' },
     { id: 'TASK-107', title: 'Tạo cơ sở dữ liệu dự án', project: 'qwe', status: 'DONE', priority: 'Vừa', tag: 'DEV', isOverdue: false, logged: '2h/2h', assignee: 'Hoàng' },
+    { id: 'TASK-110', title: 'Hoàn thiện audit log realtime', project: 'qwe', status: 'DONE', priority: 'Thấp', tag: 'BE', isOverdue: false, logged: '3h/3h', assignee: 'Dev_Tuấn' },
+    { id: 'TASK-111', title: 'Bỏ hiệu ứng loading cũ', project: 'qwe', status: 'CANCELLED', priority: 'Thấp', tag: 'UI', isOverdue: false, logged: '0h/1h', assignee: 'PM' },
   ])
 
   const moveTask = (id: string, targetStatus: string) => {
@@ -37,7 +39,7 @@ function KanbanInteractiveSimulator() {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3 shadow-xs overflow-x-auto">
       <div className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs font-bold text-slate-700">
-        <span>GIAO DIỆN BẢNG KANBAN THỰC TẾ (Bấm nút thử để trải nghiệm)</span>
+        <span>GIAO DIỆN BẢNG KANBAN THỰC TẾ</span>
         <span className="text-emerald-600 font-mono text-[11px]">Realtime Active</span>
       </div>
 
@@ -149,9 +151,24 @@ function KanbanInteractiveSimulator() {
             <span>Đã hủy</span>
             <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] text-white">{cancelledCount}</span>
           </div>
-          <div className="rounded-xl border border-dashed border-rose-200 bg-white/70 p-4 text-center text-[11px] text-slate-400">
-            Thả task vào đây.
-          </div>
+          {simTasks.filter(t => t.status === 'CANCELLED').length === 0 ? (
+            <div className="rounded-xl border border-dashed border-rose-200 bg-white/70 p-4 text-center text-[11px] text-slate-400">
+              Thả task vào đây.
+            </div>
+          ) : (
+            simTasks.filter(t => t.status === 'CANCELLED').map(t => (
+              <div key={t.id} className="rounded-xl border border-rose-300 bg-white p-2.5 space-y-1.5 shadow-xs text-xs">
+                <span className="rounded bg-rose-50 px-1 py-0.5 font-bold text-rose-600 text-[9px]">ĐÃ HỦY</span>
+                <p className="font-bold text-slate-500 line-through leading-tight">{t.title}</p>
+                <button
+                  onClick={() => moveTask(t.id, 'TODO')}
+                  className="w-full rounded bg-slate-700 py-1 text-[10px] font-bold text-white hover:bg-slate-800"
+                >
+                  Khôi phục về Cần làm
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -230,16 +247,13 @@ export function UserGuideModal({ open, onClose }: UserGuideModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100">
+      <div className="relative flex max-h-[92vh] w-[96vw] max-w-[1280px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-100">
         
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-900 px-6 py-5 text-white">
           <div>
-            <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-              Cẩm Nang Hướng Dẫn Sử Dụng Dự Án (Từng Bước Cho Người Mới)
-              <span className="rounded-full bg-teal-500/20 px-2.5 py-0.5 text-xs font-extrabold text-teal-300 border border-teal-500/30">
-                Full Beginner Guide
-              </span>
+            <h2 className="text-xl font-black tracking-tight">
+              Cẩm Nang Hướng Dẫn Sử Dụng Dự Án
             </h2>
             <p className="text-xs text-slate-300 mt-1">Đọc xong là thành thạo 100% mọi thao tác: Tạo task, Kéo thả Kanban, Import Excel, Time Log</p>
           </div>
@@ -261,7 +275,7 @@ export function UserGuideModal({ open, onClose }: UserGuideModalProps) {
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            Quy Trình Thao Tác Chi Tiết (7 Bước)
+            Quy Trình Thao Tác Chi Tiết
           </button>
           <button
             onClick={() => setActiveTab('simulator')}
@@ -271,7 +285,7 @@ export function UserGuideModal({ open, onClose }: UserGuideModalProps) {
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            Giả Lập Thao Tác Kéo Thả (Demo Live)
+            Giả Lập Thao Tác Kéo Thả
           </button>
           <button
             onClick={() => setActiveTab('forms')}
@@ -291,7 +305,7 @@ export function UserGuideModal({ open, onClose }: UserGuideModalProps) {
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            Quyền Hạn Từng Vai Trò (Roles)
+            Quyền Hạn Từng Vai Trò
           </button>
         </div>
 

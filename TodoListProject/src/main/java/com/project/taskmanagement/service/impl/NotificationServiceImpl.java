@@ -9,6 +9,7 @@ import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.RealtimeNotificationService;
 import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.model.NotificationCommand;
+import com.project.taskmanagement.service.notification.NotificationRecipientResolver;
 import com.project.taskmanagement.service.notification.NotificationTargetUrlResolver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,6 +34,7 @@ public class NotificationServiceImpl
     NotificationRepository notificationRepository;
     NotificationRecipientRepository notificationRecipientRepository;
     RealtimeNotificationService realtimeNotificationService;
+    NotificationRecipientResolver notificationRecipientResolver;
     NotificationTargetUrlResolver notificationTargetUrlResolver;
     CacheEvictService cacheEvictService;
 
@@ -46,23 +47,12 @@ public class NotificationServiceImpl
             return;
         }
 
-        if (command.recipientUserIds() == null
-                || command.recipientUserIds().isEmpty()) {
-            return;
-        }
-
-        LinkedHashSet<UUID> uniqueRecipients =
-                new LinkedHashSet<>(
-                        command.recipientUserIds()
-                );
-
-        uniqueRecipients.remove(null);
-
-        if (command.actorUserId() != null) {
-            uniqueRecipients.remove(
-                    command.actorUserId()
-            );
-        }
+        List<UUID> uniqueRecipients =
+                notificationRecipientResolver
+                        .normalizeRecipients(
+                                command.actorUserId(),
+                                command.recipientUserIds()
+                        );
 
         if (uniqueRecipients.isEmpty()) {
             return;

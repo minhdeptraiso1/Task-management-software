@@ -1,19 +1,33 @@
 spring:
   flyway:
-    enabled: false
-
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    enabled: true
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
 
   data:
     redis:
       host: localhost
       port: 6379
+
+  cache:
+    type: redis
+
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret-test-secret
+    access-token-expiration-minutes: 60
+    refresh-token-expiration-days: 1
+  file-storage:
+    root-path: build/test-uploads
+
+logging:
+  level:
+    org.springframework.security: warn
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn

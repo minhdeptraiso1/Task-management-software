@@ -77,11 +77,10 @@ dependencies {
     // ==== TEST ====
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'com.jayway.jsonpath:json-path'
-
-    // ==== TEST DATABASE (H2) ====
-    testImplementation 'com.h2database:h2'
     // ====EXCEL====
     implementation 'org.apache.poi:poi-ooxml:5.4.1'
     // ====PDF====
@@ -91,4 +90,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    def dockerApiVersion =
+            System.getenv('DOCKER_API_VERSION') ?: '1.44'
+    environment 'DOCKER_API_VERSION', dockerApiVersion
+    systemProperty 'api.version', dockerApiVersion
 }

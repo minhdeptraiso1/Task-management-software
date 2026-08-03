@@ -10,6 +10,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -194,6 +196,23 @@ public class KanbanRealtimePublisherImpl
             return;
         }
 
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            send(event);
+                        }
+                    }
+            );
+            return;
+        }
+
+        send(event);
+    }
+
+    private void send(KanbanRealtimeEvent event) {
         String destination =
                 "/topic/projects/"
                         + event.projectId()

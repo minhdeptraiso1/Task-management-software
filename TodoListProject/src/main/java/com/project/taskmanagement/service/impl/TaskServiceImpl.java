@@ -18,11 +18,16 @@ import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.TaskService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.BacklogItemLookupHelper;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.task.TaskViewHelper;
+import com.project.taskmanagement.service.task.TaskColumnReorderService;
+import com.project.taskmanagement.service.task.TaskKanbanLockService;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.service.validation.TaskStatusTransitionValidator;
@@ -32,9 +37,7 @@ import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -60,6 +63,8 @@ public class TaskServiceImpl
     BacklogItemRepository backlogItemRepository;
     UserRepository userRepository;
     ProjectMemberRepository projectMemberRepository;
+    UserLookupHelper userLookupHelper;
+    BacklogItemLookupHelper backlogItemLookupHelper;
 
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
@@ -67,7 +72,10 @@ public class TaskServiceImpl
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
     TaskViewHelper taskViewHelper;
+    TaskKanbanLockService taskKanbanLockService;
+    TaskColumnReorderService taskColumnReorderService;
     KanbanRealtimePublisher kanbanRealtimePublisher;
+    CacheEvictService cacheEvictService;
 
     SprintRepository sprintRepository;
 
@@ -75,95 +83,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.ANALYTICS_SPRINT_BURNUP,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.ANALYTICS_CUMULATIVE_FLOW,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.ANALYTICS_SUMMARY,
-                    allEntries = true
-            )
-    })
     public TaskResponse create(
             UUID projectId,
             CreateTaskRequest request
@@ -314,6 +233,7 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
@@ -486,13 +406,14 @@ public class TaskServiceImpl
                                 )
                 );
 
-        Page<TaskResponse> responsePage =
-                taskRepository
-                        .findAll(
-                                specification,
-                                pageable
-                        )
-                        .map(this::toResponse);
+        Page<Task> taskPage = taskRepository.findAll(specification, pageable);
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                taskPage.getContent().stream().map(Task::getAssigneeUserId).toList()
+        );
+        Map<UUID, Long> spentMinutesByTaskId = loadSpentMinutes(taskPage.getContent());
+        Page<TaskResponse> responsePage = taskPage.map(
+                task -> toResponse(task, usersById, spentMinutesByTaskId)
+        );
 
         return TaskPageResponse.from(
                 responsePage
@@ -539,87 +460,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),            @CacheEvict(
-                    value = CacheNames.TASK_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskResponse update(
             UUID projectId,
             UUID taskId,
@@ -745,6 +585,7 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
@@ -752,60 +593,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskResponse assign(
             UUID projectId,
             UUID taskId,
@@ -896,6 +683,7 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
@@ -903,60 +691,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskResponse unassign(
             UUID projectId,
             UUID taskId
@@ -1043,6 +777,7 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
@@ -1050,87 +785,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),            @CacheEvict(
-                    value = CacheNames.TASK_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public void delete(
             UUID projectId,
             UUID taskId
@@ -1161,6 +815,8 @@ public class TaskServiceImpl
         );
 
         taskRepository.save(task);
+
+        evictTaskCache(task);
 
         projectActivityService.log(
                 new ProjectActivityCommand(
@@ -1230,6 +886,14 @@ public class TaskServiceImpl
                                 sprintId
                         );
 
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                sprintTasks.stream().map(Task::getAssigneeUserId).toList()
+        );
+        Map<UUID, BacklogItem> backlogItemsById = backlogItemLookupHelper.findBacklogItemMap(
+                sprintTasks.stream().map(Task::getBacklogItemId).toList()
+        );
+        Map<UUID, Long> spentMinutesByTaskId = loadSpentMinutes(sprintTasks);
+
         EnumMap<TaskStatus, List<KanbanTaskResponse>>
                 tasksByStatus =
                 new EnumMap<>(TaskStatus.class);
@@ -1245,7 +909,12 @@ public class TaskServiceImpl
             tasksByStatus
                     .get(task.getStatus())
                     .add(
-                            toKanbanResponse(task)
+                            toKanbanResponse(
+                                    task,
+                                    usersById,
+                                    backlogItemsById,
+                                    spentMinutesByTaskId
+                            )
                     );
         }
 
@@ -1331,83 +1000,6 @@ public class TaskServiceImpl
     // ===================== Đổi trạng thái =====================
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskResponse updateStatus(
             UUID projectId,
             UUID taskId,
@@ -1504,63 +1096,72 @@ public class TaskServiceImpl
         Long oldPosition =
                 task.getPosition();
 
-        taskRepository.shiftPositionsDown(
-                projectId,
-                sprintId,
-                oldStatus,
-                oldPosition
-        );
+        Map<TaskStatus, List<Task>> lockedColumns =
+                new LinkedHashMap<>();
 
-        Long requestedPosition =
-                request.position();
-
-        long newColumnCount =
-                taskRepository
-                        .countByProjectIdAndCurrentSprintIdAndStatus(
+        orderedStatuses(oldStatus, newStatus).forEach(status ->
+                lockedColumns.put(
+                        status,
+                        taskKanbanLockService.lockColumn(
                                 projectId,
                                 sprintId,
-                                newStatus
-                        );
+                                status
+                        )
+                )
+        );
 
-        long newPosition;
+        List<Task> oldColumnTasks =
+                lockedColumns.get(oldStatus);
 
-        if (requestedPosition == null) {
-            newPosition = newColumnCount + 1L;
-        } else {
-            newPosition = Math.min(
-                    requestedPosition,
-                    newColumnCount + 1L
-            );
+        List<Task> newColumnTasks =
+                lockedColumns.get(newStatus);
 
-            taskRepository.shiftPositionsUp(
-                    projectId,
-                    sprintId,
-                    newStatus,
-                    newPosition
-            );
-        }
+        Task lockedTask = oldColumnTasks.stream()
+                .filter(item -> item.getId().equals(taskId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.KANBAN_POSITION_CONFLICT
+                ));
 
-        task.setStatus(newStatus);
-        task.setPosition(newPosition);
+        oldColumnTasks.removeIf(
+                item -> item.getId().equals(taskId)
+        );
+        taskColumnReorderService.normalizeColumn(oldColumnTasks);
+
+        lockedTask.setStatus(newStatus);
 
         if (newStatus == TaskStatus.DONE) {
-            task.setCompletedAt(
+            lockedTask.setCompletedAt(
                     Instant.now()
             );
         } else {
-            task.setCompletedAt(null);
+            lockedTask.setCompletedAt(null);
         }
 
         if (oldStatus == TaskStatus.BLOCKED
                 && newStatus != TaskStatus.BLOCKED) {
 
-            task.setBlockReason(null);
-            task.setBlockedAt(null);
-            task.setBlockedByUserId(null);
+            lockedTask.setBlockReason(null);
+            lockedTask.setBlockedAt(null);
+            lockedTask.setBlockedByUserId(null);
         }
 
-        Task savedTask =
-                taskRepository.save(task);
+        newColumnTasks.add(lockedTask);
+        taskColumnReorderService.reorderColumn(
+                newColumnTasks,
+                lockedTask.getId(),
+                request.position()
+        );
+
+        LinkedHashSet<Task> changedTasks =
+                new LinkedHashSet<>(oldColumnTasks);
+        changedTasks.addAll(newColumnTasks);
+
+        taskRepository.saveAll(changedTasks);
+        taskRepository.flush();
+
+        Task savedTask = lockedTask;
+        Long newPosition = savedTask.getPosition();
 
         Map<String, Object> oldValue =
                 new LinkedHashMap<>();
@@ -1619,36 +1220,13 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
     // ===================== Đổi vị trí =====================
     @Override
     @Transactional
-    @Caching(
-            evict = {
-                    @CacheEvict(
-                            cacheNames = CacheNames.TASK_DETAIL,
-                            key = "#projectId.toString() + ':' + #taskId.toString()"
-                    ),
-                    @CacheEvict(
-                            cacheNames = CacheNames.TASK_SEARCH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            cacheNames = CacheNames.SPRINT_KANBAN,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            cacheNames = CacheNames.SPRINT_TASK_STATISTICS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            cacheNames = CacheNames.SPRINT_BURNDOWN,
-                            allEntries = true
-                    )
-            }
-    )
     public TaskResponse updatePosition(
             UUID projectId,
             UUID taskId,
@@ -1714,6 +1292,15 @@ public class TaskServiceImpl
 
     // ===================== HELPER =====================
 
+    private void evictTaskCache(Task task) {
+        cacheEvictService.evictTaskWorkspace(
+                task.getProjectId(),
+                task.getCurrentSprintId(),
+                task.getId(),
+                task.getAssigneeUserId()
+        );
+    }
+
     private Task getTaskOrThrow(
             UUID projectId,
             UUID taskId
@@ -1767,22 +1354,20 @@ public class TaskServiceImpl
     private TaskResponse toResponse(
             Task task
     ) {
-        User assignee = null;
+        return toResponse(
+                task,
+                userLookupHelper.findUserMap(Collections.singletonList(task.getAssigneeUserId())),
+                loadSpentMinutes(List.of(task))
+        );
+    }
 
-        if (task.getAssigneeUserId() != null) {
-            assignee =
-                    userRepository
-                            .findById(
-                                    task.getAssigneeUserId()
-                            )
-                            .orElse(null);
-        }
-
-        Long spentMinutes =
-                taskTimeLogRepository
-                        .sumMinutesByTaskId(
-                                task.getId()
-                        );
+    private TaskResponse toResponse(
+            Task task,
+            Map<UUID, User> usersById,
+            Map<UUID, Long> spentMinutesByTaskId
+    ) {
+        User assignee = userLookupHelper.getOrNull(usersById, task.getAssigneeUserId());
+        Long spentMinutes = spentMinutesByTaskId.getOrDefault(task.getId(), 0L);
 
         return new TaskResponse(
                 task.getId(),
@@ -1822,32 +1407,17 @@ public class TaskServiceImpl
     }
 
     private KanbanTaskResponse toKanbanResponse(
-            Task task
+            Task task,
+            Map<UUID, User> usersById,
+            Map<UUID, BacklogItem> backlogItemsById,
+            Map<UUID, Long> spentMinutesByTaskId
     ) {
-        BacklogItem backlogItem =
-                backlogItemRepository
-                        .findByIdAndProjectId(
-                                task.getBacklogItemId(),
-                                task.getProjectId()
-                        )
-                        .orElse(null);
-
-        User assignee = null;
-
-        if (task.getAssigneeUserId() != null) {
-            assignee =
-                    userRepository
-                            .findById(
-                                    task.getAssigneeUserId()
-                            )
-                            .orElse(null);
-        }
-
-        Long spentMinutes =
-                taskTimeLogRepository
-                        .sumMinutesByTaskId(
-                                task.getId()
-                        );
+        BacklogItem backlogItem = backlogItemLookupHelper.getOrNull(
+                backlogItemsById,
+                task.getBacklogItemId()
+        );
+        User assignee = userLookupHelper.getOrNull(usersById, task.getAssigneeUserId());
+        Long spentMinutes = spentMinutesByTaskId.getOrDefault(task.getId(), 0L);
 
         boolean overdue =
                 task.getDueDate() != null
@@ -1887,6 +1457,24 @@ public class TaskServiceImpl
         );
     }
 
+    private Map<UUID, Long> loadSpentMinutes(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UUID> taskIds = tasks.stream().map(Task::getId).toList();
+        Map<UUID, Long> result = new HashMap<>();
+        for (Object[] row : taskTimeLogRepository.sumMinutesGroupedByTaskIds(taskIds)) {
+            if (row != null && row.length >= 2 && row[0] instanceof UUID taskId) {
+                result.put(
+                        taskId,
+                        row[1] instanceof Number number ? number.longValue() : 0L
+                );
+            }
+        }
+        return result;
+    }
+
     private KanbanColumnResponse createColumn(
             TaskStatus status,
             String title,
@@ -1917,56 +1505,39 @@ public class TaskServiceImpl
         UUID sprintId =
                 task.getCurrentSprintId();
 
-        TaskStatus status =
-                task.getStatus();
-
         Long oldPosition =
                 task.getPosition();
 
-        long columnCount =
-                taskRepository
-                        .countByProjectIdAndCurrentSprintIdAndStatus(
-                                projectId,
-                                sprintId,
-                                status
-                        );
-
-        long newPosition =
-                Math.min(
-                        requestedPosition,
-                        Math.max(columnCount, 1L)
+        List<Task> lockedColumnTasks =
+                taskKanbanLockService.lockColumn(
+                        projectId,
+                        sprintId,
+                        task.getStatus()
                 );
 
-        if (oldPosition.equals(newPosition)) {
-            return toResponse(task);
-        }
+        Task lockedTask = lockedColumnTasks.stream()
+                .filter(item -> item.getId().equals(task.getId()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.KANBAN_POSITION_CONFLICT
+                ));
 
-        if (newPosition < oldPosition) {
-            taskRepository.moveRangeDown(
-                    projectId,
-                    sprintId,
-                    status,
-                    task.getId(),
-                    newPosition,
-                    oldPosition
-            );
-        } else {
-            taskRepository.moveRangeUp(
-                    projectId,
-                    sprintId,
-                    status,
-                    task.getId(),
-                    oldPosition,
-                    newPosition
-            );
-        }
-
-        task.setPosition(
-                newPosition
+        taskColumnReorderService.reorderColumn(
+                lockedColumnTasks,
+                lockedTask.getId(),
+                requestedPosition
         );
 
-        Task savedTask =
-                taskRepository.save(task);
+        Long newPosition = lockedTask.getPosition();
+
+        if (Objects.equals(oldPosition, newPosition)) {
+            return toResponse(lockedTask);
+        }
+
+        taskRepository.saveAll(lockedColumnTasks);
+        taskRepository.flush();
+
+        Task savedTask = lockedTask;
 
         projectActivityService.log(
                 new ProjectActivityCommand(
@@ -1995,7 +1566,19 @@ public class TaskServiceImpl
                 actorUsername
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
+    }
+
+    private List<TaskStatus> orderedStatuses(
+            TaskStatus first,
+            TaskStatus second
+    ) {
+        return java.util.stream.Stream
+                .of(first, second)
+                .distinct()
+                .sorted(Comparator.comparingInt(Enum::ordinal))
+                .toList();
     }
 
     private void sendStatusNotification(
@@ -2161,78 +1744,6 @@ public class TaskServiceImpl
 
     @Override
     @Transactional
-    @Caching(
-            evict = {
-                    @CacheEvict(
-                            value = CacheNames.TASK_DETAIL,
-                            key = "#projectId.toString() + ':' + #taskId.toString()"
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.TASK_SEARCH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_KANBAN,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_TASK_STATISTICS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_BURNDOWN,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_CAPACITY,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_HEALTH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_RISKS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_PROGRESS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_CLOSING_REPORT,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.MY_DASHBOARD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.MY_TASK_SEARCH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_DASHBOARD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_SPRINT,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_MEMBER,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_TIME,
-                            allEntries = true
-                    )
-            }
-    )
     public TaskResponse block(
             UUID projectId,
             UUID taskId,
@@ -2399,83 +1910,12 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 
     @Override
     @Transactional
-    @Caching(
-            evict = {
-                    @CacheEvict(
-                            value = CacheNames.TASK_DETAIL,
-                            key = "#projectId.toString() + ':' + #taskId.toString()"
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.TASK_SEARCH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_KANBAN,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_TASK_STATISTICS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_BURNDOWN,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_CAPACITY,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_HEALTH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_RISKS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_PROGRESS,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.SPRINT_CLOSING_REPORT,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.MY_DASHBOARD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.MY_TASK_SEARCH,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_DASHBOARD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_SPRINT,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_MEMBER,
-                            allEntries = true
-                    ),
-                    @CacheEvict(
-                            value = CacheNames.PROJECT_REPORT_TIME,
-                            allEntries = true
-                    )
-            }
-    )
     public TaskResponse reopen(
             UUID projectId,
             UUID taskId,
@@ -2647,6 +2087,7 @@ public class TaskServiceImpl
                 currentUser.getUsername()
         );
 
+        evictTaskCache(savedTask);
         return toResponse(savedTask);
     }
 

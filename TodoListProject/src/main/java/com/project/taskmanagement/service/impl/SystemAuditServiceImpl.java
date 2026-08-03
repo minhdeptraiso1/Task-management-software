@@ -93,8 +93,8 @@ public class SystemAuditServiceImpl
             systemAuditLogRepository.save(auditLog);
         } catch (RuntimeException ignored) {
             /*
-             * Audit lÃ  luá»“ng phá»¥. KhÃ´ng Ä‘á»ƒ lá»—i ghi audit
-             * lÃ m há»ng business chÃ­nh nhÆ° login/disable/download.
+             * Audit là luồng phụ. Không để lỗi ghi audit
+             * làm hỏng nghiệp vụ chính như đăng nhập, vô hiệu hóa hoặc tải tệp.
              */
         }
     }

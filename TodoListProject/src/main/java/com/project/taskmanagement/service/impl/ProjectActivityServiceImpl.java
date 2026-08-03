@@ -14,12 +14,12 @@ import com.project.taskmanagement.enums.ActivityEntityType;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.ProjectActivityLogRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.repository.spec.ProjectActivitySpecification;
 import com.project.taskmanagement.service.ProjectActivityDisplayService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +45,7 @@ public class ProjectActivityServiceImpl
         implements ProjectActivityService {
 
     ProjectActivityLogRepository repository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     ObjectMapper objectMapper;
 
@@ -109,20 +107,6 @@ public class ProjectActivityServiceImpl
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            cacheNames = CacheNames.PROJECT_ACTIVITY_SEARCH,
-            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
-                    " + ':' + #projectId" +
-                    " + '|entity=' + (#request == null || #request.entityType() == null ? '' : #request.entityType())" +
-                    " + '|action=' + (#request == null || #request.action() == null ? '' : #request.action())" +
-                    " + '|actor=' + (#request == null || #request.performedByUserId() == null ? '' : #request.performedByUserId())" +
-                    " + '|from=' + (#request == null || #request.fromDate() == null ? '' : #request.fromDate())" +
-                    " + '|to=' + (#request == null || #request.toDate() == null ? '' : #request.toDate())" +
-                    " + '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword())" +
-                    " + '|page=' + #pageable.pageNumber" +
-                    " + '|size=' + #pageable.pageSize" +
-                    " + '|sort=' + #pageable.sort.toString()"
-    )
     public ProjectActivityPageResponse getActivities(
             UUID projectId,
             ProjectActivitySearchRequest request,
@@ -187,13 +171,12 @@ public class ProjectActivityServiceImpl
                                 )
                         );
 
-        User performer =
-                userRepository
-                        .findById(
-                                activity
-                                        .getPerformedByUserId()
-                        )
-                        .orElse(null);
+        User performer = userLookupHelper.getOrNull(
+                userLookupHelper.findUserMap(
+                        Collections.singletonList(activity.getPerformedByUserId())
+                ),
+                activity.getPerformedByUserId()
+        );
 
         String username =
                 performer == null
@@ -229,21 +212,6 @@ public class ProjectActivityServiceImpl
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            cacheNames = CacheNames.PROJECT_ACTIVITY_SEARCH,
-            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
-                    " + ':' + #projectId" +
-                    " + '|fixedEntity=' + #entityType" +
-                    " + '|fixedEntityId=' + #entityId" +
-                    " + '|action=' + (#request == null || #request.action() == null ? '' : #request.action())" +
-                    " + '|actor=' + (#request == null || #request.performedByUserId() == null ? '' : #request.performedByUserId())" +
-                    " + '|from=' + (#request == null || #request.fromDate() == null ? '' : #request.fromDate())" +
-                    " + '|to=' + (#request == null || #request.toDate() == null ? '' : #request.toDate())" +
-                    " + '|keyword=' + (#request == null || #request.keyword() == null ? '' : #request.keyword())" +
-                    " + '|page=' + #pageable.pageNumber" +
-                    " + '|size=' + #pageable.pageSize" +
-                    " + '|sort=' + #pageable.sort.toString()"
-    )
     public ProjectActivityPageResponse getEntityActivities(
             UUID projectId,
             ActivityEntityType entityType,
@@ -371,10 +339,11 @@ public class ProjectActivityServiceImpl
         List<ProjectActivityLog> activities =
                 activityPage.getContent();
 
-        Map<UUID, User> usersById =
-                loadUsersByActivity(
-                        activities
-                );
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                activities.stream()
+                        .map(ProjectActivityLog::getPerformedByUserId)
+                        .toList()
+        );
 
         Page<ProjectActivityResponse> responsePage =
                 activityPage.map(activity -> {
@@ -405,44 +374,6 @@ public class ProjectActivityServiceImpl
         return ProjectActivityPageResponse.from(
                 responsePage
         );
-    }
-
-    private Map<UUID, User> loadUsersByActivity(
-            Collection<ProjectActivityLog> activities
-    ) {
-        if (activities == null
-                || activities.isEmpty()) {
-
-            return new LinkedHashMap<>();
-        }
-
-        List<UUID> userIds =
-                activities.stream()
-                        .map(
-                                ProjectActivityLog
-                                        ::getPerformedByUserId
-                        )
-                        .filter(userId ->
-                                userId != null
-                        )
-                        .distinct()
-                        .toList();
-
-        if (userIds.isEmpty()) {
-            return new LinkedHashMap<>();
-        }
-
-        return userRepository
-                .findAllById(userIds)
-                .stream()
-                .collect(
-                        Collectors.toMap(
-                                User::getId,
-                                Function.identity(),
-                                (left, right) -> left,
-                                LinkedHashMap::new
-                        )
-                );
     }
 
     // ===================== MAPPER =====================

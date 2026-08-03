@@ -25,6 +25,7 @@ import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.SprintWorkflowService;
 import com.project.taskmanagement.service.TaskSprintSyncService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
@@ -32,8 +33,6 @@ import com.project.taskmanagement.service.validation.SprintValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,34 +65,12 @@ public class SprintWorkflowServiceImpl
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
     TaskSprintSyncService taskSprintSyncService;
+    CacheEvictService cacheEvictService;
 
     // ===================== START =====================
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.SPRINT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CAPACITY, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_HEALTH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_RISKS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_PROGRESS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CLOSING_REPORT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.BACKLOG_ITEM_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_WORKLOAD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_SPRINT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_MEMBER, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_TIME, allEntries = true)
-    })
     public SprintResponse start(
             UUID projectId,
             UUID sprintId
@@ -194,6 +171,11 @@ public class SprintWorkflowServiceImpl
                 savedSprint.getId()
         );
 
+        cacheEvictService.evictSprintWorkspace(
+                projectId,
+                savedSprint.getId()
+        );
+
         return toResponse(savedSprint);
     }
 
@@ -201,29 +183,6 @@ public class SprintWorkflowServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.SPRINT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CAPACITY, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_HEALTH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_RISKS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_PROGRESS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CLOSING_REPORT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.BACKLOG_ITEM_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_WORKLOAD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_SPRINT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_MEMBER, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_TIME, allEntries = true)
-    })
     public SprintResponse complete(
             UUID projectId,
             UUID sprintId
@@ -322,6 +281,15 @@ public class SprintWorkflowServiceImpl
                 savedSprint.getId()
         );
 
+        cacheEvictService.evictSprintWorkspace(
+                projectId,
+                savedSprint.getId()
+        );
+        cacheEvictService.evictBacklogWorkspace(
+                projectId,
+                savedSprint.getId()
+        );
+
         return toResponse(savedSprint);
     }
 
@@ -329,29 +297,6 @@ public class SprintWorkflowServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.SPRINT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CAPACITY, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_HEALTH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_RISKS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_PROGRESS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_CLOSING_REPORT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.BACKLOG_ITEM_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_WORKLOAD, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_SPRINT, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_MEMBER, allEntries = true),
-            @CacheEvict(value = CacheNames.PROJECT_REPORT_TIME, allEntries = true)
-    })
     public SprintResponse cancel(
             UUID projectId,
             UUID sprintId
@@ -448,6 +393,15 @@ public class SprintWorkflowServiceImpl
                         + savedSprint.getName()
                         + " đã bị hủy",
                 currentUser.getId(),
+                projectId,
+                savedSprint.getId()
+        );
+
+        cacheEvictService.evictSprintWorkspace(
+                projectId,
+                savedSprint.getId()
+        );
+        cacheEvictService.evictBacklogWorkspace(
                 projectId,
                 savedSprint.getId()
         );

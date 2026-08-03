@@ -15,12 +15,12 @@ import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.BugCommentRepository;
 import com.project.taskmanagement.repository.BugRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.BugCommentService;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.util.TextNormalizer;
@@ -46,7 +46,7 @@ public class BugCommentServiceImpl implements BugCommentService {
 
     BugCommentRepository bugCommentRepository;
     BugRepository bugRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
     ProjectActivityService projectActivityService;
@@ -89,9 +89,14 @@ public class BugCommentServiceImpl implements BugCommentService {
     public List<BugCommentResponse> getAll(UUID projectId, UUID bugId) {
         User currentUser = currentUserService.getActiveCurrentUser();
         requireProjectViewAndBug(projectId, bugId, currentUser);
-        return bugCommentRepository.findAllByProjectIdAndBugIdOrderByCreatedAtAsc(projectId, bugId)
+        List<BugComment> comments = bugCommentRepository
+                .findAllByProjectIdAndBugIdOrderByCreatedAtAsc(projectId, bugId);
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                comments.stream().map(BugComment::getAuthorUserId).toList()
+        );
+        return comments
                 .stream()
-                .map(comment -> toResponse(comment, currentUser))
+                .map(comment -> toResponse(comment, currentUser, usersById))
                 .toList();
     }
 
@@ -154,7 +159,19 @@ public class BugCommentServiceImpl implements BugCommentService {
     }
 
     private BugCommentResponse toResponse(BugComment comment, User currentUser) {
-        User author = userRepository.findById(comment.getAuthorUserId()).orElse(null);
+        return toResponse(
+                comment,
+                currentUser,
+                userLookupHelper.findUserMap(List.of(comment.getAuthorUserId()))
+        );
+    }
+
+    private BugCommentResponse toResponse(
+            BugComment comment,
+            User currentUser,
+            Map<UUID, User> usersById
+    ) {
+        User author = userLookupHelper.getOrNull(usersById, comment.getAuthorUserId());
         boolean owner = comment.getAuthorUserId().equals(currentUser.getId());
         return new BugCommentResponse(comment.getId(), comment.getBugId(), comment.getParentId(),
                 comment.getAuthorUserId(), author == null ? null : author.getUsername(),

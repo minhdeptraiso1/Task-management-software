@@ -1,6 +1,5 @@
 package com.project.taskmanagement.service.impl;
 
-import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.request.search.GlobalSearchRequest;
 import com.project.taskmanagement.dto.response.search.GlobalSearchResponse;
 import com.project.taskmanagement.dto.response.search.SearchResultItemResponse;
@@ -18,7 +17,6 @@ import com.project.taskmanagement.service.validation.TextInputSanitizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,14 +38,6 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.GLOBAL_SEARCH,
-            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
-                    " + '|scope=global'" +
-                    " + '|q=' + (#request == null || #request.q() == null ? '' : #request.q())" +
-                    " + '|type=' + (#request == null || #request.entityType() == null ? '' : #request.entityType())" +
-                    " + '|project=' + (#request == null || #request.projectId() == null ? '' : #request.projectId())"
-    )
     public GlobalSearchResponse search(GlobalSearchRequest request) {
         User currentUser = currentUserService.getActiveCurrentUser();
         String keyword = normalizeKeyword(request == null ? null : request.q());
@@ -78,14 +68,6 @@ public class SearchServiceImpl implements SearchService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            value = CacheNames.GLOBAL_SEARCH,
-            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
-                    " + '|scope=project'" +
-                    " + '|project=' + #projectId" +
-                    " + '|q=' + (#request == null || #request.q() == null ? '' : #request.q())" +
-                    " + '|type=' + (#request == null || #request.entityType() == null ? '' : #request.entityType())"
-    )
     public GlobalSearchResponse searchInProject(UUID projectId, GlobalSearchRequest request) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);

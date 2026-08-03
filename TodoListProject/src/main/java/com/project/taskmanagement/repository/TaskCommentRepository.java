@@ -28,6 +28,12 @@ public interface TaskCommentRepository
             UUID parentCommentId
     );
 
+    List<TaskComment>
+    findAllByTaskIdAndParentCommentIdInOrderByCreatedAtAsc(
+            UUID taskId,
+            List<UUID> parentCommentIds
+    );
+
     long countByParentCommentId(
             UUID parentCommentId
     );

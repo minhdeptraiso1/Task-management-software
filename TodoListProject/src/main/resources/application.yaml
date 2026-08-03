@@ -16,14 +16,23 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: ${HIBERNATE_JDBC_BATCH_SIZE:50}
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
 
   flyway:
     baseline-on-migrate: true
 
   data:
     redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:3000ms}
 
   cache:
     type: redis
@@ -54,12 +63,25 @@ app:
       font-path: ${REPORT_PDF_FONT_PATH:fonts/NotoSans-Regular.ttf}
       bold-font-path: ${REPORT_PDF_BOLD_FONT_PATH:fonts/NotoSans-Bold.ttf}
   cache:
-    default-ttl: ${CACHE_DEFAULT_TTL}
+    default-ttl: ${CACHE_DEFAULT_TTL:PT10M}
     ttl:
-      user_detail: ${CACHE_TTL_USER_DETAIL}
-      user_current: ${CACHE_TTL_USER_CURRENT}
-      user_search: ${CACHE_TTL_USER_SEARCH}
-      global_search: ${CACHE_TTL_GLOBAL_SEARCH:PT2M}
+      user_detail: ${CACHE_TTL_USER_DETAIL:PT10M}
+      user_current: ${CACHE_TTL_USER_CURRENT:PT5M}
+      user_search: ${CACHE_TTL_USER_SEARCH:PT2M}
+      project_detail: ${CACHE_TTL_PROJECT_DETAIL:PT30M}
+      project_search_result: ${CACHE_TTL_PROJECT_SEARCH_RESULT:PT2M}
+      project_members: ${CACHE_TTL_PROJECT_MEMBERS:PT30M}
+      current_sprint: ${CACHE_TTL_CURRENT_SPRINT:PT10M}
+      sprint_detail: ${CACHE_TTL_SPRINT_DETAIL:PT10M}
+      sprint_kanban: ${CACHE_TTL_SPRINT_KANBAN:PT3M}
+      task_detail: ${CACHE_TTL_TASK_DETAIL:PT10M}
+      task_time_summary: ${CACHE_TTL_TASK_TIME_SUMMARY:PT5M}
+      sprint_task_statistics: ${CACHE_TTL_SPRINT_TASK_STATISTICS:PT5M}
+      sprint_burndown: ${CACHE_TTL_SPRINT_BURNDOWN:PT5M}
+      my_dashboard: ${CACHE_TTL_MY_DASHBOARD:PT5M}
+      project_dashboard: ${CACHE_TTL_PROJECT_DASHBOARD:PT5M}
+      notification_unread_count: ${CACHE_TTL_NOTIFICATION_UNREAD_COUNT:PT1M}
+      notification_list: ${CACHE_TTL_NOTIFICATION_LIST:PT2M}
       attachment_list: ${CACHE_TTL_ATTACHMENT_LIST:PT5M}
       attachment_usage: ${CACHE_TTL_ATTACHMENT_USAGE:PT5M}
       attachment_security_summary: ${CACHE_TTL_ATTACHMENT_SECURITY_SUMMARY:PT30M}

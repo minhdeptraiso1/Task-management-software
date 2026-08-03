@@ -28,7 +28,6 @@ import com.project.taskmanagement.repository.BugRepository;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.SprintRepository;
 import com.project.taskmanagement.repository.TaskRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.repository.spec.BugSpecification;
 import com.project.taskmanagement.service.BugService;
 import com.project.taskmanagement.service.NotificationService;
@@ -36,6 +35,7 @@ import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.bug.BugViewHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
@@ -77,7 +77,7 @@ public class BugServiceImpl implements BugService {
     BacklogItemRepository backlogItemRepository;
     SprintRepository sprintRepository;
     ProjectMemberRepository projectMemberRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
@@ -219,10 +219,14 @@ public class BugServiceImpl implements BugService {
                                 safeRequest.createdTo()
                         ));
 
-        Page<BugResponse> page =
-                bugRepository
-                        .findAll(specification, pageable)
-                        .map(this::toResponse);
+        Page<Bug> bugPage = bugRepository.findAll(specification, pageable);
+        LinkedHashSet<UUID> userIds = new LinkedHashSet<>();
+        bugPage.getContent().forEach(bug -> {
+            userIds.add(bug.getAssigneeUserId());
+            userIds.add(bug.getReporterUserId());
+        });
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(userIds);
+        Page<BugResponse> page = bugPage.map(bug -> toResponse(bug, usersById));
 
         return BugPageResponse.from(page);
     }
@@ -918,19 +922,15 @@ public class BugServiceImpl implements BugService {
     }
 
     private BugResponse toResponse(Bug bug) {
-        User assignee =
-                bug.getAssigneeUserId() == null
-                        ? null
-                        : userRepository
-                        .findById(bug.getAssigneeUserId())
-                        .orElse(null);
+        LinkedHashSet<UUID> userIds = new LinkedHashSet<>();
+        userIds.add(bug.getAssigneeUserId());
+        userIds.add(bug.getReporterUserId());
+        return toResponse(bug, userLookupHelper.findUserMap(userIds));
+    }
 
-        User reporter =
-                bug.getReporterUserId() == null
-                        ? null
-                        : userRepository
-                        .findById(bug.getReporterUserId())
-                        .orElse(null);
+    private BugResponse toResponse(Bug bug, Map<UUID, User> usersById) {
+        User assignee = userLookupHelper.getOrNull(usersById, bug.getAssigneeUserId());
+        User reporter = userLookupHelper.getOrNull(usersById, bug.getReporterUserId());
 
         return new BugResponse(
                 bug.getId(),

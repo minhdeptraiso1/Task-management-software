@@ -57,6 +57,12 @@ public final class TaskTimeLogValidator {
                             .TASK_TIME_LOG_MINUTES_INVALID
             );
         }
+
+        if (minutes > MAX_DAILY_MINUTES) {
+            throw new BusinessException(
+                    ErrorCode.TASK_TIME_LOG_MINUTES_TOO_LARGE
+            );
+        }
     }
 
     public static void validateDailyLimit(

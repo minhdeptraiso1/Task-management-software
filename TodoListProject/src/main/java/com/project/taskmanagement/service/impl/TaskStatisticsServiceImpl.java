@@ -10,6 +10,8 @@ import com.project.taskmanagement.repository.*;
 import com.project.taskmanagement.service.TaskStatisticsService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.BacklogItemLookupHelper;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -35,8 +37,8 @@ public class TaskStatisticsServiceImpl
     SprintRepository sprintRepository;
     TaskRepository taskRepository;
     TaskTimeLogRepository taskTimeLogRepository;
-    BacklogItemRepository backlogItemRepository;
-    UserRepository userRepository;
+    BacklogItemLookupHelper backlogItemLookupHelper;
+    UserLookupHelper userLookupHelper;
 
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
@@ -467,19 +469,14 @@ public class TaskStatisticsServiceImpl
         List<TaskAssigneeStatisticResponse> result =
                 new ArrayList<>();
 
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                statistics.keySet()
+        );
+
         for (MutableAssigneeStatistic statistic :
                 statistics.values()) {
 
-            User user = null;
-
-            if (statistic.userId != null) {
-                user =
-                        userRepository
-                                .findById(
-                                        statistic.userId
-                                )
-                                .orElse(null);
-            }
+            User user = userLookupHelper.getOrNull(usersById, statistic.userId);
 
             boolean overEstimated =
                     statistic.estimatedMinutes > 0
@@ -589,16 +586,16 @@ public class TaskStatisticsServiceImpl
         List<BacklogItemTaskStatisticResponse> result =
                 new ArrayList<>();
 
+        Map<UUID, BacklogItem> backlogItemsById =
+                backlogItemLookupHelper.findBacklogItemMap(statistics.keySet());
+
         for (MutableBacklogStatistic statistic :
                 statistics.values()) {
 
-            BacklogItem backlogItem =
-                    backlogItemRepository
-                            .findByIdAndProjectId(
-                                    statistic.backlogItemId,
-                                    projectId
-                            )
-                            .orElse(null);
+            BacklogItem backlogItem = backlogItemLookupHelper.getOrNull(
+                    backlogItemsById,
+                    statistic.backlogItemId
+            );
 
             result.add(
                     new BacklogItemTaskStatisticResponse(

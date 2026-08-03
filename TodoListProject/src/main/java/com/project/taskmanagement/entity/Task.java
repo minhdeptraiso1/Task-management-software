@@ -129,4 +129,11 @@ public class Task extends BaseAuditEntity {
             nullable = false
     )
     Long position = 1L;
+
+    @Version
+    @Column(
+            name = "version",
+            nullable = false
+    )
+    Long version;
 }

@@ -18,6 +18,7 @@ import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.ProjectMemberService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
@@ -25,9 +26,7 @@ import com.project.taskmanagement.service.validation.ProjectMemberValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,97 +57,12 @@ public class ProjectMemberServiceImpl
 
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
+    CacheEvictService cacheEvictService;
 
     // ===================== ADD MEMBER =====================
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_MEMBER_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public ProjectMemberResponse addMember(
             UUID projectId,
             AddProjectMemberRequest request
@@ -252,6 +166,9 @@ public class ProjectMemberServiceImpl
                 AuditAction.ADD_PROJECT_MEMBER.name()
         );
 
+        cacheEvictService.evictProjectMembers(projectId);
+        cacheEvictService.evictProjectWorkspace(projectId);
+
         return projectMemberMapper.toResponse(
                 savedMember,
                 targetUser
@@ -337,92 +254,6 @@ public class ProjectMemberServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_MEMBER_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public ProjectMemberResponse updateMemberRole(
             UUID projectId,
             UUID memberId,
@@ -527,6 +358,9 @@ public class ProjectMemberServiceImpl
                         .name()
         );
 
+        cacheEvictService.evictProjectMembers(projectId);
+        cacheEvictService.evictProjectWorkspace(projectId);
+
         return projectMemberMapper.toResponse(
                 savedMember,
                 targetUser
@@ -537,92 +371,6 @@ public class ProjectMemberServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_MEMBER_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_TIME_LOG_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_COMMENT_LIST,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public void removeMember(
             UUID projectId,
             UUID memberId
@@ -722,6 +470,12 @@ public class ProjectMemberServiceImpl
         );
 
         projectMemberRepository.save(member);
+
+        cacheEvictService.evictProjectMembers(projectId);
+        cacheEvictService.evictProjectWorkspace(projectId);
+        cacheEvictService.evictNotificationWorkspace(
+                member.getUserId()
+        );
 
         auditLogService.log(
                 currentUser.getId(),

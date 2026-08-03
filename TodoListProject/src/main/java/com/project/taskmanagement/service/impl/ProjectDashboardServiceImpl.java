@@ -183,12 +183,6 @@ public class ProjectDashboardServiceImpl
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-            cacheNames = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
-                    " + ':' + #projectId" +
-                    " + ':limit=' + #limit"
-    )
     public List<ProjectDashboardActivityResponse>
     getRecentActivities(
             UUID projectId,

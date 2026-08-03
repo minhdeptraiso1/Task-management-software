@@ -18,6 +18,7 @@ import com.project.taskmanagement.repository.spec.BacklogItemSpecification;
 import com.project.taskmanagement.service.BacklogItemService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.validation.BacklogItemValidator;
@@ -26,9 +27,7 @@ import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -54,86 +53,13 @@ public class BacklogItemServiceImpl
     ProjectAccessService projectAccessService;
     CurrentUserService currentUserService;
     ProjectActivityService projectActivityService;
+    CacheEvictService cacheEvictService;
 
     SprintRepository sprintRepository;
     // ===================== CREATE =====================
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public BacklogItemResponse create(
             UUID projectId,
             CreateBacklogItemRequest request
@@ -241,6 +167,7 @@ public class BacklogItemServiceImpl
                 )
         );
 
+        evictBacklogCache(savedItem);
         return backlogItemMapper.toResponse(
                 savedItem
         );
@@ -391,80 +318,6 @@ public class BacklogItemServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public BacklogItemResponse update(
             UUID projectId,
             UUID itemId,
@@ -555,6 +408,7 @@ public class BacklogItemServiceImpl
                 )
         );
 
+        evictBacklogCache(savedItem);
         return backlogItemMapper.toResponse(
                 savedItem
         );
@@ -564,88 +418,6 @@ public class BacklogItemServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public BacklogItemResponse updateStatus(
             UUID projectId,
             UUID itemId,
@@ -786,6 +558,7 @@ public class BacklogItemServiceImpl
                 )
         );
 
+        evictBacklogCache(savedItem);
         return backlogItemMapper.toResponse(
                 savedItem
         );
@@ -795,80 +568,6 @@ public class BacklogItemServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public BacklogItemResponse updatePriority(
             UUID projectId,
             UUID itemId,
@@ -935,6 +634,7 @@ public class BacklogItemServiceImpl
                 )
         );
 
+        evictBacklogCache(savedItem);
         return backlogItemMapper.toResponse(
                 savedItem
         );
@@ -944,80 +644,6 @@ public class BacklogItemServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public void delete(
             UUID projectId,
             UUID itemId
@@ -1061,6 +687,8 @@ public class BacklogItemServiceImpl
                 backlogItem
         );
 
+        evictBacklogCache(backlogItem);
+
         projectActivityService.log(
                 new ProjectActivityCommand(
                         projectId,
@@ -1078,80 +706,6 @@ public class BacklogItemServiceImpl
     // ===================== method reorder =====================
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.BACKLOG_ITEM_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.TASK_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_KANBAN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_TASK_STATISTICS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_BURNDOWN,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CAPACITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_HEALTH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_RISKS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_PROGRESS,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.SPRINT_CLOSING_REPORT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public BacklogItemResponse updatePosition(
             UUID projectId,
             UUID itemId,
@@ -1293,11 +847,19 @@ public class BacklogItemServiceImpl
                 )
         );
 
+        evictBacklogCache(savedItem);
         return backlogItemMapper.toResponse(
                 savedItem
         );
     }
     // ===================== HELPER =====================
+
+    private void evictBacklogCache(BacklogItem backlogItem) {
+        cacheEvictService.evictBacklogWorkspace(
+                backlogItem.getProjectId(),
+                backlogItem.getSprintId()
+        );
+    }
 
     private BacklogItem getItemOrThrow(
             UUID projectId,

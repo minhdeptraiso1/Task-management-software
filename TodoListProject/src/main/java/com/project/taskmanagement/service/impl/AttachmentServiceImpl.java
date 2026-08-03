@@ -23,6 +23,7 @@ import com.project.taskmanagement.service.FileStorageService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.attachment.AttachmentEntityResolver;
 import com.project.taskmanagement.service.attachment.AttachmentPermissionService;
 import com.project.taskmanagement.service.audit.AuditRequestHelper;
@@ -68,6 +69,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     SystemAuditService systemAuditService;
     AuditRequestHelper auditRequestHelper;
     HttpServletRequest httpServletRequest;
+    CacheEvictService cacheEvictService;
 
     @Override
     @Transactional
@@ -129,6 +131,9 @@ public class AttachmentServiceImpl implements AttachmentService {
                     true,
                     null
             ));
+
+            cacheEvictService.evictSearchWorkspace(projectId);
+            cacheEvictService.evictProjectWorkspace(projectId);
 
             return toResponse(saved, currentUser);
         } catch (RuntimeException exception) {
@@ -242,6 +247,9 @@ public class AttachmentServiceImpl implements AttachmentService {
         Map<String, Object> oldValue = snapshot(attachment);
         attachment.markDeleted(currentUser.getUsername());
         attachmentRepository.save(attachment);
+
+        cacheEvictService.evictSearchWorkspace(projectId);
+        cacheEvictService.evictProjectWorkspace(projectId);
 
         projectActivityService.log(new ProjectActivityCommand(
                 projectId,

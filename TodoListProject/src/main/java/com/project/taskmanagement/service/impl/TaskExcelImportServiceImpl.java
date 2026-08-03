@@ -17,13 +17,16 @@ import com.project.taskmanagement.service.TaskImportWriterService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.SystemAuditCommand;
 import com.project.taskmanagement.service.model.TaskImportRowData;
+import com.project.taskmanagement.service.model.TaskImportValidationContext;
 import com.project.taskmanagement.service.model.TaskImportValidationResult;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(
         level = AccessLevel.PRIVATE,
         makeFinal = true
@@ -54,7 +58,7 @@ public class TaskExcelImportServiceImpl
     BacklogItemRepository backlogItemRepository;
     SprintRepository sprintRepository;
     ProjectMemberRepository projectMemberRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     TaskImportBatchRepository taskImportBatchRepository;
     TaskImportErrorRepository taskImportErrorRepository;
@@ -114,6 +118,7 @@ public class TaskExcelImportServiceImpl
                         currentUser.getId(),
                         file.getOriginalFilename()
                 );
+        long startMillis = System.currentTimeMillis();
 
         systemAuditService.log(
                 new SystemAuditCommand(
@@ -240,6 +245,17 @@ public class TaskExcelImportServiceImpl
 
             throw new BusinessException(
                     ErrorCode.TASK_IMPORT_PROCESSING_FAILED
+            );
+        } finally {
+            log.info(
+                    "[TASK-IMPORT] batchId={}, projectId={}, sprintId={}, totalRows={}, successRows={}, failedRows={}, durationMs={}",
+                    batch.getId(),
+                    projectId,
+                    sprintId,
+                    batch.getTotalRows(),
+                    batch.getSuccessRows(),
+                    batch.getFailedRows(),
+                    System.currentTimeMillis() - startMillis
             );
         }
     }
@@ -487,21 +503,15 @@ public class TaskExcelImportServiceImpl
             UUID sprintId,
             List<RawTaskImportRow> rawRows
     ) {
-        Map<UUID, BacklogItem> backlogById =
-                loadSprintBacklogItems(
-                        projectId,
-                        sprintId
-                );
+        TaskImportValidationContext context = loadValidationContext(projectId, sprintId);
+        Map<UUID, BacklogItem> backlogById = context.backlogItemsById();
 
         Map<String, BacklogItem> backlogByTitle =
                 loadSprintBacklogItemsByTitle(
                         backlogById.values()
                 );
 
-        Map<String, User> memberByEmail =
-                loadEnabledProjectMembers(
-                        projectId
-                );
+        Map<String, User> memberByEmail = context.usersByEmail();
 
         List<TaskImportRowData> validRows =
                 new ArrayList<>();
@@ -646,68 +656,32 @@ public class TaskExcelImportServiceImpl
         );
     }
 
-    private Map<UUID, BacklogItem>
-    loadSprintBacklogItems(
+    private TaskImportValidationContext loadValidationContext(
             UUID projectId,
             UUID sprintId
     ) {
-        List<BacklogItem> items =
-                backlogItemRepository
-                        .findAllByProjectIdAndSprintIdOrderByPositionAsc(
-                                projectId,
-                                sprintId
-                        );
+        List<BacklogItem> backlogItems = backlogItemRepository
+                .findAllByProjectIdAndSprintIdOrderByPositionAsc(projectId, sprintId);
+        Map<UUID, BacklogItem> backlogItemsById = new LinkedHashMap<>();
+        backlogItems.forEach(item -> backlogItemsById.put(item.getId(), item));
 
-        Map<UUID, BacklogItem> result =
-                new HashMap<>();
+        List<ProjectMember> memberships = projectMemberRepository
+                .findAllByProjectIdOrderByJoinedAtAsc(projectId);
+        Map<UUID, ProjectMember> membersByUserId = new LinkedHashMap<>();
+        memberships.forEach(member -> membersByUserId.put(member.getUserId(), member));
 
-        for (BacklogItem item : items) {
-            result.put(
-                    item.getId(),
-                    item
-            );
-        }
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(membersByUserId.keySet());
+        Map<String, User> usersByEmail = new LinkedHashMap<>();
+        usersById.values().stream()
+                .filter(this::isUserEnabled)
+                .filter(user -> user.getEmail() != null && !user.getEmail().isBlank())
+                .forEach(user -> usersByEmail.put(normalizeEmail(user.getEmail()), user));
 
-        return result;
-    }
-
-    private Map<String, User>
-    loadEnabledProjectMembers(
-            UUID projectId
-    ) {
-        List<ProjectMember> memberships =
-                projectMemberRepository
-                        .findAllByProjectIdOrderByJoinedAtAsc(
-                                projectId
-                        );
-
-        Map<String, User> result =
-                new HashMap<>();
-
-        for (ProjectMember membership :
-                memberships) {
-
-            User user =
-                    userRepository
-                            .findById(
-                                    membership.getUserId()
-                            )
-                            .orElse(null);
-
-            if (user == null
-                    || !isUserEnabled(user)
-                    || user.getEmail() == null
-                    || user.getEmail().isBlank()) {
-                continue;
-            }
-
-            result.put(
-                    normalizeEmail(user.getEmail()),
-                    user
-            );
-        }
-
-        return result;
+        return new TaskImportValidationContext(
+                backlogItemsById,
+                usersByEmail,
+                membersByUserId
+        );
     }
 
     private boolean isUserEnabled(

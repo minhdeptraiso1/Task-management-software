@@ -2,7 +2,10 @@ package com.project.taskmanagement.controller;
 
 import com.project.taskmanagement.dto.response.bug.BugAttachmentResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
+import com.project.taskmanagement.enums.RateLimitAction;
 import com.project.taskmanagement.service.BugAttachmentService;
+import com.project.taskmanagement.service.RateLimitService;
+import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AccessLevel;
@@ -31,6 +34,8 @@ import java.util.UUID;
 public class BugAttachmentController {
 
     BugAttachmentService bugAttachmentService;
+    RateLimitService rateLimitService;
+    CurrentUserService currentUserService;
 
     @Operation(summary = "Tải lên tệp đính kèm Bug")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -39,6 +44,14 @@ public class BugAttachmentController {
             @PathVariable UUID bugId,
             @RequestParam("file") MultipartFile file
     ) {
+        rateLimitService.check(
+                RateLimitAction.ATTACHMENT_UPLOAD,
+                currentUserService
+                        .getActiveCurrentUser()
+                        .getId()
+                        .toString()
+        );
+
         return ApiResponseSever.ok(bugAttachmentService.upload(projectId, bugId, file));
     }
 
@@ -68,6 +81,7 @@ public class BugAttachmentController {
 
         return ResponseEntity.ok()
                 .contentType(contentType)
+                .contentLength(attachment.sizeBytes())
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         DownloadHeaderUtils.attachmentContentDisposition(attachment.originalFileName())

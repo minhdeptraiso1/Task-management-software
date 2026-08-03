@@ -24,6 +24,7 @@ import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.attachment.AttachmentEntityResolver;
+import com.project.taskmanagement.service.attachment.AttachmentPermissionService;
 import com.project.taskmanagement.service.audit.AuditRequestHelper;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.LoadedFile;
@@ -62,6 +63,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     FileStorageService fileStorageService;
     ProjectActivityService projectActivityService;
     AttachmentEntityResolver attachmentEntityResolver;
+    AttachmentPermissionService attachmentPermissionService;
     FileSecurityProperties fileSecurityProperties;
     SystemAuditService systemAuditService;
     AuditRequestHelper auditRequestHelper;
@@ -84,8 +86,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     ) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
-        projectAccessService.getMembershipOrThrow(projectId, currentUser.getId());
+        attachmentPermissionService.requireUpload(project, currentUser);
 
         attachmentEntityResolver.validateEntityExists(projectId, entityType, entityId);
         validateAttachmentLimits(projectId, entityType, entityId, file.getSize());
@@ -156,7 +157,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     ) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         attachmentEntityResolver.validateEntityExists(projectId, entityType, entityId);
 
@@ -181,7 +182,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     public AttachmentPageResponse getProjectAttachments(UUID projectId, Pageable pageable) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         Page<AttachmentResponse> page = attachmentRepository
                 .findAllByProjectIdOrderByCreatedAtDesc(projectId, pageable)
@@ -195,7 +196,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     public LoadedFile download(UUID projectId, UUID attachmentId) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         Attachment attachment = getAttachmentOrThrow(projectId, attachmentId);
         attachmentEntityResolver.validateEntityExists(projectId, attachment.getEntityType(), attachment.getEntityId());
@@ -233,10 +234,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     public void delete(UUID projectId, UUID attachmentId) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         Attachment attachment = getAttachmentOrThrow(projectId, attachmentId);
-        validateCanDelete(attachment, currentUser);
+        attachmentPermissionService.requireDelete(attachment, currentUser);
 
         Map<String, Object> oldValue = snapshot(attachment);
         attachment.markDeleted(currentUser.getUsername());
@@ -276,7 +277,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     public AttachmentUsageResponse getProjectUsage(UUID projectId) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         long usedBytes = safeLong(attachmentRepository.sumSizeBytesByProjectId(projectId));
         long maxBytes = fileSecurityProperties.maxProjectStorageBytesOrDefault();
@@ -296,7 +297,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     public FileSecuritySummaryResponse getFileSecuritySummary(UUID projectId) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Project project = projectAccessService.getProjectOrThrow(projectId);
-        projectAccessService.requireViewAccess(project, currentUser);
+        attachmentPermissionService.requireView(project, currentUser);
 
         ArrayList<String> allowedExtensions = new ArrayList<>(FileSecurityValidator.ALLOWED_MIME_BY_EXTENSION.keySet());
         ArrayList<String> blockedExtensions = new ArrayList<>(FileSecurityValidator.BLOCKED_EXTENSIONS);
@@ -316,14 +317,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     private Attachment getAttachmentOrThrow(UUID projectId, UUID attachmentId) {
         return attachmentRepository.findByIdAndProjectId(attachmentId, projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTACHMENT_NOT_FOUND));
-    }
-
-    private void validateCanDelete(Attachment attachment, User currentUser) {
-        if (attachment.getUploadedByUserId().equals(currentUser.getId())) {
-            return;
-        }
-
-        throw new BusinessException(ErrorCode.ATTACHMENT_ACCESS_DENIED);
     }
 
     private void validateAttachmentLimits(
@@ -354,7 +347,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     private AttachmentResponse toResponse(Attachment attachment, User currentUser) {
         User uploader = userRepository.findById(attachment.getUploadedByUserId()).orElse(null);
-        boolean canDelete = attachment.getUploadedByUserId().equals(currentUser.getId());
+        boolean canDelete = attachmentPermissionService.canDelete(attachment, currentUser);
 
         return new AttachmentResponse(
                 attachment.getId(),

@@ -101,6 +101,7 @@ public class ProjectController {
     )
     @GetMapping
     public ApiResponseSever<ProjectPageResponse> searchProjects(
+            @Valid
             @ParameterObject
             ProjectSearchRequest request,
 

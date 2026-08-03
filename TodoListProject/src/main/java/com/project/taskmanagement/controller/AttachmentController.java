@@ -6,8 +6,12 @@ import com.project.taskmanagement.dto.response.attachment.AttachmentUsageRespons
 import com.project.taskmanagement.dto.response.attachment.FileSecuritySummaryResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.enums.AttachmentEntityType;
+import com.project.taskmanagement.enums.RateLimitAction;
 import com.project.taskmanagement.service.AttachmentService;
+import com.project.taskmanagement.service.RateLimitService;
+import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.LoadedFile;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AccessLevel;
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/projects/{projectId}/attachments")
@@ -37,7 +42,17 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AttachmentController {
 
+    private static final Set<String> ATTACHMENT_SORT_FIELDS =
+            Set.of(
+                    "createdAt",
+                    "updatedAt",
+                    "originalFileName",
+                    "sizeBytes"
+            );
+
     AttachmentService attachmentService;
+    RateLimitService rateLimitService;
+    CurrentUserService currentUserService;
 
     @Operation(summary = "Upload attachment cho entity")
     @PostMapping(path = "/{entityType}/{entityId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -47,6 +62,14 @@ public class AttachmentController {
             @PathVariable UUID entityId,
             @RequestPart("file") MultipartFile file
     ) {
+        rateLimitService.check(
+                RateLimitAction.ATTACHMENT_UPLOAD,
+                currentUserService
+                        .getActiveCurrentUser()
+                        .getId()
+                        .toString()
+        );
+
         return ApiResponseSever.ok(attachmentService.upload(projectId, entityType, entityId, file));
     }
 
@@ -56,6 +79,8 @@ public class AttachmentController {
             @PathVariable UUID projectId,
             @PageableDefault(size = 10) @ParameterObject Pageable pageable
     ) {
+        PageableValidator.validate(pageable, ATTACHMENT_SORT_FIELDS);
+
         return ApiResponseSever.ok(attachmentService.getProjectAttachments(projectId, pageable));
     }
 
@@ -67,6 +92,8 @@ public class AttachmentController {
             @PathVariable UUID entityId,
             @PageableDefault(size = 20) @ParameterObject Pageable pageable
     ) {
+        PageableValidator.validate(pageable, ATTACHMENT_SORT_FIELDS);
+
         return ApiResponseSever.ok(attachmentService.getAttachments(projectId, entityType, entityId, pageable));
     }
 

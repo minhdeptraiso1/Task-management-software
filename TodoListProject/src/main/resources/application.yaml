@@ -28,16 +28,18 @@ spring:
   cache:
     type: redis
 
-jwt:
-  access-token-expiration: ${JWT_ACCESS_EXPIRATION}
-  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION}
-  secret: ${JWT_SECRET}
-
 springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
   swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
     path: /swagger
 
 app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration-minutes: ${JWT_ACCESS_EXP_MINUTES:30}
+    refresh-token-expiration-days: ${JWT_REFRESH_EXP_DAYS:7}
   file-storage:
     root-path: ${FILE_STORAGE_ROOT_PATH:uploads}
     max-file-size-bytes: ${FILE_STORAGE_MAX_SIZE_BYTES:10485760} # 10MB in bytes
@@ -46,6 +48,7 @@ app:
     keep-deleted-file-days: ${FILE_STORAGE_KEEP_DELETED_FILE_DAYS:30}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
   report:
     pdf:
       font-path: ${REPORT_PDF_FONT_PATH:fonts/NotoSans-Regular.ttf}

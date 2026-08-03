@@ -14,6 +14,7 @@ import com.project.taskmanagement.repository.projection.search.SearchResultView;
 import com.project.taskmanagement.service.SearchService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.validation.TextInputSanitizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -167,6 +168,11 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private String normalizeKeyword(String keyword) {
-        return keyword == null ? "" : keyword.trim();
+        String normalizedKeyword =
+                TextInputSanitizer.normalizeKeyword(keyword);
+
+        return normalizedKeyword == null
+                ? ""
+                : normalizedKeyword;
     }
 }

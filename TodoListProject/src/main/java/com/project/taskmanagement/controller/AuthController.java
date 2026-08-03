@@ -6,16 +6,20 @@ import com.project.taskmanagement.dto.request.auth.LogoutRequest;
 import com.project.taskmanagement.dto.request.auth.RefreshTokenRequest;
 import com.project.taskmanagement.dto.response.auth.AuthResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
+import com.project.taskmanagement.enums.RateLimitAction;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.security.CurrentUser;
 import com.project.taskmanagement.service.AuthService;
+import com.project.taskmanagement.service.RateLimitService;
+import com.project.taskmanagement.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     AuthService authService;
+    RateLimitService rateLimitService;
 
     // ===================== LOGIN =====================
 
@@ -86,8 +91,18 @@ public class AuthController {
             )
             @RequestBody
             @Valid
-            LoginRequest request
+            LoginRequest request,
+
+            HttpServletRequest httpRequest
     ) {
+        String ip =
+                ClientIpResolver.resolve(httpRequest);
+
+        rateLimitService.check(
+                RateLimitAction.LOGIN,
+                ip + ":" + request.email()
+        );
+
         return ApiResponseSever.ok(
                 authService.login(request)
         );
@@ -129,8 +144,18 @@ public class AuthController {
             )
             @RequestBody
             @Valid
-            RefreshTokenRequest request
+            RefreshTokenRequest request,
+
+            HttpServletRequest httpRequest
     ) {
+        String ip =
+                ClientIpResolver.resolve(httpRequest);
+
+        rateLimitService.check(
+                RateLimitAction.REFRESH_TOKEN,
+                ip
+        );
+
         return ApiResponseSever.ok(
                 authService.refresh(request.refreshToken())
         );

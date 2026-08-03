@@ -3,8 +3,12 @@ package com.project.taskmanagement.controller;
 import com.project.taskmanagement.dto.request.search.GlobalSearchRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.search.GlobalSearchResponse;
+import com.project.taskmanagement.enums.RateLimitAction;
+import com.project.taskmanagement.service.RateLimitService;
 import com.project.taskmanagement.service.SearchService;
+import com.project.taskmanagement.service.context.CurrentUserService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,12 +25,23 @@ import java.util.UUID;
 public class SearchController {
 
     SearchService searchService;
+    RateLimitService rateLimitService;
+    CurrentUserService currentUserService;
 
     @Operation(summary = "Search toàn hệ thống theo quyền người dùng")
     @GetMapping("/search")
     public ApiResponseSever<GlobalSearchResponse> search(
+            @Valid
             @ParameterObject GlobalSearchRequest request
     ) {
+        rateLimitService.check(
+                RateLimitAction.GLOBAL_SEARCH,
+                currentUserService
+                        .getActiveCurrentUser()
+                        .getId()
+                        .toString()
+        );
+
         return ApiResponseSever.ok(searchService.search(request));
     }
 
@@ -34,8 +49,20 @@ public class SearchController {
     @GetMapping("/projects/{projectId}/search")
     public ApiResponseSever<GlobalSearchResponse> searchInProject(
             @PathVariable UUID projectId,
+            @Valid
             @ParameterObject GlobalSearchRequest request
     ) {
+        String currentUserId =
+                currentUserService
+                        .getActiveCurrentUser()
+                        .getId()
+                        .toString();
+
+        rateLimitService.check(
+                RateLimitAction.PROJECT_SEARCH,
+                currentUserId + ":" + projectId
+        );
+
         return ApiResponseSever.ok(searchService.searchInProject(projectId, request));
     }
 }

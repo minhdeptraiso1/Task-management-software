@@ -9,6 +9,7 @@ import com.project.taskmanagement.dto.response.user.UserPageResponse;
 import com.project.taskmanagement.enums.UserRole;
 import com.project.taskmanagement.security.CurrentUser;
 import com.project.taskmanagement.service.UserService;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Tag(
@@ -47,6 +49,9 @@ import java.util.UUID;
         makeFinal = true
 )
 public class UserController {
+
+    private static final Set<String> USER_SORT_FIELDS =
+            Set.of("createdAt", "updatedAt", "username", "email", "role", "enabled");
 
     UserService userService;
 
@@ -123,12 +128,15 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
     public ApiResponseSever<UserPageResponse> searchUsers(
+            @Valid
             @ParameterObject
             UserSearchRequest request,
 
             @ParameterObject
             Pageable pageable
     ) {
+        PageableValidator.validate(pageable, USER_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 userService.searchUsers(
                         request,
@@ -147,12 +155,15 @@ public class UserController {
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/project-candidates")
     public ApiResponseSever<UserPageResponse> searchProjectCandidateUsers(
+            @Valid
             @ParameterObject
             UserSearchRequest request,
 
             @ParameterObject
             Pageable pageable
     ) {
+        PageableValidator.validate(pageable, USER_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 userService.searchProjectCandidateUsers(
                         request,

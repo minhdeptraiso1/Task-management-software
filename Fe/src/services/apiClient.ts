@@ -1,4 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
+const ACCESS_TOKEN_COOKIE_DAYS = 30 / (24 * 60)
+const REFRESH_TOKEN_COOKIE_DAYS = 7
+const AUTH_SYNC_STORAGE_KEY = 'taskflow_auth_sync'
 
 export interface ApiError { code?: number; message: string }
 export interface ApiResponse<T> { success: boolean; data: T; error: ApiError | null }
@@ -36,8 +39,8 @@ const tokenStore = {
   access: () => getCookie('taskflow_access_token'),
   refresh: () => getCookie('taskflow_refresh_token'),
   save: (accessToken: string, refreshToken: string) => {
-    setCookie('taskflow_access_token', accessToken, 1) // Access token typically expires quickly
-    setCookie('taskflow_refresh_token', refreshToken, 30) // Refresh token lasts longer
+    setCookie('taskflow_access_token', accessToken, ACCESS_TOKEN_COOKIE_DAYS)
+    setCookie('taskflow_refresh_token', refreshToken, REFRESH_TOKEN_COOKIE_DAYS)
   },
   clear: () => {
     removeCookie('taskflow_access_token')
@@ -63,6 +66,8 @@ function defaultErrorMessage(status: number) {
   if (status === 403) return 'Bạn không có quyền thực hiện thao tác này'
   if (status === 404) return 'Không tìm thấy dữ liệu'
   if (status === 409) return 'Dữ liệu đang xung đột, vui lòng tải lại và thử lại'
+  if (status === 413) return 'Tệp tin vượt quá dung lượng cho phép'
+  if (status === 429) return 'Bạn thao tác quá nhanh, vui lòng thử lại sau'
   if (status >= 500) return 'Máy chủ đang gặp lỗi, vui lòng thử lại sau'
   return 'Không thể kết nối đến máy chủ'
 }
@@ -129,6 +134,20 @@ async function ensureFreshAccessToken() {
   return refreshPromise
 }
 
+export function broadcastAuthExpired(reason: 'expired' | 'logout' | 'logout-all' = 'expired') {
+  window.dispatchEvent(new CustomEvent('auth:expired', { detail: { reason } }))
+  try {
+    localStorage.setItem(AUTH_SYNC_STORAGE_KEY, JSON.stringify({ reason, at: Date.now() }))
+    localStorage.removeItem(AUTH_SYNC_STORAGE_KEY)
+  } catch {
+    // Ignore storage issues; the current tab still receives auth:expired.
+  }
+}
+
+export function isAuthSyncStorageKey(key: string | null) {
+  return key === AUTH_SYNC_STORAGE_KEY
+}
+
 export async function apiFetch(path: string, options: RequestInit = {}, retry = true): Promise<Response> {
   const headers = new Headers(options.headers)
   if (shouldAttachJsonContentType(options.body) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
@@ -143,14 +162,14 @@ export async function apiFetch(path: string, options: RequestInit = {}, retry = 
       return apiFetch(path, options, false)
     } catch {
       tokenStore.clear()
-      window.dispatchEvent(new Event('auth:expired'))
+      broadcastAuthExpired('expired')
       throw new ApiRequestError('Phiên đăng nhập đã hết hạn', 401, null)
     }
   }
 
   if (response.status === 401 && path !== '/auth/login' && path !== '/auth/refresh') {
     tokenStore.clear()
-    window.dispatchEvent(new Event('auth:expired'))
+    broadcastAuthExpired('expired')
   }
 
   return response
@@ -164,7 +183,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, ret
 export async function downloadFile(path: string, defaultFileName: string, errorMessage = 'Không thể xuất file') {
   const response = await apiFetch(path, { method: 'GET' })
   if (!response.ok) {
-    throw new Error(errorMessage)
+    const body = await response.json().catch(() => null)
+    const { message } = extractError(body, response)
+    throw new Error(message || errorMessage)
   }
   const blob = await response.blob()
   let filename = defaultFileName

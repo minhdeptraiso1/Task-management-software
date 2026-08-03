@@ -1,11 +1,11 @@
 package com.project.taskmanagement.security;
 
+import com.project.taskmanagement.config.CorsProperties;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -18,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.project.taskmanagement.security.SecurityEndpoints.PUBLIC;
@@ -35,6 +34,7 @@ public class SecurityConfig {
     JwtAuthenticationFilter jwtAuthenticationFilter;
     RestAuthenticationEntryPoint authenticationEntryPoint;
     RestAccessDeniedHandler accessDeniedHandler;
+    CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -98,25 +98,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.allowed-origins:http://localhost:5173}")
-            String allowedOrigins
-    ) {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(
-                Arrays.stream(allowedOrigins.split(","))
-                        .map(String::trim)
-                        .filter(origin -> !origin.isBlank())
-                        .toList()
-        );
+        configuration.setAllowedOrigins(corsProperties.allowedOriginList());
         configuration.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         );
         configuration.setAllowedHeaders(
                 List.of("Authorization", "Content-Type", "Accept")
         );
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Disposition",
+                        "Content-Length"
+                )
+        );
+        configuration.setAllowCredentials(
+                corsProperties.allowCredentialsOrDefault()
+        );
         configuration.setMaxAge(Duration.ofHours(1));
 
         UrlBasedCorsConfigurationSource source =

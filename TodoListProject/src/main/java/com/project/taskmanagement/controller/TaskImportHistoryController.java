@@ -6,7 +6,10 @@ import com.project.taskmanagement.dto.response.imports.TaskImportBatchDetailResp
 import com.project.taskmanagement.dto.response.imports.TaskImportBatchPageResponse;
 import com.project.taskmanagement.dto.response.imports.TaskImportErrorPageResponse;
 import com.project.taskmanagement.service.TaskImportHistoryService;
+import com.project.taskmanagement.service.validation.DateRangeValidator;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -30,6 +34,12 @@ import java.util.UUID;
 )
 public class TaskImportHistoryController {
 
+    private static final Set<String> IMPORT_HISTORY_SORT_FIELDS =
+            Set.of("createdAt", "updatedAt", "status", "totalRows", "successRows", "failedRows");
+
+    private static final Set<String> IMPORT_ERROR_SORT_FIELDS =
+            Set.of("rowNumber", "fieldName", "createdAt");
+
     TaskImportHistoryService taskImportHistoryService;
 
     @Operation(summary = "Lấy lịch sử import Task của Project")
@@ -38,6 +48,7 @@ public class TaskImportHistoryController {
             @PathVariable
             UUID projectId,
 
+            @Valid
             @ParameterObject
             TaskImportHistorySearchRequest request,
 
@@ -48,6 +59,9 @@ public class TaskImportHistoryController {
             @ParameterObject
             Pageable pageable
     ) {
+        DateRangeValidator.validate(request == null ? null : request.fromDate(), request == null ? null : request.toDate());
+        PageableValidator.validate(pageable, IMPORT_HISTORY_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 taskImportHistoryService.getImportHistory(
                         projectId,
@@ -87,6 +101,8 @@ public class TaskImportHistoryController {
             @ParameterObject
             Pageable pageable
     ) {
+        PageableValidator.validate(pageable, IMPORT_ERROR_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 taskImportHistoryService.getImportErrors(
                         projectId,

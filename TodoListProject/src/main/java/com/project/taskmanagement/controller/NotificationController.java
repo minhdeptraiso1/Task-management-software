@@ -6,7 +6,9 @@ import com.project.taskmanagement.dto.response.notification.NotificationPageResp
 import com.project.taskmanagement.dto.response.notification.NotificationResponse;
 import com.project.taskmanagement.dto.response.notification.UnreadNotificationCountResponse;
 import com.project.taskmanagement.service.NotificationQueryService;
+import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -25,6 +28,9 @@ import java.util.UUID;
         makeFinal = true
 )
 public class NotificationController {
+
+    private static final Set<String> NOTIFICATION_SORT_FIELDS =
+            Set.of("createdAt", "updatedAt", "readAt", "type", "priority");
 
     NotificationQueryService
             notificationQueryService;
@@ -37,12 +43,15 @@ public class NotificationController {
     @GetMapping
     public ApiResponseSever<NotificationPageResponse>
     getMyNotifications(
+            @Valid
             @ParameterObject
             NotificationSearchRequest request,
 
             @ParameterObject
             Pageable pageable
     ) {
+        PageableValidator.validate(pageable, NOTIFICATION_SORT_FIELDS);
+
         return ApiResponseSever.ok(
                 notificationQueryService
                         .getMyNotifications(

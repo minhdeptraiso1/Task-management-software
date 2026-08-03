@@ -9,11 +9,14 @@ import com.project.taskmanagement.dto.response.kanban.KanbanBoardResponse;
 import com.project.taskmanagement.dto.response.sprint.SprintPageResponse;
 import com.project.taskmanagement.dto.response.sprint.SprintResponse;
 import com.project.taskmanagement.dto.response.taskimport.TaskImportResponse;
+import com.project.taskmanagement.enums.RateLimitAction;
+import com.project.taskmanagement.service.RateLimitService;
 import com.project.taskmanagement.service.SprintService;
 import com.project.taskmanagement.service.SprintWorkflowService;
 import com.project.taskmanagement.service.TaskExcelImportService;
 import com.project.taskmanagement.service.TaskExcelTemplateService;
 import com.project.taskmanagement.service.TaskService;
+import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.GeneratedExcelFile;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +50,8 @@ public class SprintController {
     TaskService taskService;
     TaskExcelTemplateService taskExcelTemplateService;
     TaskExcelImportService taskExcelImportService;
+    RateLimitService rateLimitService;
+    CurrentUserService currentUserService;
 
     @Operation(
             summary = "Tạo Sprint"
@@ -397,6 +402,14 @@ public class SprintController {
             @RequestPart("file")
             MultipartFile file
     ) {
+        rateLimitService.check(
+                RateLimitAction.TASK_EXCEL_IMPORT,
+                currentUserService
+                        .getActiveCurrentUser()
+                        .getId()
+                        .toString()
+        );
+
         return ApiResponseSever.ok(
                 taskExcelImportService.importTasks(
                         projectId,

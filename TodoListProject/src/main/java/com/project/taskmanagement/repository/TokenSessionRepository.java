@@ -6,14 +6,30 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface TokenSessionRepository
         extends JpaRepository<TokenSession, UUID> {
 
-    Optional<TokenSession> findByRefreshToken(
-            String refreshToken
+    Optional<TokenSession> findByRefreshTokenHashAndRevokedFalse(
+            String refreshTokenHash
+    );
+
+    Optional<TokenSession> findByIdAndRefreshTokenHashAndRevokedFalse(
+            UUID id,
+            String refreshTokenHash
+    );
+
+    List<TokenSession> findAllByUserIdAndRevokedFalse(
+            UUID userId
+    );
+
+    boolean existsByUserIdAndAccessTokenJtiAndRevokedFalse(
+            UUID userId,
+            String accessTokenJti
     );
 
     @Modifying(
@@ -23,10 +39,12 @@ public interface TokenSessionRepository
     @Query("""
             UPDATE TokenSession t
             SET t.revoked = true
+                , t.revokedAt = :revokedAt
             WHERE t.userId = :userId
               AND t.revoked = false
             """)
     int revokeAllByUserId(
-            @Param("userId") UUID userId
+            @Param("userId") UUID userId,
+            @Param("revokedAt") Instant revokedAt
     );
 }

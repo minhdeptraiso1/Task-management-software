@@ -67,6 +67,7 @@ public class BacklogItemController {
             @PathVariable
             UUID projectId,
 
+            @Valid
             @ParameterObject
             BacklogSearchRequest request,
 

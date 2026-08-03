@@ -8,20 +8,24 @@ import com.project.taskmanagement.entity.Project;
 import com.project.taskmanagement.entity.ProjectMember;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.enums.ActivityEntityType;
+import com.project.taskmanagement.enums.AttachmentEntityType;
 import com.project.taskmanagement.enums.BugStatus;
 import com.project.taskmanagement.enums.NotificationType;
 import com.project.taskmanagement.enums.ProjectActivityAction;
 import com.project.taskmanagement.enums.ProjectMemberRole;
+import com.project.taskmanagement.enums.UserRole;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.BugAttachmentRepository;
 import com.project.taskmanagement.repository.BugRepository;
 import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.BugAttachmentService;
+import com.project.taskmanagement.service.FileStorageService;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.model.StoredFile;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.validation.BugValidator;
@@ -31,19 +35,12 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,12 +53,6 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BugAttachmentServiceImpl implements BugAttachmentService {
 
-    static final String UPLOAD_DIR = "uploads/bugs";
-    static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-    static final Set<String> BLOCKED_EXTENSIONS = Set.of(
-            "bat", "cmd", "com", "dll", "exe", "jar", "js", "msi", "ps1", "scr", "sh", "vbs", "war"
-    );
-
     BugAttachmentRepository bugAttachmentRepository;
     BugRepository bugRepository;
     UserRepository userRepository;
@@ -69,6 +60,7 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
     ProjectAccessService projectAccessService;
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
+    FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -78,22 +70,24 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
         Bug bug = requireProjectMemberAndBug(projectId, bugId, currentUser);
         BugValidator.validateEditable(bug);
 
-        validateFile(file);
-
-        String originalFileName = normalizeOriginalFileName(file);
-        String storedFileName = buildStoredFileName(originalFileName);
-        Path targetLocation = storeFile(file, storedFileName);
+        StoredFile storedFile =
+                fileStorageService.store(
+                        projectId,
+                        AttachmentEntityType.BUG,
+                        bugId,
+                        file
+                );
 
         try {
             BugAttachment attachment = BugAttachment.builder()
                     .projectId(projectId)
                     .bugId(bugId)
                     .uploadedByUserId(currentUser.getId())
-                    .originalFileName(originalFileName)
-                    .storedFileName(storedFileName)
-                    .contentType(resolveContentType(file))
-                    .sizeBytes(file.getSize())
-                    .storagePath(targetLocation.toString())
+                    .originalFileName(storedFile.originalFileName())
+                    .storedFileName(storedFile.storedFileName())
+                    .contentType(resolveContentType(storedFile.contentType()))
+                    .sizeBytes(storedFile.sizeBytes())
+                    .storagePath(storedFile.storagePath())
                     .build();
 
             BugAttachment saved = bugAttachmentRepository.save(attachment);
@@ -104,7 +98,7 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
 
             return toResponse(saved, currentUser, bug);
         } catch (RuntimeException ex) {
-            deletePhysicalFileQuietly(targetLocation);
+            fileStorageService.deletePhysicalFileIfExists(storedFile.storagePath());
             throw ex;
         }
     }
@@ -139,17 +133,14 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
         requireProjectViewAndBug(projectId, bugId, currentUser);
         BugAttachment attachment = getAttachmentOrThrow(projectId, bugId, attachmentId);
 
-        try {
-            Path filePath = Paths.get(attachment.getStoragePath()).toAbsolutePath().normalize();
-            Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists() && resource.isReadable()) {
-                return resource;
-            }
-
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_NOT_FOUND);
-        } catch (IOException ex) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_NOT_FOUND);
-        }
+        return fileStorageService
+                .load(
+                        attachment.getStoragePath(),
+                        attachment.getOriginalFileName(),
+                        attachment.getContentType(),
+                        attachment.getSizeBytes()
+                )
+                .resource();
     }
 
     @Override
@@ -167,7 +158,7 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
         }
 
         Map<String, Object> oldValue = snapshot(attachment);
-        deletePhysicalFileQuietly(Paths.get(attachment.getStoragePath()));
+        fileStorageService.deletePhysicalFileIfExists(attachment.getStoragePath());
 
         attachment.markDeleted(currentUser.getUsername());
         bugAttachmentRepository.save(attachment);
@@ -177,6 +168,10 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
     }
 
     private Bug requireProjectMemberAndBug(UUID projectId, UUID bugId, User user) {
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_ACCESS_DENIED);
+        }
+
         projectAccessService.getMembershipOrThrow(projectId, user.getId());
         return getBugOrThrow(projectId, bugId);
     }
@@ -271,72 +266,10 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
         ));
     }
 
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_INVALID);
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_TOO_LARGE);
-        }
-
-        String originalFileName = normalizeOriginalFileName(file);
-        String extension = getFileExtension(originalFileName).toLowerCase();
-        if (BLOCKED_EXTENSIONS.contains(extension)) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_INVALID);
-        }
-    }
-
-    private String normalizeOriginalFileName(MultipartFile file) {
-        String originalFileName = StringUtils.cleanPath(String.valueOf(file.getOriginalFilename()));
-        if (!StringUtils.hasText(originalFileName)
-                || originalFileName.contains("..")
-                || originalFileName.contains("/")
-                || originalFileName.contains("\\")) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_INVALID);
-        }
-
-        return originalFileName;
-    }
-
-    private Path storeFile(MultipartFile file, String storedFileName) {
-        try {
-            Path uploadRoot = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
-            Files.createDirectories(uploadRoot);
-
-            Path targetLocation = uploadRoot.resolve(storedFileName).normalize();
-            if (!targetLocation.startsWith(uploadRoot)) {
-                throw new BusinessException(ErrorCode.BUG_ATTACHMENT_INVALID);
-            }
-
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            return targetLocation;
-        } catch (IOException ex) {
-            throw new BusinessException(ErrorCode.BUG_ATTACHMENT_INVALID);
-        }
-    }
-
-    private String buildStoredFileName(String originalFileName) {
-        String extension = getFileExtension(originalFileName);
-        return UUID.randomUUID() + (extension.isBlank() ? "" : "." + extension);
-    }
-
-    private String resolveContentType(MultipartFile file) {
-        return StringUtils.hasText(file.getContentType())
-                ? file.getContentType()
+    private String resolveContentType(String contentType) {
+        return StringUtils.hasText(contentType)
+                ? contentType
                 : MediaType.APPLICATION_OCTET_STREAM_VALUE;
-    }
-
-    private String getFileExtension(String fileName) {
-        int index = fileName.lastIndexOf(".");
-        if (index < 0 || index == fileName.length() - 1) {
-            return "";
-        }
-
-        return fileName.substring(index + 1);
     }
 
     private boolean canDeleteAttachment(BugAttachment attachment, User currentUser, ProjectMember membership) {
@@ -358,11 +291,4 @@ public class BugAttachmentServiceImpl implements BugAttachmentService {
                 && bug.getStatus() != BugStatus.CANCELLED;
     }
 
-    private void deletePhysicalFileQuietly(Path path) {
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException ignored) {
-            // Không chặn thao tác metadata nếu file vật lý đã mất hoặc không thể xóa.
-        }
-    }
 }

@@ -13,11 +13,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.TransactionSystemException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Arrays;
 
@@ -113,6 +115,29 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handleBindException(
+            BindException ex
+    ) {
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error ->
+                        error.getField()
+                                + ": "
+                                + error.getDefaultMessage()
+                )
+                .findFirst()
+                .orElse(
+                        ErrorCode.VALIDATION_ERROR.message()
+                );
+
+        return buildErrorResponse(
+                ErrorCode.VALIDATION_ERROR,
+                message
+        );
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleMissingRequestParam(
             MissingServletRequestParameterException ex
@@ -131,6 +156,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponseSever<Void>> handleTypeMismatch(
             MethodArgumentTypeMismatchException ex
     ) {
+        ErrorCode errorCode =
+                ErrorCode.INVALID_PARAMETER;
+
+        if (ex.getRequiredType() != null
+                && ex.getRequiredType().isEnum()) {
+            errorCode =
+                    ErrorCode.INVALID_ENUM_VALUE;
+        } else if (ex.getRequiredType() != null
+                && "UUID".equals(ex.getRequiredType().getSimpleName())) {
+            errorCode =
+                    ErrorCode.INVALID_UUID_FORMAT;
+        }
+
         String requiredType =
                 ex.getRequiredType() != null
                         ? ex.getRequiredType().getSimpleName()
@@ -143,7 +181,7 @@ public class GlobalExceptionHandler {
                         + requiredType;
 
         return buildErrorResponse(
-                ErrorCode.INVALID_PARAMETER,
+                errorCode,
                 message
         );
     }
@@ -295,6 +333,16 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 ErrorCode.DATABASE_ERROR,
                 ErrorCode.DATABASE_ERROR.message()
+        );
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException ex
+    ) {
+        return buildErrorResponse(
+                ErrorCode.FILE_TOO_LARGE,
+                ErrorCode.FILE_TOO_LARGE.message()
         );
     }
 

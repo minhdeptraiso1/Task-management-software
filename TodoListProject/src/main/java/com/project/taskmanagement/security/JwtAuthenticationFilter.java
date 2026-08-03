@@ -5,6 +5,7 @@ import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.core.ErrorResponseSever;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.exception.ErrorCode;
+import com.project.taskmanagement.repository.TokenSessionRepository;
 import com.project.taskmanagement.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -45,6 +46,7 @@ public class JwtAuthenticationFilter
     JwtTokenProvider jwtTokenProvider;
     TokenBlacklistService tokenBlacklistService;
     UserRepository userRepository;
+    TokenSessionRepository tokenSessionRepository;
     ObjectMapper objectMapper;
 
     @Override
@@ -159,20 +161,11 @@ public class JwtAuthenticationFilter
                 return;
             }
 
-            String username = claims.get(
-                    "username",
-                    String.class
-            );
+            String accessTokenJti =
+                    claims.getId();
 
-            String role = claims.get(
-                    "role",
-                    String.class
-            );
-
-            if (username == null
-                    || username.isBlank()
-                    || role == null
-                    || role.isBlank()) {
+            if (accessTokenJti == null
+                    || accessTokenJti.isBlank()) {
 
                 writeErrorResponse(
                         response,
@@ -180,6 +173,21 @@ public class JwtAuthenticationFilter
                 );
                 return;
             }
+
+            if (!tokenSessionRepository
+                    .existsByUserIdAndAccessTokenJtiAndRevokedFalse(
+                            userId,
+                            accessTokenJti
+                    )) {
+                writeErrorResponse(
+                        response,
+                        ErrorCode.TOKEN_REVOKED
+                );
+                return;
+            }
+
+            String username = user.getUsername();
+            String role = user.getRole().name();
 
             /*
              * Không ghi đè Authentication nếu SecurityContext

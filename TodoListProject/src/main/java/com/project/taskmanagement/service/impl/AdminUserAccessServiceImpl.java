@@ -103,13 +103,19 @@ public class AdminUserAccessServiceImpl
         Map<String, Object> oldValue =
                 snapshot(targetUser);
 
+        Instant revokedAt =
+                Instant.now();
+
         targetUser.setEnabled(false);
-        targetUser.setLogoutAllAt(Instant.now());
+        targetUser.setLogoutAllAt(revokedAt);
 
         User saved =
                 userRepository.save(targetUser);
 
-        tokenSessionRepository.revokeAllByUserId(saved.getId());
+        tokenSessionRepository.revokeAllByUserId(
+                saved.getId(),
+                revokedAt
+        );
 
         logUserAudit(
                 currentAdmin,
@@ -156,10 +162,19 @@ public class AdminUserAccessServiceImpl
                 newRole
         );
 
+        Instant revokedAt =
+                Instant.now();
+
         targetUser.setRole(newRole);
+        targetUser.setLogoutAllAt(revokedAt);
 
         User saved =
                 userRepository.save(targetUser);
+
+        tokenSessionRepository.revokeAllByUserId(
+                saved.getId(),
+                revokedAt
+        );
 
         logUserAudit(
                 currentAdmin,

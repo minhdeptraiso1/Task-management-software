@@ -32,6 +32,7 @@ import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.stereotype.Component;
 
 import java.awt.Color;
@@ -44,6 +45,14 @@ public class ExcelReportHelper {
 
     public XSSFWorkbook createWorkbook() {
         return new XSSFWorkbook();
+    }
+
+    /**
+     * Dùng cho báo cáo dữ liệu lớn, không có biểu đồ XSSF phức tạp.
+     * Caller phải đóng workbook và gọi dispose sau khi ghi xong.
+     */
+    public SXSSFWorkbook createStreamingWorkbook() {
+        return new SXSSFWorkbook(100);
     }
 
     public CellStyle headerStyle(Workbook workbook) {

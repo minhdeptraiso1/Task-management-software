@@ -5,19 +5,35 @@ public final class CacheNames {
     private CacheNames() {
     }
 
+    // Cache names follow one stable snake_case convention because they are also
+    // used as keys in app.cache.ttl. Do not create literal cache names in services.
+
+    // ===================== USER =====================
+
     public static final String USER_DETAIL = "user_detail";
     public static final String USER_CURRENT = "user_current";
     public static final String USER_SEARCH = "user_search";
     public static final String USER_PROJECT_CANDIDATE_SEARCH = "user_project_candidate_search";
 
+    // ===================== PROJECT =====================
+
     public static final String PROJECT_DETAIL = "project_detail";
     public static final String PROJECT_SEARCH = "project_search";
-    public static final String PROJECT_MEMBER_LIST = "project_member_list";
+    public static final String PROJECT_SEARCH_RESULT = "project_search_result";
+    public static final String PROJECT_MEMBERS = "project_members";
+    public static final String PROJECT_MEMBER_LIST = PROJECT_MEMBERS;
 
+    // ===================== SPRINT =====================
+
+    public static final String CURRENT_SPRINT = "current_sprint";
     public static final String SPRINT_DETAIL = "sprint_detail";
     public static final String SPRINT_SEARCH = "sprint_search";
+    public static final String SPRINT_LIST = SPRINT_SEARCH;
     public static final String BACKLOG_ITEM_DETAIL = "backlog_item_detail";
     public static final String BACKLOG_ITEM_SEARCH = "backlog_item_search";
+    public static final String BACKLOG_LIST = BACKLOG_ITEM_SEARCH;
+
+    // ===================== TASK =====================
 
     public static final String TASK_DETAIL = "task_detail";
 
@@ -49,6 +65,8 @@ public final class CacheNames {
 
     public static final String TASK_COMMENT_LIST = "task_comment_list";
 
+    // ===================== DASHBOARD =====================
+
     public static final String MY_DASHBOARD = "my_dashboard";
     public static final String MY_TASK_SEARCH = "my_task_search";
     public static final String MY_TIME_SUMMARY = "my_time_summary";
@@ -56,6 +74,8 @@ public final class CacheNames {
     public static final String PROJECT_DASHBOARD = "project_dashboard";
     public static final String PROJECT_DASHBOARD_WORKLOAD = "project_dashboard_workload";
     public static final String PROJECT_DASHBOARD_RECENT_ACTIVITY = "project_dashboard_recent_activity";
+
+    // ===================== ACTIVITY =====================
 
     public static final String PROJECT_ACTIVITY_SEARCH = "project_activity_search";
     public static final String PROJECT_ACTIVITY_DETAIL = "project_activity_detail";
@@ -74,6 +94,13 @@ public final class CacheNames {
     public static final String BUG_REPORT = "bug_report";
     public static final String BUG_QA_METRICS = "bug_qa_metrics";
 
+    // ===================== NOTIFICATION =====================
+
+    public static final String NOTIFICATION_UNREAD_COUNT = "notification_unread_count";
+    public static final String NOTIFICATION_LIST = "notification_list";
+
+    // Legacy/specialized caches retained for existing modules. New cache usage
+    // must still be declared here and have an explicit strategy/TTL.
     public static final String GLOBAL_SEARCH = "global_search";
     public static final String ATTACHMENT_LIST = "attachment_list";
     public static final String ATTACHMENT_USAGE = "attachment_usage";

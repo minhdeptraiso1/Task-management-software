@@ -18,24 +18,24 @@ import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.TaskCommentRepository;
 import com.project.taskmanagement.repository.TaskRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.TaskCommentService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.mention.CommentMentionResolver;
+import com.project.taskmanagement.service.mention.CommentMentionParser;
 import com.project.taskmanagement.service.mention.MentionedUser;
 import com.project.taskmanagement.service.validation.TaskCommentValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -55,7 +55,7 @@ public class TaskCommentServiceImpl
 
     TaskRepository taskRepository;
     TaskCommentRepository taskCommentRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
@@ -64,15 +64,12 @@ public class TaskCommentServiceImpl
     NotificationService notificationService;
     CommentMentionResolver commentMentionResolver;
     KanbanRealtimePublisher kanbanRealtimePublisher;
+    CacheEvictService cacheEvictService;
 
     // ===================== CREATE =====================
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
-    })
     public TaskCommentResponse create(
             UUID projectId,
             UUID taskId,
@@ -227,6 +224,8 @@ public class TaskCommentServiceImpl
                 currentUser.getUsername()
         );
 
+        cacheEvictService.evictTaskComments(projectId, taskId);
+
         return toCommentResponse(
                 projectId,
                 savedComment,
@@ -278,17 +277,40 @@ public class TaskCommentServiceImpl
                                 pageable
                         );
 
-        List<TaskCommentResponse> responses =
-                page.getContent()
-                        .stream()
-                        .map(comment ->
-                                toCommentResponse(
-                                        projectId,
-                                        comment,
-                                        currentUser
-                                )
-                        )
-                        .toList();
+        List<TaskComment> rootComments = page.getContent();
+        List<UUID> rootIds = rootComments.stream().map(TaskComment::getId).toList();
+        List<TaskComment> replies = rootIds.isEmpty()
+                ? List.of()
+                : taskCommentRepository.findAllByTaskIdAndParentCommentIdInOrderByCreatedAtAsc(
+                        taskId,
+                        rootIds
+                );
+        Map<UUID, List<TaskComment>> repliesByParentId = replies.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        TaskComment::getParentCommentId,
+                        LinkedHashMap::new,
+                        java.util.stream.Collectors.toList()
+                ));
+        List<UUID> authorIds = new ArrayList<>();
+        rootComments.forEach(comment -> authorIds.add(comment.getUserId()));
+        replies.forEach(reply -> authorIds.add(reply.getUserId()));
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(authorIds);
+        List<TaskComment> allComments = new ArrayList<>(rootComments);
+        allComments.addAll(replies);
+        Map<String, String> mentionedUsernames = resolveMentionedUsernameMap(projectId, allComments);
+        boolean canModerate = projectAccessService.canModerateTaskComments(projectId, currentUser);
+
+        List<TaskCommentResponse> responses = rootComments.stream()
+                .map(comment -> toCommentResponse(
+                        projectId,
+                        comment,
+                        currentUser,
+                        canModerate,
+                        usersById,
+                        repliesByParentId.getOrDefault(comment.getId(), List.of()),
+                        mentionedUsernames
+                ))
+                .toList();
 
         return new TaskCommentPageResponse(
                 responses,
@@ -307,10 +329,6 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
-    })
     public TaskCommentResponse update(
             UUID projectId,
             UUID taskId,
@@ -405,6 +423,8 @@ public class TaskCommentServiceImpl
          * tránh spam thành viên.
          */
 
+        cacheEvictService.evictTaskComments(projectId, taskId);
+
         return toCommentResponse(
                 projectId,
                 savedComment,
@@ -416,10 +436,6 @@ public class TaskCommentServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
-    })
     public void delete(
             UUID projectId,
             UUID taskId,
@@ -501,6 +517,8 @@ public class TaskCommentServiceImpl
                 comment
         );
 
+        cacheEvictService.evictTaskComments(projectId, taskId);
+
         projectActivityService.log(
                 new ProjectActivityCommand(
                         projectId,
@@ -559,27 +577,28 @@ public class TaskCommentServiceImpl
         TaskCommentValidator
                 .validateRootComment(parentComment);
 
-        return taskCommentRepository
-                .findAllByParentCommentIdOrderByCreatedAtAsc(
-                        commentId
-                )
-                .stream()
-                .map(reply ->
-                        toReplyResponse(
-                                projectId,
-                                reply,
-                                currentUser
-                        )
-                )
+        List<TaskComment> replies = taskCommentRepository
+                .findAllByParentCommentIdOrderByCreatedAtAsc(commentId);
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                replies.stream().map(TaskComment::getUserId).toList()
+        );
+        Map<String, String> mentionedUsernames = resolveMentionedUsernameMap(projectId, replies);
+        boolean canModerate = projectAccessService.canModerateTaskComments(projectId, currentUser);
+
+        return replies.stream()
+                .map(reply -> toReplyResponse(
+                        projectId,
+                        reply,
+                        currentUser,
+                        canModerate,
+                        usersById,
+                        mentionedUsernames
+                ))
                 .toList();
     }
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_COMMENT_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true)
-    })
     public TaskCommentReplyResponse createReply(
             UUID projectId,
             UUID taskId,
@@ -621,12 +640,38 @@ public class TaskCommentServiceImpl
             TaskComment comment,
             User currentUser
     ) {
-        User author =
-                userRepository
-                        .findById(
-                                comment.getUserId()
-                        )
-                        .orElse(null);
+        List<TaskComment> replies = taskCommentRepository
+                .findAllByParentCommentIdOrderByCreatedAtAsc(comment.getId());
+        List<UUID> authorIds = new ArrayList<>();
+        authorIds.add(comment.getUserId());
+        replies.forEach(reply -> authorIds.add(reply.getUserId()));
+        return toCommentResponse(
+                projectId,
+                comment,
+                currentUser,
+                projectAccessService.canModerateTaskComments(projectId, currentUser),
+                userLookupHelper.findUserMap(authorIds),
+                replies,
+                resolveMentionedUsernameMap(
+                        projectId,
+                        java.util.stream.Stream.concat(
+                                java.util.stream.Stream.of(comment),
+                                replies.stream()
+                        ).toList()
+                )
+        );
+    }
+
+    private TaskCommentResponse toCommentResponse(
+            UUID projectId,
+            TaskComment comment,
+            User currentUser,
+            boolean canModerate,
+            Map<UUID, User> usersById,
+            List<TaskComment> replyComments,
+            Map<String, String> mentionedUsernames
+    ) {
+        User author = userLookupHelper.getOrNull(usersById, comment.getUserId());
 
         boolean canEdit =
                 comment.getUserId()
@@ -634,28 +679,18 @@ public class TaskCommentServiceImpl
                                 currentUser.getId()
                         );
 
-        boolean canDelete =
-                canEdit
-                        || projectAccessService
-                        .canModerateTaskComments(
-                                projectId,
-                                currentUser
-                        );
+        boolean canDelete = canEdit || canModerate;
 
-        List<TaskCommentReplyResponse> replies =
-                taskCommentRepository
-                        .findAllByParentCommentIdOrderByCreatedAtAsc(
-                                comment.getId()
-                        )
-                        .stream()
-                        .map(reply ->
-                                toReplyResponse(
-                                        projectId,
-                                        reply,
-                                        currentUser
-                                )
-                        )
-                        .toList();
+        List<TaskCommentReplyResponse> replies = replyComments.stream()
+                .map(reply -> toReplyResponse(
+                        projectId,
+                        reply,
+                        currentUser,
+                        canModerate,
+                        usersById,
+                        mentionedUsernames
+                ))
+                .toList();
 
         return new TaskCommentResponse(
                 comment.getId(),
@@ -676,10 +711,7 @@ public class TaskCommentServiceImpl
                 canEdit,
                 canDelete,
                 replies.size(),
-                getMentionedUsernames(
-                        projectId,
-                        comment.getContent()
-                ),
+                getMentionedUsernames(comment.getContent(), mentionedUsernames),
                 replies
         );
     }
@@ -689,12 +721,25 @@ public class TaskCommentServiceImpl
             TaskComment reply,
             User currentUser
     ) {
-        User author =
-                userRepository
-                        .findById(
-                                reply.getUserId()
-                        )
-                        .orElse(null);
+        return toReplyResponse(
+                projectId,
+                reply,
+                currentUser,
+                projectAccessService.canModerateTaskComments(projectId, currentUser),
+                userLookupHelper.findUserMap(Collections.singletonList(reply.getUserId())),
+                resolveMentionedUsernameMap(projectId, List.of(reply))
+        );
+    }
+
+    private TaskCommentReplyResponse toReplyResponse(
+            UUID projectId,
+            TaskComment reply,
+            User currentUser,
+            boolean canModerate,
+            Map<UUID, User> usersById,
+            Map<String, String> mentionedUsernames
+    ) {
+        User author = userLookupHelper.getOrNull(usersById, reply.getUserId());
 
         boolean canEdit =
                 reply.getUserId()
@@ -702,13 +747,7 @@ public class TaskCommentServiceImpl
                                 currentUser.getId()
                         );
 
-        boolean canDelete =
-                canEdit
-                        || projectAccessService
-                        .canModerateTaskComments(
-                                projectId,
-                                currentUser
-                        );
+        boolean canDelete = canEdit || canModerate;
 
         return new TaskCommentReplyResponse(
                 reply.getId(),
@@ -728,10 +767,7 @@ public class TaskCommentServiceImpl
                 reply.getUpdatedAt(),
                 canEdit,
                 canDelete,
-                getMentionedUsernames(
-                        projectId,
-                        reply.getContent()
-                )
+                getMentionedUsernames(reply.getContent(), mentionedUsernames)
         );
     }
 
@@ -858,17 +894,45 @@ public class TaskCommentServiceImpl
         );
     }
 
-    private List<String> getMentionedUsernames(
+    private Map<String, String> resolveMentionedUsernameMap(
             UUID projectId,
-            String content
+            Collection<TaskComment> comments
     ) {
-        return commentMentionResolver
-                .resolveProjectMentions(
-                        projectId,
-                        content
-                )
+        if (comments == null || comments.isEmpty()) {
+            return Map.of();
+        }
+
+        String combinedContent = comments.stream()
+                .map(TaskComment::getContent)
+                .filter(Objects::nonNull)
+                .filter(content -> !content.isBlank())
+                .collect(java.util.stream.Collectors.joining(" "));
+
+        if (CommentMentionParser.parseUsernames(combinedContent).isEmpty()) {
+            return Map.of();
+        }
+
+        return commentMentionResolver.resolveProjectMentions(projectId, combinedContent)
                 .stream()
-                .map(MentionedUser::username)
+                .collect(java.util.stream.Collectors.toMap(
+                        user -> user.username().toLowerCase(Locale.ROOT),
+                        MentionedUser::username,
+                        (first, second) -> first,
+                        LinkedHashMap::new
+                ));
+    }
+
+    private List<String> getMentionedUsernames(
+            String content,
+            Map<String, String> mentionedUsernames
+    ) {
+        if (mentionedUsernames == null || mentionedUsernames.isEmpty()) {
+            return List.of();
+        }
+
+        return CommentMentionParser.parseUsernames(content).stream()
+                .map(username -> mentionedUsernames.get(username.toLowerCase(Locale.ROOT)))
+                .filter(Objects::nonNull)
                 .toList();
     }
 

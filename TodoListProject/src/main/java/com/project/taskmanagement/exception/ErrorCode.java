@@ -732,6 +732,18 @@ public enum ErrorCode {
             "Vị trí Task không hợp lệ"
     ),
 
+    TASK_CONCURRENT_MODIFICATION(
+            409609,
+            HttpStatus.CONFLICT,
+            "Task đã được cập nhật bởi người khác, vui lòng tải lại dữ liệu"
+    ),
+
+    KANBAN_POSITION_CONFLICT(
+            409610,
+            HttpStatus.CONFLICT,
+            "Vị trí Kanban đang bị thay đổi đồng thời, vui lòng thử lại"
+    ),
+
     TASK_NOT_IN_ACTIVE_SPRINT(
             409607,
             HttpStatus.CONFLICT,
@@ -872,6 +884,12 @@ public enum ErrorCode {
             "Số phút làm việc phải lớn hơn 0"
     ),
 
+    TASK_TIME_LOG_MINUTES_TOO_LARGE(
+            400806,
+            HttpStatus.BAD_REQUEST,
+            "Một bản ghi thời gian không được vượt quá 720 phút"
+    ),
+
     TASK_TIME_LOG_DATE_INVALID(
             400802,
             HttpStatus.BAD_REQUEST,
@@ -893,7 +911,7 @@ public enum ErrorCode {
     TASK_TIME_LOG_DAILY_LIMIT_EXCEEDED(
             409802,
             HttpStatus.CONFLICT,
-            "Tổng thời gian trong ngày không được vượt quá 24 giờ"
+            "Tổng thời gian trong ngày không được vượt quá 12 giờ"
     ),
 
     BUG_COMMENT_NOT_FOUND(

@@ -15,12 +15,13 @@ import com.project.taskmanagement.repository.NotificationRepository;
 import com.project.taskmanagement.repository.projection.NotificationView;
 import com.project.taskmanagement.security.CurrentUser;
 import com.project.taskmanagement.service.NotificationQueryService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.notification.NotificationTargetUrlResolver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -48,10 +49,20 @@ public class NotificationQueryServiceImpl
     NotificationTargetUrlResolver
             notificationTargetUrlResolver;
 
+    CacheEvictService cacheEvictService;
+
     // ===================== LIST =====================
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.NOTIFICATION_LIST,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()" +
+                    " + '|request=' + (#request == null ? '' : #request.toString())" +
+                    " + '|page=' + #pageable.pageNumber" +
+                    " + '|size=' + #pageable.pageSize" +
+                    " + '|sort=' + #pageable.sort.toString()"
+    )
     public NotificationPageResponse getMyNotifications(
             NotificationSearchRequest request,
             Pageable pageable
@@ -87,6 +98,10 @@ public class NotificationQueryServiceImpl
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.NOTIFICATION_UNREAD_COUNT,
+            key = "T(com.project.taskmanagement.security.CurrentUser).username()"
+    )
     public UnreadNotificationCountResponse getUnreadCount() {
         User currentUser =
                 currentUserService
@@ -107,7 +122,6 @@ public class NotificationQueryServiceImpl
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public NotificationResponse markAsRead(
             UUID notificationId
     ) {
@@ -141,6 +155,10 @@ public class NotificationQueryServiceImpl
                                 )
                         );
 
+        cacheEvictService.evictNotificationWorkspace(
+                currentUser.getId()
+        );
+
         return toResponse(
                 notification,
                 recipient
@@ -151,7 +169,6 @@ public class NotificationQueryServiceImpl
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public void markAllAsRead() {
         User currentUser =
                 currentUserService
@@ -162,13 +179,16 @@ public class NotificationQueryServiceImpl
                         currentUser.getId(),
                         Instant.now()
                 );
+
+        cacheEvictService.evictNotificationWorkspace(
+                currentUser.getId()
+        );
     }
 
     // ===================== DELETE =====================
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public void delete(
             UUID notificationId
     ) {
@@ -188,6 +208,10 @@ public class NotificationQueryServiceImpl
 
         notificationRecipientRepository.save(
                 recipient
+        );
+
+        cacheEvictService.evictNotificationWorkspace(
+                currentUser.getId()
         );
     }
 

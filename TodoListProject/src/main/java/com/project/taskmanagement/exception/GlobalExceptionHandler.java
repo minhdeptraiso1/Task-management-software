@@ -7,6 +7,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.hibernate.LazyInitializationException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -242,6 +244,26 @@ public class GlobalExceptionHandler {
     }
 
     // ===================== DATABASE =====================
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handleOptimisticLockingFailure(
+            OptimisticLockingFailureException ex
+    ) {
+        return buildErrorResponse(
+                ErrorCode.TASK_CONCURRENT_MODIFICATION,
+                ErrorCode.TASK_CONCURRENT_MODIFICATION.message()
+        );
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handlePessimisticLockingFailure(
+            PessimisticLockingFailureException ex
+    ) {
+        return buildErrorResponse(
+                ErrorCode.KANBAN_POSITION_CONFLICT,
+                ErrorCode.KANBAN_POSITION_CONFLICT.message()
+        );
+    }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleDataIntegrity(

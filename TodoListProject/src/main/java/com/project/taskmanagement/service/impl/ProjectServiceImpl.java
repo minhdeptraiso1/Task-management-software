@@ -22,6 +22,7 @@ import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.ProjectService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
@@ -32,9 +33,7 @@ import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -68,15 +67,12 @@ public class ProjectServiceImpl
 
     ProjectActivityService projectActivityService;
     NotificationService notificationService;
+    CacheEvictService cacheEvictService;
 
     // ===================== CREATE PROJECT =====================
 
     @Override
     @Transactional
-    @CacheEvict(
-            value = CacheNames.PROJECT_SEARCH,
-            allEntries = true
-    )
     public ProjectResponse createProject(
             CreateProjectRequest request
     ) {
@@ -184,6 +180,10 @@ public class ProjectServiceImpl
         auditLogService.log(
                 currentUser.getId(),
                 AuditAction.CREATE_PROJECT.name()
+        );
+
+        cacheEvictService.evictSearchWorkspace(
+                savedProject.getId()
         );
 
         return projectMapper.toResponse(
@@ -353,44 +353,6 @@ public class ProjectServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public ProjectResponse updateProject(
             UUID projectId,
             UpdateProjectRequest request
@@ -546,6 +508,10 @@ public class ProjectServiceImpl
                         currentUser
                 );
 
+        cacheEvictService.evictProjectWorkspace(
+                savedProject.getId()
+        );
+
         return projectMapper.toResponse(
                 savedProject,
                 currentUserRole
@@ -554,44 +520,6 @@ public class ProjectServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public ProjectResponse updateProjectStatus(
             UUID projectId,
             UpdateProjectStatusRequest request
@@ -692,6 +620,10 @@ public class ProjectServiceImpl
                         currentUser
                 );
 
+        cacheEvictService.evictProjectWorkspace(
+                savedProject.getId()
+        );
+
         return projectMapper.toResponse(
                 savedProject,
                 currentUserRole
@@ -700,44 +632,6 @@ public class ProjectServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DETAIL,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public void deleteProject(
             UUID projectId
     ) {
@@ -820,6 +714,9 @@ public class ProjectServiceImpl
                 projectId,
                 currentUser.getUsername()
         );
+
+        cacheEvictService.evictProjectMembers(projectId);
+        cacheEvictService.evictProjectWorkspace(projectId);
 
         auditLogService.log(
                 currentUser.getId(),

@@ -14,11 +14,11 @@ import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.TaskImportBatchRepository;
 import com.project.taskmanagement.repository.TaskRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.SystemAuditService;
 import com.project.taskmanagement.service.TaskImportWriterService;
 import com.project.taskmanagement.service.audit.AuditRequestHelper;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.model.SystemAuditCommand;
 import com.project.taskmanagement.service.model.TaskImportRowData;
@@ -43,10 +43,12 @@ import java.util.*;
 public class TaskImportWriterServiceImpl
         implements TaskImportWriterService {
 
+    static final int IMPORT_BATCH_SIZE = 50;
+
     TaskRepository taskRepository;
     TaskImportBatchRepository taskImportBatchRepository;
     ProjectMemberRepository projectMemberRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     ProjectActivityService projectActivityService;
     SystemAuditService systemAuditService;
@@ -162,66 +164,14 @@ public class TaskImportWriterServiceImpl
             tasks.add(task);
         }
 
-        List<Task> savedTasks =
-                taskRepository.saveAll(tasks);
-
-        /*
-         * Buộc Hibernate thực thi toàn bộ INSERT tại đây.
-         * Nếu một Task lỗi, transaction rollback toàn bộ.
-         */
-        taskRepository.flush();
-
-        for (Task task : savedTasks) {
-            Map<String, Object> value =
-                    new LinkedHashMap<>();
-
-            value.put(
-                    "title",
-                    task.getTitle()
-            );
-
-            value.put(
-                    "backlogItemId",
-                    task.getBacklogItemId()
-            );
-
-            value.put(
-                    "currentSprintId",
-                    task.getCurrentSprintId()
-            );
-
-            value.put(
-                    "status",
-                    task.getStatus()
-            );
-
-            value.put(
-                    "priority",
-                    task.getPriority()
-            );
-
-            value.put(
-                    "assigneeUserId",
-                    task.getAssigneeUserId()
-            );
-
-            value.put(
-                    "importBatchId",
-                    batch.getId()
-            );
-
-            projectActivityService.log(
-                    new ProjectActivityCommand(
-                            projectId,
-                            ActivityEntityType.TASK,
-                            task.getId(),
-                            ProjectActivityAction.TASK_IMPORTED,
-                            actorUserId,
-                            null,
-                            value
-                    )
-            );
-        }
+        List<Task> savedTasks = saveTasksInBatch(tasks);
+        logImportBatchActivity(
+                projectId,
+                sprintId,
+                batch.getId(),
+                actorUserId,
+                savedTasks.size()
+        );
 
         batch.setStatus(
                 TaskImportStatus.COMPLETED
@@ -271,16 +221,13 @@ public class TaskImportWriterServiceImpl
                                 projectId
                         );
 
-        Map<String, UUID> result =
-                new HashMap<>();
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                projectMembers.stream().map(ProjectMember::getUserId).toList()
+        );
+        Map<String, UUID> result = new HashMap<>();
 
         for (ProjectMember member : projectMembers) {
-            User user =
-                    userRepository
-                            .findById(
-                                    member.getUserId()
-                            )
-                            .orElse(null);
+            User user = userLookupHelper.getOrNull(usersById, member.getUserId());
 
             if (user == null
                     || user.getEmail() == null
@@ -295,6 +242,46 @@ public class TaskImportWriterServiceImpl
         }
 
         return result;
+    }
+
+    private List<Task> saveTasksInBatch(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return List.of();
+        }
+
+        List<Task> savedTasks = taskRepository.saveAll(tasks);
+
+        /*
+         * Một lần flush trong cùng transaction: Hibernate chia JDBC batch theo
+         * cấu hình, còn mọi INSERT vẫn rollback cùng nhau nếu lỗi.
+         */
+        taskRepository.flush();
+        return savedTasks;
+    }
+
+    private void logImportBatchActivity(
+            UUID projectId,
+            UUID sprintId,
+            UUID batchId,
+            UUID actorUserId,
+            int totalTasks
+    ) {
+        Map<String, Object> value = new LinkedHashMap<>();
+        value.put("sprintId", sprintId);
+        value.put("batchId", batchId);
+        value.put("totalTasks", totalTasks);
+
+        projectActivityService.log(
+                new ProjectActivityCommand(
+                        projectId,
+                        ActivityEntityType.TASK_IMPORT,
+                        batchId,
+                        ProjectActivityAction.TASK_IMPORTED,
+                        actorUserId,
+                        null,
+                        value
+                )
+        );
     }
 
     private Map<String, Object> importAuditValue(

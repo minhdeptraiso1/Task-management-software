@@ -1,6 +1,5 @@
 package com.project.taskmanagement.service.impl;
 
-import com.project.taskmanagement.config.CacheNames;
 import com.project.taskmanagement.dto.realtime.RealtimeNotificationPayload;
 import com.project.taskmanagement.entity.Notification;
 import com.project.taskmanagement.entity.NotificationRecipient;
@@ -8,12 +7,12 @@ import com.project.taskmanagement.repository.NotificationRecipientRepository;
 import com.project.taskmanagement.repository.NotificationRepository;
 import com.project.taskmanagement.service.NotificationService;
 import com.project.taskmanagement.service.RealtimeNotificationService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.notification.NotificationTargetUrlResolver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,10 +35,10 @@ public class NotificationServiceImpl
     NotificationRecipientRepository notificationRecipientRepository;
     RealtimeNotificationService realtimeNotificationService;
     NotificationTargetUrlResolver notificationTargetUrlResolver;
+    CacheEvictService cacheEvictService;
 
     @Override
     @Transactional
-    @CacheEvict(value = CacheNames.MY_DASHBOARD, allEntries = true)
     public void create(
             NotificationCommand command
     ) {
@@ -120,6 +119,10 @@ public class NotificationServiceImpl
         );
 
         notificationRecipientRepository.flush();
+
+        uniqueRecipients.forEach(
+                cacheEvictService::evictNotificationWorkspace
+        );
 
         sendRealtimeNotification(
                 savedNotification,

@@ -18,20 +18,20 @@ import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.TaskRepository;
 import com.project.taskmanagement.repository.TaskTimeLogRepository;
-import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.service.ProjectActivityService;
 import com.project.taskmanagement.service.TaskTimeLogService;
+import com.project.taskmanagement.service.TimeLogConcurrencyService;
 import com.project.taskmanagement.service.access.ProjectAccessService;
+import com.project.taskmanagement.service.cache.CacheEvictService;
 import com.project.taskmanagement.service.context.CurrentUserService;
+import com.project.taskmanagement.service.helper.UserLookupHelper;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.realtime.KanbanRealtimePublisher;
 import com.project.taskmanagement.service.validation.TaskTimeLogValidator;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,62 +51,19 @@ public class TaskTimeLogServiceImpl
 
     TaskRepository taskRepository;
     TaskTimeLogRepository taskTimeLogRepository;
-    UserRepository userRepository;
+    UserLookupHelper userLookupHelper;
 
     CurrentUserService currentUserService;
     ProjectAccessService projectAccessService;
     ProjectActivityService projectActivityService;
     KanbanRealtimePublisher kanbanRealtimePublisher;
+    CacheEvictService cacheEvictService;
+    TimeLogConcurrencyService timeLogConcurrencyService;
 
     // ===================== CREATE =====================
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskTimeLogResponse create(
             UUID projectId,
             UUID taskId,
@@ -151,6 +108,11 @@ public class TaskTimeLogServiceImpl
 
         TaskTimeLogValidator.validateMinutes(
                 request.minutes()
+        );
+
+        timeLogConcurrencyService.lockUserWorkDate(
+                currentUser.getId(),
+                request.workDate()
         );
 
         Long currentDailyMinutes =
@@ -240,6 +202,13 @@ public class TaskTimeLogServiceImpl
                 currentUser.getUsername()
         );
 
+        cacheEvictService.evictTaskTimeLogs(
+                projectId,
+                task.getCurrentSprintId(),
+                taskId,
+                currentUser.getId()
+        );
+
         return toResponse(
                 projectId,
                 savedTimeLog,
@@ -301,6 +270,9 @@ public class TaskTimeLogServiceImpl
                                 currentUser
                         );
 
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                page.getContent().stream().map(TaskTimeLog::getUserId).toList()
+        );
         List<TaskTimeLogResponse> responses =
                 page.getContent()
                         .stream()
@@ -308,7 +280,8 @@ public class TaskTimeLogServiceImpl
                                 toResponse(
                                         timeLog,
                                         currentUser,
-                                        canModerate
+                                        canModerate,
+                                        usersById
                                 )
                         )
                         .toList();
@@ -330,51 +303,6 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public TaskTimeLogResponse update(
             UUID projectId,
             UUID taskId,
@@ -434,6 +362,12 @@ public class TaskTimeLogServiceImpl
 
         TaskTimeLogValidator.validateMinutes(
                 newMinutes
+        );
+
+        lockForTimeLogUpdate(
+                timeLog.getUserId(),
+                timeLog.getWorkDate(),
+                newWorkDate
         );
 
         Long currentDailyMinutes =
@@ -502,6 +436,13 @@ public class TaskTimeLogServiceImpl
                 currentUser.getUsername()
         );
 
+        cacheEvictService.evictTaskTimeLogs(
+                projectId,
+                task.getCurrentSprintId(),
+                taskId,
+                currentUser.getId()
+        );
+
         return toResponse(
                 projectId,
                 savedTimeLog,
@@ -513,51 +454,6 @@ public class TaskTimeLogServiceImpl
 
     @Override
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = CacheNames.TASK_TIME_LOG_LIST, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_TIME_SUMMARY, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_DETAIL, allEntries = true),
-            @CacheEvict(value = CacheNames.TASK_SEARCH, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_KANBAN, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_TASK_STATISTICS, allEntries = true),
-            @CacheEvict(value = CacheNames.SPRINT_BURNDOWN, allEntries = true),
-            @CacheEvict(
-                    value = CacheNames.MY_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TASK_SEARCH,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.MY_TIME_SUMMARY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_WORKLOAD,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_DASHBOARD_RECENT_ACTIVITY,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_SPRINT,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_MEMBER,
-                    allEntries = true
-            ),
-            @CacheEvict(
-                    value = CacheNames.PROJECT_REPORT_TIME,
-                    allEntries = true
-            )
-    })
     public void delete(
             UUID projectId,
             UUID taskId,
@@ -611,6 +507,11 @@ public class TaskTimeLogServiceImpl
             );
         }
 
+        timeLogConcurrencyService.lockUserWorkDate(
+                timeLog.getUserId(),
+                timeLog.getWorkDate()
+        );
+
         Map<String, Object> oldValue =
                 timeLogSnapshot(timeLog);
 
@@ -620,6 +521,13 @@ public class TaskTimeLogServiceImpl
 
         taskTimeLogRepository.save(
                 timeLog
+        );
+
+        cacheEvictService.evictTaskTimeLogs(
+                projectId,
+                task.getCurrentSprintId(),
+                taskId,
+                currentUser.getId()
         );
 
         projectActivityService.log(
@@ -764,21 +672,18 @@ public class TaskTimeLogServiceImpl
         return toResponse(
                 timeLog,
                 currentUser,
-                canModerate
+                canModerate,
+                userLookupHelper.findUserMap(Collections.singletonList(timeLog.getUserId()))
         );
     }
 
     private TaskTimeLogResponse toResponse(
             TaskTimeLog timeLog,
             User currentUser,
-            boolean canModerate
+            boolean canModerate,
+            Map<UUID, User> usersById
     ) {
-        User author =
-                userRepository
-                        .findById(
-                                timeLog.getUserId()
-                        )
-                        .orElse(null);
+        User author = userLookupHelper.getOrNull(usersById, timeLog.getUserId());
 
         boolean canEdit =
                 timeLog.getUserId()
@@ -821,6 +726,14 @@ public class TaskTimeLogServiceImpl
                                 taskId
                         );
 
+        Map<UUID, User> usersById = userLookupHelper.findUserMap(
+                rows.stream()
+                        .filter(Objects::nonNull)
+                        .filter(row -> row.length > 0)
+                        .map(row -> (UUID) row[0])
+                        .toList()
+        );
+
         List<TaskTimeUserSummaryResponse> result =
                 new ArrayList<>();
 
@@ -834,10 +747,7 @@ public class TaskTimeLogServiceImpl
                             : ((Number) row[1])
                               .longValue();
 
-            User user =
-                    userRepository
-                            .findById(userId)
-                            .orElse(null);
+            User user = userLookupHelper.getOrNull(usersById, userId);
 
             result.add(
                     new TaskTimeUserSummaryResponse(
@@ -893,6 +803,23 @@ public class TaskTimeLogServiceImpl
     }
 
     // ===================== HELPER =====================
+
+    private void lockForTimeLogUpdate(
+            UUID userId,
+            LocalDate oldWorkDate,
+            LocalDate newWorkDate
+    ) {
+        java.util.stream.Stream
+                .of(oldWorkDate, newWorkDate)
+                .distinct()
+                .sorted()
+                .forEach(workDate ->
+                        timeLogConcurrencyService.lockUserWorkDate(
+                                userId,
+                                workDate
+                        )
+                );
+    }
 
     private Task getTaskOrThrow(
             UUID projectId,

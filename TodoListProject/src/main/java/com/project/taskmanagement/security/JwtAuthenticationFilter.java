@@ -60,7 +60,8 @@ public class JwtAuthenticationFilter
                 || path.startsWith("/swagger-ui/")
                 || path.startsWith("/v3/api-docs")
                 || path.equals("/swagger-ui.html")
-                || path.equals("/actuator/health");
+                || path.equals("/actuator/health")
+                || path.equals("/actuator/info");
     }
 
     @Override

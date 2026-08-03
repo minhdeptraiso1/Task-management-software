@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { Button, toast } from '../../../components/ui'
-import type { AdminDashboardResponse } from '../models/admin.model'
+import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
 import { runTaskDueReminders, runDailyDigest } from '../services/admin.service'
 
 const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
@@ -55,12 +55,18 @@ export function AdminDashboardOverviewView({
   dashboard,
   loading,
   error,
+  systemStatus,
+  systemStatusLoading,
+  systemStatusError,
   onRefresh,
   onNavigateSection
 }: {
   dashboard: AdminDashboardResponse | null
   loading: boolean
   error: string
+  systemStatus: AdminSystemStatusResponse | null
+  systemStatusLoading: boolean
+  systemStatusError: string
   onRefresh: () => void
   onNavigateSection?: (section: 'members' | 'audit' | 'files') => void
 }) {
@@ -124,6 +130,14 @@ export function AdminDashboardOverviewView({
   const activeUserPercent = userSummary.totalUsers > 0 ? Math.round((userSummary.activeUsers / userSummary.totalUsers) * 100) : 0
   const activeProjectPercent = projectSummary.totalProjects > 0 ? Math.round((projectSummary.activeProjects / projectSummary.totalProjects) * 100) : 0
   const taskDonePercent = taskSummary.totalTasks > 0 ? Math.round((taskSummary.doneTasks / taskSummary.totalTasks) * 100) : 0
+  const healthUp = systemStatus?.health.status === 'UP'
+  const healthComponents = systemStatus?.health.components
+  const statusItems = [
+    ['Cơ sở dữ liệu', healthComponents?.db?.status],
+    ['Redis', healthComponents?.redis?.status],
+    ['Dung lượng đĩa', healthComponents?.diskSpace?.status],
+    ['Kho lưu trữ file', healthComponents?.fileStorage?.status],
+  ] as const
 
   return (
     <motion.div
@@ -138,17 +152,34 @@ export function AdminDashboardOverviewView({
           <div className="flex size-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
             <Activity size={20} />
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Tổng quan Hệ thống HICAS ONE</h2>
-            <p className="text-xs text-slate-500">
-              Cập nhật lúc: {new Date(systemSummary.generatedAt).toLocaleString('vi-VN')} ({systemSummary.timezone})
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900">
+                {systemStatus?.info.app?.name ?? 'Hệ thống HICAS ONE'}
+              </h2>
+              {systemStatus?.info.app?.version && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                  v{systemStatus.info.app.version}
+                </span>
+              )}
+            </div>
+            <p className="truncate text-xs text-slate-500">
+              {systemStatusError
+                ? systemStatusError
+                : systemStatus?.info.app?.description ?? `Cập nhật lúc ${new Date(systemSummary.generatedAt).toLocaleString('vi-VN')} (${systemSummary.timezone})`}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200/80">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            Hệ thống ổn định
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${
+            systemStatusLoading
+              ? 'border-amber-200 bg-amber-50 text-amber-700'
+              : healthUp
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-rose-200 bg-rose-50 text-rose-700'
+          }`}>
+            <span className={`size-2 rounded-full ${systemStatusLoading ? 'animate-pulse bg-amber-500' : healthUp ? 'animate-pulse bg-emerald-500' : 'bg-rose-500'}`} />
+            {systemStatusLoading ? 'Đang kiểm tra' : healthUp ? 'Hệ thống ổn định' : 'Hệ thống cần kiểm tra'}
           </span>
           <Button
             variant="secondary"
@@ -176,6 +207,26 @@ export function AdminDashboardOverviewView({
             Làm mới
           </Button>
         </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 xl:grid-cols-4">
+        {statusItems.map(([label, status]) => {
+          const isUp = status === 'UP'
+          return (
+            <div key={label} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-2xs">
+              <span className="text-xs font-semibold text-slate-600">{label}</span>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${isUp ? 'text-emerald-600' : status ? 'text-rose-600' : 'text-slate-400'}`}>
+                <span className={`size-2 rounded-full ${isUp ? 'bg-emerald-500' : status ? 'bg-rose-500' : 'bg-slate-300'}`} />
+                {status ?? (systemStatus ? 'Đã ẩn chi tiết' : 'Chưa có dữ liệu')}
+              </span>
+            </div>
+          )
+        })}
+        {systemStatus?.checkedAt && (
+          <p className="col-span-full text-right text-[11px] text-slate-400">
+            Kiểm tra gần nhất: {new Date(systemStatus.checkedAt).toLocaleString('vi-VN')}
+          </p>
+        )}
       </motion.div>
 
       {/* Top 6 KPI Summary Cards */}

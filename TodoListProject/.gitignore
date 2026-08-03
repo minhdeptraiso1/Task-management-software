@@ -38,5 +38,15 @@ out/
 
 ### Environment Variables ###
 .env
+.env.prod
 # .env.example là template an toàn — nên commit
 !.env.example
+!.env.prod.example
+
+### Runtime data ###
+uploads/
+backups/
+logs/
+*.log
+*.sql.gz
+*.tar.gz

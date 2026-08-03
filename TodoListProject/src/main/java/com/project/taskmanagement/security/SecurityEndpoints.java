@@ -14,6 +14,7 @@ public final class SecurityEndpoints {
             "/v3/api-docs/**",
 
             "/actuator/health",
+            "/actuator/info",
             "/ws/**"
     };
 }

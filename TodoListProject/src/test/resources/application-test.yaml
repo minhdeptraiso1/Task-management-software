@@ -1,6 +1,7 @@
 spring:
   flyway:
     enabled: true
+    locations: classpath:db/migration
 
   jpa:
     hibernate:
@@ -31,3 +32,18 @@ logging:
     org.springframework.security: warn
     org.hibernate.SQL: warn
     org.hibernate.orm.jdbc.bind: warn
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

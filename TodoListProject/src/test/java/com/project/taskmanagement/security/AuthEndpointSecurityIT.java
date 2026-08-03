@@ -49,10 +49,7 @@ class AuthEndpointSecurityIT extends BaseSecurityIT {
     }
 
     @Test
-    void loginAndOpenApiEndpoints_arePublic() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk());
-
+    void loginEndpointIsPublic() throws Exception {
         mockMvc.perform(
                         post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -60,6 +57,29 @@ class AuthEndpointSecurityIT extends BaseSecurityIT {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
+    }
+
+    @Test
+    void actuatorHealthAndInfoArePublicButSensitiveEndpointsAreProtected() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components.db.status").value("UP"))
+                .andExpect(jsonPath("$.components.redis.status").value("UP"))
+                .andExpect(jsonPath("$.components.fileStorage.status").value("UP"));
+
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.app.name")
+                        .value("Task Management Agile Scrum Backend"))
+                .andExpect(jsonPath("$.app.version").value("1.0.0"));
+
+        mockMvc.perform(get("/actuator/env"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/beans"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

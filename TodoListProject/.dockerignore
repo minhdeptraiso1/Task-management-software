@@ -1,0 +1,17 @@
+.git
+.gitattributes
+.gradle
+.idea
+.vscode
+build
+out
+uploads
+backups
+scripts/backup
+*.iml
+*.log
+.env
+.env.*
+!.env.example
+README.md
+docs

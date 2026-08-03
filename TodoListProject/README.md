@@ -581,13 +581,46 @@ build/reports/tests/test/index.html
 ### Test Configuration
 
 Tests sử dụng:
-- H2 in-memory database (không cần PostgreSQL)
-- Configuration riêng: `src/test/resources/application-test.yaml`
+- PostgreSQL 16 và Redis 7 do Testcontainers tự khởi tạo.
+- Flyway chạy trên PostgreSQL thật để kiểm tra migration và entity mapping.
+- Cấu hình riêng: `src/test/resources/application-test.yaml`.
 
 ### Existing Tests
 
 1. **AuthControllerTest**: Test authentication endpoints
 2. **BaseV1ApplicationTests**: Context loading test
+
+---
+
+## CI/CD
+
+Backend sử dụng GitHub Actions. Pipeline tự động chạy khi push hoặc tạo pull request vào `main`/`develop`.
+
+Pipeline gồm:
+
+- Thiết lập JDK 21 và cache Gradle.
+- Chạy toàn bộ unit, repository và integration test bằng Testcontainers PostgreSQL/Redis.
+- Kiểm tra Flyway migration qua Spring integration test.
+- Lưu test report trong GitHub Actions artifact kể cả khi test thất bại.
+- Chỉ build Docker image sau khi toàn bộ test thành công.
+- Không push image và không deploy server ở bước này.
+
+File workflow: `.github/workflows/backend-ci.yml`
+
+Chạy cùng quy trình ở local:
+
+```bash
+# Linux/macOS
+./gradlew clean test
+
+# Windows
+gradlew.bat clean test
+
+# Kiểm tra Docker image
+docker build -t task-management-backend:ci .
+```
+
+CI không khai báo PostgreSQL/Redis service riêng vì bộ test hiện tại tự quản lý container bằng Testcontainers.
 
 ---
 

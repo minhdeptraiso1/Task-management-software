@@ -7,8 +7,8 @@ import type { CreateUserData, User, UserFilters, UserPage, UserRole } from '../m
 import { DashboardView } from '../views/DashboardView'
 import { UserFormModal } from '../views/UserFormModal'
 
-import { getAdminDashboard, enableUser, disableUser, updateUserRole, searchSystemAuditLogs, getAuditSummary } from '../services/admin.service'
-import type { AdminDashboardResponse, AdminAuditSummaryResponse } from '../models/admin.model'
+import { getAdminDashboard, getAdminSystemStatus, enableUser, disableUser, updateUserRole, searchSystemAuditLogs, getAuditSummary } from '../services/admin.service'
+import type { AdminDashboardResponse, AdminAuditSummaryResponse, AdminSystemStatusResponse } from '../models/admin.model'
 import { AdminUserActivityModal } from '../views/AdminUserActivityModal'
 
 const emptyPage: UserPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 8 }
@@ -39,6 +39,9 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
   const [adminDashboard, setAdminDashboard] = useState<AdminDashboardResponse | null>(null)
   const [adminDashboardLoading, setAdminDashboardLoading] = useState(false)
   const [adminDashboardError, setAdminDashboardError] = useState('')
+  const [adminSystemStatus, setAdminSystemStatus] = useState<AdminSystemStatusResponse | null>(null)
+  const [adminSystemStatusLoading, setAdminSystemStatusLoading] = useState(false)
+  const [adminSystemStatusError, setAdminSystemStatusError] = useState('')
 
   const loadAdminDashboard = useCallback(async () => {
     setAdminDashboardLoading(true)
@@ -52,9 +55,29 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     }
   }, [])
 
+  const loadAdminSystemStatus = useCallback(async () => {
+    setAdminSystemStatusLoading(true)
+    setAdminSystemStatusError('')
+    try {
+      setAdminSystemStatus(await getAdminSystemStatus())
+    } catch (err) {
+      setAdminSystemStatusError(err instanceof Error ? err.message : 'Không thể kiểm tra trạng thái hệ thống')
+    } finally {
+      setAdminSystemStatusLoading(false)
+    }
+  }, [])
+
+  const refreshAdminOverview = useCallback(async () => {
+    await Promise.all([loadAdminDashboard(), loadAdminSystemStatus()])
+  }, [loadAdminDashboard, loadAdminSystemStatus])
+
   useEffect(() => {
     void Promise.resolve().then(loadAdminDashboard)
   }, [loadAdminDashboard])
+
+  useEffect(() => {
+    void Promise.resolve().then(loadAdminSystemStatus)
+  }, [loadAdminSystemStatus])
 
   useEffect(() => {
     getUserRoles()
@@ -224,7 +247,10 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       adminDashboard={adminDashboard}
       adminDashboardLoading={adminDashboardLoading}
       adminDashboardError={adminDashboardError}
-      onRefreshAdminDashboard={loadAdminDashboard}
+      adminSystemStatus={adminSystemStatus}
+      adminSystemStatusLoading={adminSystemStatusLoading}
+      adminSystemStatusError={adminSystemStatusError}
+      onRefreshAdminDashboard={refreshAdminOverview}
       users={users}
       auditLogs={auditLogs}
       auditSummary={auditSummary}

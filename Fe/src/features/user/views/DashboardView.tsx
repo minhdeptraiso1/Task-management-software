@@ -24,7 +24,7 @@ import { UserGuideModal } from './UserGuideModal'
 import { AuditLogView } from './AuditLogView'
 import { AdminFileCleanupView } from './AdminFileCleanupView'
 import { AdminDashboardOverviewView } from './AdminDashboardOverviewView'
-import type { AdminDashboardResponse } from '../models/admin.model'
+import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
 
 const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
 
@@ -141,6 +141,9 @@ interface Props {
   adminDashboard: AdminDashboardResponse | null
   adminDashboardLoading: boolean
   adminDashboardError: string
+  adminSystemStatus: AdminSystemStatusResponse | null
+  adminSystemStatusLoading: boolean
+  adminSystemStatusError: string
   onRefreshAdminDashboard: () => void
   users: UserPage
   auditLogs: AuditLogPage
@@ -177,6 +180,9 @@ export function DashboardView({
   adminDashboard,
   adminDashboardLoading,
   adminDashboardError,
+  adminSystemStatus,
+  adminSystemStatusLoading,
+  adminSystemStatusError,
   onRefreshAdminDashboard,
   users,
   auditLogs,
@@ -340,6 +346,9 @@ export function DashboardView({
             dashboard={adminDashboard}
             loading={adminDashboardLoading}
             error={adminDashboardError}
+            systemStatus={adminSystemStatus}
+            systemStatusLoading={adminSystemStatusLoading}
+            systemStatusError={adminSystemStatusError}
             onRefresh={onRefreshAdminDashboard}
             onNavigateSection={section => onSectionChange(section)}
           />

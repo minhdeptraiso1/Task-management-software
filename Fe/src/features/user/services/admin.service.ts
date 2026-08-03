@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../services/apiClient'
+import { apiFetch, apiRequest } from '../../../services/apiClient'
 import type {
   AdminDashboardResponse,
   AdminUserResponse,
@@ -8,11 +8,43 @@ import type {
   AdminAuditSummaryResponse,
   AdminImportAuditPageResponse,
   DailyDigestRunResponse,
+  ActuatorHealthResponse,
+  ActuatorInfoResponse,
+  AdminSystemStatusResponse,
 } from '../models/admin.model'
 import type { UserRole } from '../models/user.model'
 
 export async function getAdminDashboard(): Promise<AdminDashboardResponse> {
   return apiRequest<AdminDashboardResponse>('/admin/dashboard')
+}
+
+async function getActuatorPayload<T>(path: '/actuator/health' | '/actuator/info'): Promise<T> {
+  const response = await apiFetch(path, { method: 'GET' })
+  const body = await response.json().catch(() => null) as T | null
+
+  if (!body) {
+    throw new Error(`Không đọc được dữ liệu trạng thái từ ${path}`)
+  }
+
+  // Actuator health có thể trả 503 cùng payload DOWN; vẫn trả payload để Admin thấy nguyên nhân.
+  if (!response.ok && path !== '/actuator/health') {
+    throw new Error(`Không thể tải thông tin hệ thống (${response.status})`)
+  }
+
+  return body
+}
+
+export async function getAdminSystemStatus(): Promise<AdminSystemStatusResponse> {
+  const [health, info] = await Promise.all([
+    getActuatorPayload<ActuatorHealthResponse>('/actuator/health'),
+    getActuatorPayload<ActuatorInfoResponse>('/actuator/info'),
+  ])
+
+  return {
+    health,
+    info,
+    checkedAt: new Date().toISOString(),
+  }
 }
 
 export async function enableUser(userId: string): Promise<AdminUserResponse> {

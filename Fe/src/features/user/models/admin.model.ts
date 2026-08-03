@@ -55,6 +55,30 @@ export interface AdminSystemSummaryResponse {
   timezone: string
 }
 
+export interface ActuatorHealthComponent {
+  status: string
+  details?: Record<string, unknown>
+}
+
+export interface ActuatorHealthResponse {
+  status: string
+  components?: Record<string, ActuatorHealthComponent>
+}
+
+export interface ActuatorInfoResponse {
+  app?: {
+    name?: string
+    description?: string
+    version?: string
+  }
+}
+
+export interface AdminSystemStatusResponse {
+  health: ActuatorHealthResponse
+  info: ActuatorInfoResponse
+  checkedAt: string
+}
+
 export interface AdminDashboardResponse {
   userSummary: AdminUserSummaryResponse
   projectSummary: AdminProjectSummaryResponse

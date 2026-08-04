@@ -26,10 +26,6 @@ public interface TaskDependencyRepository
             UUID taskId
     );
 
-    List<TaskDependency> findAllByDependsOnTaskId(
-            UUID dependsOnTaskId
-    );
-
     @Query("""
             SELECT td.dependsOnTaskId
             FROM TaskDependency td

@@ -31,7 +31,6 @@ public class User extends BaseAuditEntity {
     @Column(
             name = "username",
             nullable = false,
-            unique = true,
             length = 100
     )
     String username;
@@ -39,7 +38,6 @@ public class User extends BaseAuditEntity {
     @Column(
             name = "email",
             nullable = false,
-            unique = true,
             length = 255
     )
     String email;

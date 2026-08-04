@@ -23,10 +23,6 @@ public interface TokenSessionRepository
             String refreshTokenHash
     );
 
-    List<TokenSession> findAllByUserIdAndRevokedFalse(
-            UUID userId
-    );
-
     boolean existsByUserIdAndAccessTokenJtiAndRevokedFalse(
             UUID userId,
             String accessTokenJti

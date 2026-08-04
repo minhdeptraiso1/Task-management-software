@@ -384,7 +384,7 @@ public class SprintServiceImpl
                 || newName.isBlank()) {
 
             throw new BusinessException(
-                    ErrorCode.VALIDATION_ERROR
+                    ErrorCode.SPRINT_NAME_REQUIRED
             );
         }
 

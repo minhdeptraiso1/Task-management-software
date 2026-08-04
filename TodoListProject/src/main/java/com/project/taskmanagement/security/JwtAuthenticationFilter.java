@@ -2,7 +2,6 @@ package com.project.taskmanagement.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
-import com.project.taskmanagement.dto.response.core.ErrorResponseSever;
 import com.project.taskmanagement.entity.User;
 import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.repository.TokenSessionRepository;
@@ -97,6 +96,7 @@ public class JwtAuthenticationFilter
 
         if (!authorizationHeader.startsWith(BEARER_PREFIX)) {
             writeErrorResponse(
+                    request,
                     response,
                     ErrorCode.INVALID_ACCESS_TOKEN
             );
@@ -109,6 +109,7 @@ public class JwtAuthenticationFilter
 
         if (accessToken.isBlank()) {
             writeErrorResponse(
+                    request,
                     response,
                     ErrorCode.INVALID_ACCESS_TOKEN
             );
@@ -119,6 +120,7 @@ public class JwtAuthenticationFilter
             // Access token đã logout thì không cho sử dụng lại.
             if (tokenBlacklistService.isRevoked(accessToken)) {
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.TOKEN_REVOKED
                 );
@@ -140,6 +142,7 @@ public class JwtAuthenticationFilter
 
             if (user == null) {
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.INVALID_ACCESS_TOKEN
                 );
@@ -148,6 +151,7 @@ public class JwtAuthenticationFilter
 
             if (!user.isEnabled()) {
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.ACCOUNT_DISABLED
                 );
@@ -156,6 +160,7 @@ public class JwtAuthenticationFilter
 
             if (isIssuedBeforeLogoutAll(claims, user)) {
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.TOKEN_REVOKED
                 );
@@ -169,6 +174,7 @@ public class JwtAuthenticationFilter
                     || accessTokenJti.isBlank()) {
 
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.INVALID_ACCESS_TOKEN
                 );
@@ -181,6 +187,7 @@ public class JwtAuthenticationFilter
                             accessTokenJti
                     )) {
                 writeErrorResponse(
+                        request,
                         response,
                         ErrorCode.TOKEN_REVOKED
                 );
@@ -221,6 +228,7 @@ public class JwtAuthenticationFilter
             SecurityContextHolder.clearContext();
 
             writeErrorResponse(
+                    request,
                     response,
                     ErrorCode.TOKEN_EXPIRED
             );
@@ -231,6 +239,7 @@ public class JwtAuthenticationFilter
             SecurityContextHolder.clearContext();
 
             writeErrorResponse(
+                    request,
                     response,
                     ErrorCode.INVALID_ACCESS_TOKEN
             );
@@ -271,6 +280,7 @@ public class JwtAuthenticationFilter
     }
 
     private void writeErrorResponse(
+            HttpServletRequest request,
             HttpServletResponse response,
             ErrorCode errorCode
     ) throws IOException {
@@ -292,12 +302,9 @@ public class JwtAuthenticationFilter
         );
 
         ApiResponseSever<Void> responseBody =
-                ApiResponseSever.error(
-                        new ErrorResponseSever(
-                                errorCode.code(),
-                                errorCode.message()
-                        )
-                );
+                ApiResponseSever
+                        .<Void>of(errorCode.code(), errorCode.message(), null)
+                        .withPath(request.getRequestURI());
 
         objectMapper.writeValue(
                 response.getWriter(),

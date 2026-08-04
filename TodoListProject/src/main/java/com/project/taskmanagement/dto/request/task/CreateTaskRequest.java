@@ -38,14 +38,20 @@ public record CreateTaskRequest(
                 max = 10000,
                 message = "Mô tả không được vượt quá 10000 ký tự"
         )
+        @Schema(
+                description = "Mô tả chi tiết Task",
+                example = "Xây dựng API đăng nhập bằng JWT access token và refresh token"
+        )
         String description,
 
         @Schema(
+                description = "Loại công việc",
                 example = "DEVELOPMENT"
         )
         TaskType type,
 
         @Schema(
+                description = "Mức độ ưu tiên của Task",
                 example = "HIGH"
         )
         TaskPriority priority,
@@ -65,8 +71,10 @@ public record CreateTaskRequest(
         )
         Integer estimatedMinutes,
 
+        @Schema(description = "Ngày bắt đầu dự kiến", example = "2026-08-04")
         LocalDate startDate,
 
+        @Schema(description = "Ngày hết hạn dự kiến", example = "2026-08-10")
         LocalDate dueDate
 
 ) {

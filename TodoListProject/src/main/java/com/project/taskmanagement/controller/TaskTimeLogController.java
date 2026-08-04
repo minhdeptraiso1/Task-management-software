@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.tasktimelog.CreateTaskTimeLogRequest;
 import com.project.taskmanagement.dto.request.tasktimelog.UpdateTaskTimeLogRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.dto.response.tasktimelog.TaskTimeLogResponse;
 import com.project.taskmanagement.dto.response.tasktimelog.TaskTimeSummaryResponse;
 import com.project.taskmanagement.service.TaskTimeLogService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.TIME_LOGS, description = "Ghi nhận và tổng hợp thời gian làm việc trên Task")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/tasks/{taskId}"

@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.notification.NotificationSearchRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.notification.NotificationPageResponse;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.dto.response.notification.UnreadNotificationCo
 import com.project.taskmanagement.service.NotificationQueryService;
 import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Set;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.NOTIFICATIONS, description = "Thông báo in-app của người dùng hiện tại")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor

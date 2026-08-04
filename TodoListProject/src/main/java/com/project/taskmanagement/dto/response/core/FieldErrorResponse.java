@@ -1,7 +1,7 @@
 package com.project.taskmanagement.dto.response.core;
 
-public record ErrorResponseSever(
-        int code,
+public record FieldErrorResponse(
+        String field,
         String message
 ) {
 }

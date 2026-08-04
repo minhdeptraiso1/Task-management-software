@@ -42,7 +42,8 @@ class ProjectIntegrationTest extends BaseIntegrationTest {
                                 .content(projectBody("AGILE01", "Agile Project"))
                 )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.message").value("Thành công"))
                 .andExpect(jsonPath("$.data.code").value("AGILE01"))
                 .andExpect(jsonPath("$.data.name").value("Agile Project"))
                 .andExpect(jsonPath("$.data.currentUserRole").value("OWNER"));
@@ -73,7 +74,9 @@ class ProjectIntegrationTest extends BaseIntegrationTest {
                                 .content(projectBody("AGILE02", "Forbidden Project"))
                 )
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.code").exists())
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.path").value("/projects"));
     }
 
     private String projectBody(

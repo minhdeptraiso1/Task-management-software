@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.sprint.UpdateSprintRetrospectiveRequest;
 import com.project.taskmanagement.dto.request.sprint.UpdateSprintReviewRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.dto.response.sprint.SprintRetrospectiveRespons
 import com.project.taskmanagement.dto.response.sprint.SprintReviewResponse;
 import com.project.taskmanagement.service.SprintClosingService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.SPRINTS, description = "Đóng Sprint, Sprint Review và Retrospective")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/sprints/{sprintId}")
 @RequiredArgsConstructor

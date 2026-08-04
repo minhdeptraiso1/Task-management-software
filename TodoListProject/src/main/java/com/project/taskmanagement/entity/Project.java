@@ -32,7 +32,6 @@ public class Project extends BaseAuditEntity {
     @Column(
             name = "code",
             nullable = false,
-            unique = true,
             length = 50
     )
     String code;

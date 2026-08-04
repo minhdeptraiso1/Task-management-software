@@ -1,10 +1,13 @@
 package com.project.taskmanagement.controller.admin;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.scheduler.DailyDigestRunResponse;
 import com.project.taskmanagement.service.DailyDigestService;
 import com.project.taskmanagement.service.TaskDueReminderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+@Tag(name = OpenApiTags.ADMIN, description = "Kích hoạt thủ công scheduler dành cho ADMIN")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/admin/schedulers")
 @RequiredArgsConstructor
@@ -38,7 +43,7 @@ public class AdminSchedulerController {
         taskDueReminderService.sendDueSoonReminders();
         taskDueReminderService.sendOverdueReminders();
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 
     @Operation(

@@ -197,7 +197,7 @@ public class BugServiceImpl implements BugService {
         LocalDate today = LocalDate.now();
 
         Specification<Bug> specification =
-                Specification.where(BugSpecification.belongsToProject(projectId))
+                BugSpecification.belongsToProject(projectId)
                         .and(BugSpecification.search(safeRequest.keyword()))
                         .and(BugSpecification.hasStatus(safeRequest.status()))
                         .and(BugSpecification.hasSeverity(safeRequest.severity()))
@@ -374,8 +374,8 @@ public class BugServiceImpl implements BugService {
         Bug savedBug =
                 bugRepository.save(bug);
 
-        Map<String, Object> newValue =
-                Map.of("assigneeUserId", savedBug.getAssigneeUserId());
+        Map<String, Object> newValue = new LinkedHashMap<>();
+        newValue.put("assigneeUserId", savedBug.getAssigneeUserId());
 
         logActivity(
                 projectId,
@@ -418,7 +418,8 @@ public class BugServiceImpl implements BugService {
         }
         Bug savedBug = bugRepository.save(bug);
 
-        Map<String, Object> oldValue = Map.of("assigneeUserId", oldAssigneeUserId);
+        Map<String, Object> oldValue = new LinkedHashMap<>();
+        oldValue.put("assigneeUserId", oldAssigneeUserId);
         Map<String, Object> newValue = new LinkedHashMap<>();
         newValue.put("assigneeUserId", null);
         logActivity(projectId, savedBug.getId(), ProjectActivityAction.BUG_UNASSIGNED,
@@ -972,7 +973,7 @@ public class BugServiceImpl implements BugService {
                 TextNormalizer.trim(value);
 
         if (normalized == null || normalized.isBlank()) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+            throw new BusinessException(ErrorCode.BUG_TITLE_REQUIRED);
         }
 
         return normalized;

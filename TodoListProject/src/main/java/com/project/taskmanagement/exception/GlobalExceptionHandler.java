@@ -2,8 +2,11 @@ package com.project.taskmanagement.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
-import com.project.taskmanagement.dto.response.core.ErrorResponseSever;
+import com.project.taskmanagement.dto.response.core.FieldErrorResponse;
+import com.project.taskmanagement.dto.response.core.ValidationErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.LazyInitializationException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,6 +19,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,387 +31,284 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
-
-    // ===================== BUSINESS =====================
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleBusiness(
-            BusinessException ex
+            BusinessException exception,
+            HttpServletRequest request
     ) {
-        ErrorCode errorCode = ex.getErrorCode();
-
         return buildErrorResponse(
-                errorCode,
-                errorCode.message()
+                exception.getErrorCode(),
+                exception.getMessage(),
+                request
         );
     }
 
-    // ===================== SECURITY =====================
-
-    /**
-     * Chưa đăng nhập hoặc không có Authentication hợp lệ.
-     */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleAuthentication(
-            AuthenticationException ex
+            AuthenticationException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.UNAUTHENTICATED,
-                ErrorCode.UNAUTHENTICATED.message()
-        );
+        return buildErrorResponse(ErrorCode.UNAUTHENTICATED, request);
     }
 
-    /**
-     * Đã đăng nhập nhưng không đủ quyền.
-     */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleAccessDenied(
-            AccessDeniedException ex
+            AccessDeniedException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.ACCESS_DENIED,
-                ErrorCode.ACCESS_DENIED.message()
-        );
+        return buildErrorResponse(ErrorCode.ACCESS_DENIED, request);
     }
-
-    // ===================== VALIDATION =====================
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponseSever<Void>> handleValidation(
-            MethodArgumentNotValidException ex
+    public ResponseEntity<ApiResponseSever<ValidationErrorResponse>> handleValidation(
+            MethodArgumentNotValidException exception,
+            HttpServletRequest request
     ) {
-        String message = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error ->
-                        error.getField()
-                                + ": "
-                                + error.getDefaultMessage()
-                )
-                .findFirst()
-                .orElse(
-                        ErrorCode.VALIDATION_ERROR.message()
-                );
-
-        return buildErrorResponse(
-                ErrorCode.VALIDATION_ERROR,
-                message
-        );
-    }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponseSever<Void>> handleConstraintViolation(
-            ConstraintViolationException ex
-    ) {
-        String message = ex.getConstraintViolations()
-                .stream()
-                .map(violation ->
-                        violation.getPropertyPath()
-                                + ": "
-                                + violation.getMessage()
-                )
-                .findFirst()
-                .orElse(
-                        ErrorCode.VALIDATION_ERROR.message()
-                );
-
-        return buildErrorResponse(
-                ErrorCode.VALIDATION_ERROR,
-                message
-        );
+        return buildValidationResponse(exception.getBindingResult(), request);
     }
 
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ApiResponseSever<Void>> handleBindException(
-            BindException ex
+    public ResponseEntity<ApiResponseSever<ValidationErrorResponse>> handleBindException(
+            BindException exception,
+            HttpServletRequest request
     ) {
-        String message = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error ->
-                        error.getField()
-                                + ": "
-                                + error.getDefaultMessage()
-                )
-                .findFirst()
-                .orElse(
-                        ErrorCode.VALIDATION_ERROR.message()
-                );
+        return buildValidationResponse(exception.getBindingResult(), request);
+    }
 
-        return buildErrorResponse(
-                ErrorCode.VALIDATION_ERROR,
-                message
-        );
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponseSever<ValidationErrorResponse>> handleConstraintViolation(
+            ConstraintViolationException exception,
+            HttpServletRequest request
+    ) {
+        List<FieldErrorResponse> errors = exception.getConstraintViolations()
+                .stream()
+                .map(violation -> new FieldErrorResponse(
+                        violation.getPropertyPath().toString(),
+                        violation.getMessage()
+                ))
+                .sorted(Comparator.comparing(FieldErrorResponse::field))
+                .toList();
+
+        return buildValidationResponse(errors, request);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleMissingRequestParam(
-            MissingServletRequestParameterException ex
+            MissingServletRequestParameterException exception,
+            HttpServletRequest request
     ) {
-        String message =
-                "Thiếu tham số bắt buộc: "
-                        + ex.getParameterName();
-
         return buildErrorResponse(
                 ErrorCode.INVALID_PARAMETER,
-                message
+                "Thiếu tham số bắt buộc: " + exception.getParameterName(),
+                request
         );
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
     ) {
-        ErrorCode errorCode =
-                ErrorCode.INVALID_PARAMETER;
+        ErrorCode errorCode = ErrorCode.INVALID_PARAMETER;
+        Class<?> requiredType = exception.getRequiredType();
 
-        if (ex.getRequiredType() != null
-                && ex.getRequiredType().isEnum()) {
-            errorCode =
-                    ErrorCode.INVALID_ENUM_VALUE;
-        } else if (ex.getRequiredType() != null
-                && "UUID".equals(ex.getRequiredType().getSimpleName())) {
-            errorCode =
-                    ErrorCode.INVALID_UUID_FORMAT;
+        if (requiredType != null && requiredType.isEnum()) {
+            errorCode = ErrorCode.INVALID_ENUM_VALUE;
+        } else if (requiredType != null && "UUID".equals(requiredType.getSimpleName())) {
+            errorCode = ErrorCode.INVALID_UUID_FORMAT;
         }
 
-        String requiredType =
-                ex.getRequiredType() != null
-                        ? ex.getRequiredType().getSimpleName()
-                        : "không xác định";
+        String typeName = requiredType == null ? "không xác định" : requiredType.getSimpleName();
+        String message = "Tham số '" + exception.getName()
+                + "' không hợp lệ. Kiểu dữ liệu yêu cầu: " + typeName;
 
-        String message =
-                "Tham số '"
-                        + ex.getName()
-                        + "' không hợp lệ. Kiểu dữ liệu yêu cầu: "
-                        + requiredType;
-
-        return buildErrorResponse(
-                errorCode,
-                message
-        );
+        return buildErrorResponse(errorCode, message, request);
     }
-
-    // ===================== REQUEST BODY =====================
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleJsonParse(
-            HttpMessageNotReadableException ex
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
     ) {
-        String message =
-                ErrorCode.INVALID_REQUEST_BODY.message();
-
-        ErrorCode errorCode =
-                ErrorCode.INVALID_REQUEST_BODY;
-
-        Throwable cause = ex.getCause();
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST_BODY;
+        String message = errorCode.message();
+        Throwable cause = exception.getCause();
 
         if (cause instanceof InvalidFormatException invalidFormatException) {
+            String fieldName = invalidFormatException.getPath().isEmpty()
+                    ? "không xác định"
+                    : invalidFormatException.getPath().getFirst().getFieldName();
+            Class<?> targetType = invalidFormatException.getTargetType();
 
-            String fieldName =
-                    invalidFormatException.getPath() != null
-                            && !invalidFormatException.getPath().isEmpty()
-                            ? invalidFormatException
-                              .getPath()
-                              .getFirst()
-                              .getFieldName()
-                            : "không xác định";
-
-            Class<?> targetType =
-                    invalidFormatException.getTargetType();
-
-            if (targetType != null
-                    && targetType.isEnum()) {
-
+            if (targetType != null && targetType.isEnum()) {
                 errorCode = ErrorCode.INVALID_ENUM_VALUE;
-
-                message =
-                        "Giá trị không hợp lệ cho trường '"
-                                + fieldName
-                                + "'. Các giá trị hợp lệ: "
-                                + Arrays.toString(
-                                targetType.getEnumConstants()
-                        );
-
+                message = "Giá trị không hợp lệ cho trường '" + fieldName
+                        + "'. Các giá trị hợp lệ: " + Arrays.toString(targetType.getEnumConstants());
             } else {
-                message =
-                        "Giá trị không hợp lệ cho trường '"
-                                + fieldName
-                                + "'";
+                message = "Giá trị không hợp lệ cho trường '" + fieldName + "'";
             }
         }
 
-        return buildErrorResponse(
-                errorCode,
-                message
-        );
+        return buildErrorResponse(errorCode, message, request);
     }
 
-    // ===================== DATABASE =====================
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ErrorCode.METHOD_NOT_ALLOWED, request);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponseSever<Void>> handleMediaTypeNotSupported(
+            HttpMediaTypeNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(ErrorCode.UNSUPPORTED_MEDIA_TYPE, request);
+    }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleOptimisticLockingFailure(
-            OptimisticLockingFailureException ex
+            OptimisticLockingFailureException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.TASK_CONCURRENT_MODIFICATION,
-                ErrorCode.TASK_CONCURRENT_MODIFICATION.message()
-        );
+        return buildErrorResponse(ErrorCode.TASK_CONCURRENT_MODIFICATION, request);
     }
 
     @ExceptionHandler(PessimisticLockingFailureException.class)
     public ResponseEntity<ApiResponseSever<Void>> handlePessimisticLockingFailure(
-            PessimisticLockingFailureException ex
+            PessimisticLockingFailureException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.KANBAN_POSITION_CONFLICT,
-                ErrorCode.KANBAN_POSITION_CONFLICT.message()
-        );
+        return buildErrorResponse(ErrorCode.KANBAN_POSITION_CONFLICT, request);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleDataIntegrity(
-            DataIntegrityViolationException ex
+            DataIntegrityViolationException exception,
+            HttpServletRequest request
     ) {
-        ErrorCode errorCode =
-                ErrorCode.DATA_INTEGRITY_VIOLATION;
+        log.error("Data integrity error at path {}", request.getRequestURI(), exception);
 
-        String message =
-                errorCode.message();
+        ErrorCode errorCode = ErrorCode.DATA_INTEGRITY_VIOLATION;
+        String rootMessage = exception.getMostSpecificCause() == null
+                ? ""
+                : exception.getMostSpecificCause().getMessage();
+        String normalizedMessage = rootMessage == null ? "" : rootMessage.toLowerCase();
 
-        String rootMessage =
-                ex.getMostSpecificCause() != null
-                        ? ex.getMostSpecificCause().getMessage()
-                        : "";
-
-        if (rootMessage != null) {
-            String normalizedMessage =
-                    rootMessage.toLowerCase();
-
-            if (normalizedMessage.contains("duplicate")
-                    || normalizedMessage.contains("unique")) {
-
-                errorCode =
-                        ErrorCode.DATA_ALREADY_EXISTS;
-
-                message =
-                        ErrorCode.DATA_ALREADY_EXISTS.message();
-
-            } else if (normalizedMessage.contains("foreign key")) {
-
-                errorCode =
-                        ErrorCode.FOREIGN_KEY_VIOLATION;
-
-                message =
-                        ErrorCode.FOREIGN_KEY_VIOLATION.message();
-
-            } else if (normalizedMessage.contains("not-null")
-                    || normalizedMessage.contains("null value")) {
-
-                errorCode =
-                        ErrorCode.MISSING_REQUIRED_FIELD;
-
-                message =
-                        ErrorCode.MISSING_REQUIRED_FIELD.message();
-            }
+        if (normalizedMessage.contains("duplicate") || normalizedMessage.contains("unique")) {
+            errorCode = ErrorCode.DATA_ALREADY_EXISTS;
+        } else if (normalizedMessage.contains("foreign key")) {
+            errorCode = ErrorCode.FOREIGN_KEY_VIOLATION;
+        } else if (normalizedMessage.contains("not-null") || normalizedMessage.contains("null value")) {
+            errorCode = ErrorCode.MISSING_REQUIRED_FIELD;
         }
 
-        return buildErrorResponse(
-                errorCode,
-                message
-        );
+        return buildErrorResponse(errorCode, request);
     }
 
     @ExceptionHandler(CannotCreateTransactionException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleCannotCreateTransaction(
-            CannotCreateTransactionException ex
+            CannotCreateTransactionException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.DATABASE_ERROR,
-                ErrorCode.DATABASE_ERROR.message()
-        );
+        log.error("Cannot create transaction at path {}", request.getRequestURI(), exception);
+        return buildErrorResponse(ErrorCode.DATABASE_ERROR, request);
     }
 
     @ExceptionHandler(TransactionSystemException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleTransactionSystem(
-            TransactionSystemException ex
+            TransactionSystemException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.TRANSACTION_ERROR,
-                ErrorCode.TRANSACTION_ERROR.message()
-        );
+        log.error("Transaction error at path {}", request.getRequestURI(), exception);
+        return buildErrorResponse(ErrorCode.TRANSACTION_ERROR, request);
     }
 
     @ExceptionHandler(LazyInitializationException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleLazyInitialization(
-            LazyInitializationException ex
+            LazyInitializationException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.LAZY_LOADING_ERROR,
-                ErrorCode.LAZY_LOADING_ERROR.message()
-        );
+        log.error("Lazy loading error at path {}", request.getRequestURI(), exception);
+        return buildErrorResponse(ErrorCode.LAZY_LOADING_ERROR, request);
     }
 
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleDataAccess(
-            DataAccessException ex
+            DataAccessException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.DATABASE_ERROR,
-                ErrorCode.DATABASE_ERROR.message()
-        );
+        log.error("Database error at path {}", request.getRequestURI(), exception);
+        return buildErrorResponse(ErrorCode.DATABASE_ERROR, request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponseSever<Void>> handleMaxUploadSizeExceeded(
-            MaxUploadSizeExceededException ex
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request
     ) {
-        return buildErrorResponse(
-                ErrorCode.FILE_TOO_LARGE,
-                ErrorCode.FILE_TOO_LARGE.message()
-        );
+        return buildErrorResponse(ErrorCode.FILE_TOO_LARGE, request);
     }
-
-    // ===================== FALLBACK =====================
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponseSever<Void>> handleSystem(
-            Exception ex
+            Exception exception,
+            HttpServletRequest request
     ) {
-        /*
-         * Nên thay bằng logger.error(...) trong bước clean code.
-         * Tạm giữ printStackTrace để điều tra lỗi khi phát triển.
-         */
-        ex.printStackTrace();
-
-        return buildErrorResponse(
-                ErrorCode.SYSTEM_ERROR,
-                ErrorCode.SYSTEM_ERROR.message()
-        );
+        log.error("Unhandled system exception at path {}", request.getRequestURI(), exception);
+        return buildErrorResponse(ErrorCode.SYSTEM_ERROR, request);
     }
 
-    // ===================== RESPONSE BUILDER =====================
+    private ResponseEntity<ApiResponseSever<ValidationErrorResponse>> buildValidationResponse(
+            BindingResult bindingResult,
+            HttpServletRequest request
+    ) {
+        List<FieldErrorResponse> errors = bindingResult.getFieldErrors()
+                .stream()
+                .sorted(Comparator.comparing(FieldError::getField))
+                .map(error -> new FieldErrorResponse(error.getField(), error.getDefaultMessage()))
+                .toList();
+
+        return buildValidationResponse(errors, request);
+    }
+
+    private ResponseEntity<ApiResponseSever<ValidationErrorResponse>> buildValidationResponse(
+            List<FieldErrorResponse> errors,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
+        ApiResponseSever<ValidationErrorResponse> response = ApiResponseSever
+                .of(errorCode.code(), errorCode.message(), new ValidationErrorResponse(errors))
+                .withPath(request.getRequestURI());
+
+        return ResponseEntity.status(errorCode.status()).body(response);
+    }
 
     private ResponseEntity<ApiResponseSever<Void>> buildErrorResponse(
             ErrorCode errorCode,
-            String message
+            HttpServletRequest request
     ) {
-        ApiResponseSever<Void> response =
-                new ApiResponseSever<>(
-                        false,
-                        null,
-                        new ErrorResponseSever(
-                                errorCode.code(),
-                                message
-                        )
-                );
+        return buildErrorResponse(errorCode, errorCode.message(), request);
+    }
 
-        return ResponseEntity
-                .status(errorCode.status())
-                .body(response);
+    private ResponseEntity<ApiResponseSever<Void>> buildErrorResponse(
+            ErrorCode errorCode,
+            String message,
+            HttpServletRequest request
+    ) {
+        ApiResponseSever<Void> response = ApiResponseSever
+                .<Void>of(errorCode.code(), message, null)
+                .withPath(request.getRequestURI());
+
+        return ResponseEntity.status(errorCode.status()).body(response);
     }
 }
-

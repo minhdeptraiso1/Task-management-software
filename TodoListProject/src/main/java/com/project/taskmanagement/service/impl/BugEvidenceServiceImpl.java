@@ -63,7 +63,7 @@ public class BugEvidenceServiceImpl implements BugEvidenceService {
                 .projectId(projectId)
                 .bugId(bugId)
                 .createdByUserId(currentUser.getId())
-                .title(normalizeRequired(request.title(), ErrorCode.VALIDATION_ERROR))
+                .title(normalizeRequired(request.title(), ErrorCode.BUG_EVIDENCE_TITLE_REQUIRED))
                 .stepsToReproduce(TextNormalizer.trimToNull(request.stepsToReproduce()))
                 .expectedResult(TextNormalizer.trimToNull(request.expectedResult()))
                 .actualResult(TextNormalizer.trimToNull(request.actualResult()))
@@ -102,7 +102,7 @@ public class BugEvidenceServiceImpl implements BugEvidenceService {
 
         Map<String, Object> oldValue = snapshot(evidence);
         if (request.title() != null) {
-            evidence.setTitle(normalizeRequired(request.title(), ErrorCode.VALIDATION_ERROR));
+            evidence.setTitle(normalizeRequired(request.title(), ErrorCode.BUG_EVIDENCE_TITLE_REQUIRED));
         }
         evidence.setStepsToReproduce(TextNormalizer.trimToNull(request.stepsToReproduce()));
         evidence.setExpectedResult(TextNormalizer.trimToNull(request.expectedResult()));

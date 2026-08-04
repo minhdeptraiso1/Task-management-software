@@ -2,7 +2,6 @@ package com.project.taskmanagement.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
-import com.project.taskmanagement.dto.response.core.ErrorResponseSever;
 import com.project.taskmanagement.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,12 +51,9 @@ public class RestAuthenticationEntryPoint
         );
 
         ApiResponseSever<Void> responseBody =
-                ApiResponseSever.error(
-                        new ErrorResponseSever(
-                                errorCode.code(),
-                                errorCode.message()
-                        )
-                );
+                ApiResponseSever
+                        .<Void>of(errorCode.code(), errorCode.message(), null)
+                        .withPath(request.getRequestURI());
 
         objectMapper.writeValue(
                 response.getWriter(),

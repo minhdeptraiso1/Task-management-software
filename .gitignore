@@ -18,6 +18,7 @@ desktop.ini
 .env.*
 !.env.example
 !.env.backend.example
+!.env.prod.example
 *.local
 
 # =========================
@@ -52,6 +53,17 @@ bin/
 *.jar
 *.war
 *.ear
+
+# Runtime data / backups / credentials
+uploads/
+backups/
+*.sql.gz
+*.dump
+*.bak
+*.pem
+*.key
+*.p12
+*.jks
 
 # Keep Gradle wrapper files for other machines/CI
 !gradle/wrapper/gradle-wrapper.jar

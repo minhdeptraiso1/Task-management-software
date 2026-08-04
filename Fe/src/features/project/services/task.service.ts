@@ -57,6 +57,10 @@ function query(options: Record<string, string | number | boolean | undefined | n
 }
 
 function getBackendErrorMessage(body: unknown, fallback: string) {
+  if (body && typeof body === 'object' && 'message' in body) {
+    const message = (body as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) return message
+  }
   if (body && typeof body === 'object' && 'error' in body) {
     const error = (body as { error?: { message?: unknown } }).error
     if (typeof error?.message === 'string' && error.message.trim()) return error.message
@@ -65,6 +69,10 @@ function getBackendErrorMessage(body: unknown, fallback: string) {
 }
 
 function getBackendErrorCode(body: unknown) {
+  if (body && typeof body === 'object' && 'code' in body) {
+    const code = (body as { code?: unknown }).code
+    if (typeof code === 'number') return code
+  }
   if (body && typeof body === 'object' && 'error' in body) {
     const error = (body as { error?: { code?: unknown } }).error
     if (typeof error?.code === 'number') return error.code
@@ -212,7 +220,7 @@ export async function importTasksFromExcel(projectId: string, sprintId: string, 
 
   const response = await apiFetch(`${projectPath(projectId)}/sprints/${sprintId}/tasks/import`, { method: 'POST', body: formData })
   const body = await response.json().catch(() => null)
-  if (!response.ok || !body?.success) {
+  if (!response.ok || body?.code !== 1000) {
     throw new ApiRequestError(getBackendErrorMessage(body, 'Không import được Task'), response.status, body, getBackendErrorCode(body))
   }
   return body.data as TaskImportResult

@@ -1268,22 +1268,6 @@ public class TaskExcelTemplateServiceImpl
         cell.setCellStyle(style);
     }
 
-    private void createReadOnlyCell(
-            Row row,
-            int columnIndex,
-            String value,
-            CellStyle style
-    ) {
-        Cell cell =
-                row.createCell(columnIndex);
-
-        cell.setCellValue(
-                safeText(value)
-        );
-
-        cell.setCellStyle(style);
-    }
-
     private Row getOrCreateRow(
             Sheet sheet,
             int rowIndex

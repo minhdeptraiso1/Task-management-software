@@ -519,7 +519,7 @@ public class TaskServiceImpl
 
             if (title.isBlank()) {
                 throw new BusinessException(
-                        ErrorCode.VALIDATION_ERROR
+                        ErrorCode.TASK_TITLE_REQUIRED
                 );
             }
 
@@ -1070,7 +1070,8 @@ public class TaskServiceImpl
 
         if (newStatus == TaskStatus.BLOCKED) {
             throw new BusinessException(
-                    ErrorCode.INVALID_PARAMETER
+                    ErrorCode.TASK_STATUS_TRANSITION_INVALID,
+                    "Dùng thao tác chặn Task để chuyển sang trạng thái BLOCKED"
             );
         }
 
@@ -2089,48 +2090,6 @@ public class TaskServiceImpl
 
         evictTaskCache(savedTask);
         return toResponse(savedTask);
-    }
-
-    private ProjectActivityAction resolveStatusActivityAction(
-            TaskStatus oldStatus,
-            TaskStatus newStatus
-    ) {
-        if (newStatus == TaskStatus.BLOCKED) {
-            return ProjectActivityAction.TASK_BLOCKED;
-        }
-
-        if (newStatus == TaskStatus.CANCELLED) {
-            return ProjectActivityAction.TASK_CANCELLED;
-        }
-
-        if (oldStatus == TaskStatus.DONE
-                && newStatus != TaskStatus.DONE) {
-
-            return ProjectActivityAction.TASK_REOPENED;
-        }
-
-        return ProjectActivityAction.TASK_STATUS_CHANGED;
-    }
-
-    private NotificationType resolveStatusNotificationType(
-            TaskStatus oldStatus,
-            TaskStatus newStatus
-    ) {
-        if (newStatus == TaskStatus.BLOCKED) {
-            return NotificationType.TASK_BLOCKED;
-        }
-
-        if (newStatus == TaskStatus.CANCELLED) {
-            return NotificationType.TASK_CANCELLED;
-        }
-
-        if (oldStatus == TaskStatus.DONE
-                && newStatus != TaskStatus.DONE) {
-
-            return NotificationType.TASK_REOPENED;
-        }
-
-        return NotificationType.TASK_STATUS_CHANGED;
     }
 
     private void sendBlockedNotification(

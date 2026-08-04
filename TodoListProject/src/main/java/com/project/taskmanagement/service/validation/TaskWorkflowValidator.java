@@ -4,67 +4,9 @@ import com.project.taskmanagement.enums.TaskStatus;
 import com.project.taskmanagement.exception.BusinessException;
 import com.project.taskmanagement.exception.ErrorCode;
 
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
-
 public final class TaskWorkflowValidator {
 
     private TaskWorkflowValidator() {
-    }
-
-    private static final Map<TaskStatus, Set<TaskStatus>> ALLOWED_TRANSITIONS =
-            new EnumMap<>(TaskStatus.class);
-
-    static {
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.TODO,
-                EnumSet.of(
-                        TaskStatus.IN_PROGRESS,
-                        TaskStatus.BLOCKED,
-                        TaskStatus.CANCELLED
-                )
-        );
-
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.IN_PROGRESS,
-                EnumSet.of(
-                        TaskStatus.IN_REVIEW,
-                        TaskStatus.BLOCKED,
-                        TaskStatus.TODO,
-                        TaskStatus.CANCELLED
-                )
-        );
-
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.IN_REVIEW,
-                EnumSet.of(
-                        TaskStatus.DONE,
-                        TaskStatus.IN_PROGRESS,
-                        TaskStatus.BLOCKED,
-                        TaskStatus.CANCELLED
-                )
-        );
-
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.BLOCKED,
-                EnumSet.of(
-                        TaskStatus.TODO,
-                        TaskStatus.IN_PROGRESS,
-                        TaskStatus.CANCELLED
-                )
-        );
-
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.DONE,
-                EnumSet.of(TaskStatus.IN_PROGRESS)
-        );
-
-        ALLOWED_TRANSITIONS.put(
-                TaskStatus.CANCELLED,
-                EnumSet.noneOf(TaskStatus.class)
-        );
     }
 
     public static void validateTransition(
@@ -77,21 +19,7 @@ public final class TaskWorkflowValidator {
             );
         }
 
-        if (oldStatus == newStatus) {
-            return;
-        }
-
-        Set<TaskStatus> allowedStatuses =
-                ALLOWED_TRANSITIONS.getOrDefault(
-                        oldStatus,
-                        EnumSet.noneOf(TaskStatus.class)
-                );
-
-        if (!allowedStatuses.contains(newStatus)) {
-            throw new BusinessException(
-                    ErrorCode.TASK_STATUS_TRANSITION_INVALID
-            );
-        }
+        TaskStatusTransitionValidator.validate(oldStatus, newStatus);
     }
 
     public static void validateNotCancelled(
@@ -119,7 +47,6 @@ public final class TaskWorkflowValidator {
     public static boolean isTerminal(
             TaskStatus status
     ) {
-        return status == TaskStatus.DONE
-                || status == TaskStatus.CANCELLED;
+        return TaskStatusTransitionValidator.isTerminal(status);
     }
 }

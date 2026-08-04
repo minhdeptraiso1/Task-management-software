@@ -34,11 +34,4 @@ public interface TaskCommentRepository
             List<UUID> parentCommentIds
     );
 
-    long countByParentCommentId(
-            UUID parentCommentId
-    );
-
-    long countByTaskId(
-            UUID taskId
-    );
 }

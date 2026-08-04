@@ -1,11 +1,14 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.bug.CreateBugCommentRequest;
 import com.project.taskmanagement.dto.request.bug.UpdateBugCommentRequest;
 import com.project.taskmanagement.dto.response.bug.BugCommentResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.BugCommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.BUGS, description = "Bình luận và trao đổi trên Bug")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/bugs/{bugId}/comments")
 @RequiredArgsConstructor
@@ -68,6 +73,6 @@ public class BugCommentController {
             @PathVariable UUID commentId
     ) {
         bugCommentService.delete(projectId, bugId, commentId);
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 }

@@ -4,7 +4,13 @@ const REFRESH_TOKEN_COOKIE_DAYS = 7
 const AUTH_SYNC_STORAGE_KEY = 'taskflow_auth_sync'
 
 export interface ApiError { code?: number; message: string }
-export interface ApiResponse<T> { success: boolean; data: T; error: ApiError | null }
+export interface ApiResponse<T> {
+  code: number
+  message: string
+  data: T
+  timestamp: string
+  path?: string | null
+}
 
 export class ApiRequestError extends Error {
   status: number
@@ -75,6 +81,28 @@ function defaultErrorMessage(status: number) {
 function extractError(body: unknown, response: Response) {
   if (!isRecord(body)) return { message: defaultErrorMessage(response.status), code: undefined }
 
+  const responseCode = typeof body.code === 'number' ? body.code : undefined
+  const responseMessage = getString(body.message)
+  const data = body.data
+
+  if (isRecord(data) && Array.isArray(data.errors)) {
+    const validationMessages = data.errors
+      .filter(isRecord)
+      .map((item) => {
+        const field = getString(item.field)
+        const message = getString(item.message)
+        return message ? `${field ? `${field}: ` : ''}${message}` : ''
+      })
+      .filter(Boolean)
+
+    if (validationMessages.length) {
+      return { message: validationMessages.join('\n'), code: responseCode }
+    }
+  }
+
+  if (responseMessage) return { message: responseMessage, code: responseCode }
+
+  // Hỗ trợ response cũ trong thời gian chuyển đổi giữa các môi trường.
   const error = body.error
   if (isRecord(error)) {
     const message = getString(error.message) || getString(error.detail) || getString(error.error)
@@ -84,19 +112,17 @@ function extractError(body: unknown, response: Response) {
 
   if (typeof error === 'string' && error.trim()) return { message: error.trim(), code: undefined }
 
-  const data = body.data
   if (isRecord(data)) {
     const message = getString(data.message) || getString(data.errorMessage)
     if (message) return { message, code: undefined }
   }
 
   const message =
-    getString(body.message) ||
     getString(body.detail) ||
     getString(body.title) ||
     defaultErrorMessage(response.status)
 
-  return { message, code: undefined }
+  return { message, code: responseCode }
 }
 
 function shouldAttachJsonContentType(body: BodyInit | null | undefined) {
@@ -104,9 +130,17 @@ function shouldAttachJsonContentType(body: BodyInit | null | undefined) {
 }
 
 async function parse<T>(response: Response): Promise<ApiResponse<T>> {
-  if (response.status === 204) return { success: true, data: undefined as T, error: null }
+  if (response.status === 204) {
+    return {
+      code: 1000,
+      message: 'Thành công',
+      data: undefined as T,
+      timestamp: new Date().toISOString(),
+      path: null,
+    }
+  }
   const body = await response.json().catch(() => null) as ApiResponse<T> | null
-  if (!response.ok || !body?.success) {
+  if (!response.ok || body?.code !== 1000) {
     const { message, code } = extractError(body, response)
     throw new ApiRequestError(message, response.status, body, code)
   }

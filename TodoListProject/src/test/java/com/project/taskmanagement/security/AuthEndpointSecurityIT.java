@@ -45,7 +45,8 @@ class AuthEndpointSecurityIT extends BaseSecurityIT {
                                 .header(HttpHeaders.AUTHORIZATION, authorization(expiredAccessToken()))
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error.code").value("401002"));
+                .andExpect(jsonPath("$.code").value(401002))
+                .andExpect(jsonPath("$.path").value("/users/me"));
     }
 
     @Test
@@ -95,7 +96,8 @@ class AuthEndpointSecurityIT extends BaseSecurityIT {
                                 .header(HttpHeaders.AUTHORIZATION, authorization(employeeToken))
                 )
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("403002"));
+                .andExpect(jsonPath("$.code").value(403002))
+                .andExpect(jsonPath("$.path").value("/users/me"));
     }
 
     @Test

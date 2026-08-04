@@ -32,12 +32,6 @@ public interface BacklogItemRepository
             UUID sprintId
     );
 
-    boolean existsByProjectIdAndSprintIdAndStatusNot(
-            UUID projectId,
-            UUID sprintId,
-            BacklogItemStatus status
-    );
-
     long countByProjectId(
             UUID projectId
     );
@@ -221,14 +215,6 @@ public interface BacklogItemRepository
 
     List<BacklogItem>
     findAllByProjectIdOrderByPositionAsc(
-            UUID projectId
-    );
-
-    long countByProjectIdAndSprintIdIsNull(
-            UUID projectId
-    );
-
-    long countByProjectIdAndSprintIdIsNotNull(
             UUID projectId
     );
 

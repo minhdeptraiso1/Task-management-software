@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.sprint.CreateSprintRequest;
 import com.project.taskmanagement.dto.request.sprint.SprintSearchRequest;
 import com.project.taskmanagement.dto.request.sprint.UpdateSprintRequest;
@@ -20,6 +21,11 @@ import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.service.model.GeneratedExcelFile;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +40,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.SPRINTS, description = "Quản lý Sprint, workflow, Kanban và import Task Excel")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/sprints"
@@ -333,6 +341,14 @@ public class SprintController {
                     File chứa danh sách Backlog Item
                     và thành viên của Project.
                     """
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "File Excel mẫu",
+            content = @Content(
+                    mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    schema = @Schema(type = "string", format = "binary")
+            )
     )
     @GetMapping(
             path = "/{sprintId}/tasks/excel-template",

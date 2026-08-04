@@ -779,65 +779,6 @@ public class TaskExcelImportServiceImpl
                 .toLowerCase(Locale.ROOT);
     }
 
-    private UUID parseUuidIfPresent(
-            String rawValue,
-            int rowNumber,
-            String fieldName,
-            List<TaskImportErrorResponse> errors
-    ) {
-        if (rawValue == null
-                || rawValue.isBlank()) {
-            return null;
-        }
-
-        return parseUuid(
-                rawValue,
-                rowNumber,
-                fieldName,
-                errors
-        );
-    }
-
-    private UUID parseUuid(
-            String rawValue,
-            int rowNumber,
-            String fieldName,
-            List<TaskImportErrorResponse> errors
-    ) {
-        if (rawValue == null
-                || rawValue.isBlank()) {
-
-            addError(
-                    errors,
-                    rowNumber,
-                    fieldName,
-                    rawValue,
-                    fieldName
-                            + " không được để trống"
-            );
-
-            return null;
-        }
-
-        try {
-            return UUID.fromString(
-                    rawValue.trim()
-            );
-
-        } catch (IllegalArgumentException exception) {
-            addError(
-                    errors,
-                    rowNumber,
-                    fieldName,
-                    rawValue,
-                    fieldName
-                            + " không đúng định dạng UUID"
-            );
-
-            return null;
-        }
-    }
-
     private String normalizeRequiredText(
             String value,
             int maxLength,

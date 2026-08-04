@@ -1,5 +1,6 @@
 server:
-  port: ${SERVER_PORT:8080}
+  # Render/Railway thường cấp PORT; SERVER_PORT dùng khi chạy local/Docker.
+  port: ${PORT:${SERVER_PORT:8080}}
   servlet:
     context-path: ${CONTEXT_PATH:/api}
 spring:

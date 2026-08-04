@@ -42,6 +42,7 @@ out/
 # .env.example là template an toàn — nên commit
 !.env.example
 !.env.prod.example
+!.env.backend.example
 
 ### Runtime data ###
 uploads/

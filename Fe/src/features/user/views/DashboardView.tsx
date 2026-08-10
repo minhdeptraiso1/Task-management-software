@@ -437,16 +437,16 @@ export function DashboardView({
                           <select
                             className={`appearance-none rounded-full px-3.5 py-1 pr-7 text-xs font-extrabold cursor-pointer border outline-none transition-all shadow-2xs ${
                               user.role === 'ADMIN'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100/80 focus:ring-2 focus:ring-amber-400/40'
+                                ? 'bg-brand/10 text-brand-dark border-brand/30 hover:bg-brand/20 focus:ring-2 focus:ring-brand/30'
                                 : user.role === 'MANAGER'
-                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80 focus:ring-2 focus:ring-blue-400/40'
-                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80 focus:ring-2 focus:ring-emerald-400/40'
+                                  ? 'bg-info/10 text-info border-info/30 hover:bg-info/20 focus:ring-2 focus:ring-info/30'
+                                  : 'bg-success/10 text-success border-success/30 hover:bg-success/20 focus:ring-2 focus:ring-success/30'
                             }`}
                             value={user.role}
                             onChange={e => onUpdateRole?.(user, e.target.value as UserRole)}
                           >
                             {roles.map(r => (
-                              <option key={r} value={r} className="bg-white text-slate-800 font-bold py-1">
+                              <option key={r} value={r} className="bg-white text-ink font-bold py-1">
                                 {roleLabels[r] ?? r}
                               </option>
                             ))}
@@ -456,9 +456,9 @@ export function DashboardView({
                       </td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-extrabold border ${
-                          user.enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-slate-100 text-slate-500 border-slate-200'
+                          user.enabled ? 'bg-success/10 text-success border-success/20' : 'bg-panel text-muted border-line'
                         }`}>
-                          <i className={`size-2 rounded-full ${user.enabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                          <i className={`size-2 rounded-full ${user.enabled ? 'bg-success' : 'bg-muted'}`} />
                           {user.enabled ? 'Hoạt động' : 'Vô hiệu hóa'}
                         </span>
                       </td>
@@ -468,7 +468,7 @@ export function DashboardView({
                             variant="ghost"
                             size="sm"
                             iconOnly
-                            className="!size-9 !rounded-xl border border-blue-200/90 bg-blue-50/90 !text-blue-600 hover:!bg-blue-100 hover:!border-blue-400 hover:!text-blue-700 active:scale-95 transition-all shadow-2xs"
+                            className="!size-9 !rounded-xl border border-info/30 bg-info/10 !text-info hover:!bg-info/20 hover:!border-info/40 active:scale-95 transition-all shadow-2xs"
                             leadingIcon={<Activity size={16} />}
                             aria-label={`Xem nhật ký ${user.username}`}
                             title="Xem nhật ký hoạt động"
@@ -478,7 +478,7 @@ export function DashboardView({
                             variant="ghost"
                             size="sm"
                             iconOnly
-                            className="!size-9 !rounded-xl border border-amber-200/90 bg-amber-50/90 !text-amber-600 hover:!bg-amber-100 hover:!border-amber-400 hover:!text-amber-700 active:scale-95 transition-all shadow-2xs"
+                            className="!size-9 !rounded-xl border border-brand/30 bg-brand/10 !text-brand-dark hover:!bg-brand/20 hover:!border-brand/40 active:scale-95 transition-all shadow-2xs"
                             leadingIcon={<Pencil size={16} />}
                             aria-label={`Sửa ${user.username}`}
                             title="Sửa thông tin / vai trò"
@@ -490,8 +490,8 @@ export function DashboardView({
                             iconOnly
                             className={`!size-9 !rounded-xl border active:scale-95 transition-all shadow-2xs ${
                               user.enabled
-                                ? 'border-rose-200/90 bg-rose-50/90 !text-rose-600 hover:!bg-rose-100 hover:!border-rose-400 hover:!text-rose-700'
-                                : 'border-emerald-200/90 bg-emerald-50/90 !text-emerald-600 hover:!bg-emerald-100 hover:!border-emerald-400 hover:!text-emerald-700'
+                                ? 'border-danger/30 bg-danger/10 !text-danger hover:!bg-danger/20 hover:!border-danger/40'
+                                : 'border-success/30 bg-success/10 !text-success hover:!bg-success/20 hover:!border-success/40'
                             }`}
                             leadingIcon={user.enabled ? <UserX size={16} /> : <ShieldCheck size={16} />}
                             aria-label={`${user.enabled ? 'Vô hiệu hóa' : 'Kích hoạt'} ${user.username}`}

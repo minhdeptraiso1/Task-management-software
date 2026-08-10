@@ -192,7 +192,7 @@ export const getStatusCardStyle = (status: BugStatus, isCurrent: boolean) => {
       case 'RESOLVED':
         return 'border-emerald-500 bg-emerald-100/90 text-emerald-900 ring-2 ring-emerald-500/60 shadow-sm font-extrabold'
       case 'VERIFIED':
-        return 'border-teal-500 bg-teal-100/90 text-teal-900 ring-2 ring-teal-500/60 shadow-sm font-extrabold'
+        return 'border-sky-500 bg-sky-100/90 text-sky-900 ring-2 ring-sky-500/60 shadow-sm font-extrabold'
       case 'REOPENED':
         return 'border-purple-500 bg-purple-100/90 text-purple-900 ring-2 ring-purple-500/60 shadow-sm font-extrabold'
       case 'CLOSED':
@@ -205,22 +205,22 @@ export const getStatusCardStyle = (status: BugStatus, isCurrent: boolean) => {
 
   switch (status) {
     case 'OPEN':
-      return 'border-blue-200 bg-blue-50/50 text-blue-800 hover:bg-blue-100/70 hover:border-blue-400'
+      return 'border-blue-200 bg-blue-50/50 text-blue-800 hover:bg-blue-100/70 hover:border-blue-400 font-bold'
     case 'ASSIGNED':
-      return 'border-indigo-200 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100/70 hover:border-indigo-400'
+      return 'border-indigo-200 bg-indigo-50/50 text-indigo-800 hover:bg-indigo-100/70 hover:border-indigo-400 font-bold'
     case 'IN_PROGRESS':
-      return 'border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/70 hover:border-amber-400'
+      return 'border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/70 hover:border-amber-400 font-bold'
     case 'RESOLVED':
-      return 'border-emerald-200 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100/70 hover:border-emerald-400'
+      return 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400 font-bold'
     case 'VERIFIED':
-      return 'border-teal-200 bg-teal-50/50 text-teal-800 hover:bg-teal-100/70 hover:border-teal-400'
+      return 'border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 hover:border-sky-400 font-bold'
     case 'REOPENED':
-      return 'border-purple-200 bg-purple-50/50 text-purple-800 hover:bg-purple-100/70 hover:border-purple-400'
+      return 'border-purple-200 bg-purple-50/50 text-purple-800 hover:bg-purple-100/70 hover:border-purple-400 font-bold'
     case 'CLOSED':
-      return 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+      return 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400 font-bold'
     case 'CANCELLED':
     default:
-      return 'border-rose-200 bg-rose-50/50 text-rose-800 hover:bg-rose-100/70 hover:border-rose-400'
+      return 'border-rose-200 bg-rose-50/50 text-rose-800 hover:bg-rose-100/70 hover:border-rose-400 font-bold'
   }
 }
 
@@ -288,7 +288,7 @@ export const getStatusDotColor = (status: BugStatus) => {
     case 'ASSIGNED': return 'bg-indigo-600'
     case 'IN_PROGRESS': return 'bg-amber-500'
     case 'RESOLVED': return 'bg-emerald-600'
-    case 'VERIFIED': return 'bg-teal-600'
+    case 'VERIFIED': return 'bg-sky-500'
     case 'REOPENED': return 'bg-purple-600'
     case 'CLOSED': return 'bg-slate-600'
     case 'CANCELLED': default: return 'bg-rose-600'
@@ -689,97 +689,82 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
           {summary && (
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
               {/* Card 1: TỔNG SỐ LỖI */}
-              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="size-10 rounded-xl bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0">
-                    <BugIcon size={20} />
+                  <div className="size-11 rounded-xl bg-info/10 text-info border border-info/20 flex items-center justify-center shrink-0">
+                    <BugIcon size={22} />
                   </div>
-                  <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-info bg-info/10 border border-info/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     TỔNG QUAN
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỔNG SỐ LỖI</p>
-                  <p className="text-3xl font-black text-ink mt-1">{summary.totalBugs}</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: '100%' }} />
-                  </div>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider">TỔNG SỐ LỖI</p>
+                  <p className="text-3xl font-bold text-ink mt-1">{summary.totalBugs}</p>
                 </div>
               </div>
 
               {/* Card 2: CHỜ XỬ LÝ */}
-              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="size-10 rounded-xl bg-sky-100/70 text-sky-700 flex items-center justify-center shrink-0">
-                    <Clock size={20} />
+                  <div className="size-11 rounded-xl bg-info/10 text-info border border-info/20 flex items-center justify-center shrink-0">
+                    <Clock size={22} />
                   </div>
-                  <span className="text-[10px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-info bg-info/10 border border-info/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     CHỜ XỬ LÝ
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">CHỜ XỬ LÝ</p>
-                  <p className="text-3xl font-black text-ink mt-1">{summary.openBugs + summary.reopenedBugs}</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div className="bg-sky-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? ((summary.openBugs + summary.reopenedBugs) / summary.totalBugs) * 100 : 0}%` }} />
-                  </div>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider">CHỜ XỬ LÝ</p>
+                  <p className="text-3xl font-bold text-ink mt-1">{summary.openBugs + summary.reopenedBugs}</p>
                 </div>
               </div>
 
               {/* Card 3: ĐANG XỬ LÝ */}
-              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="size-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
-                    <RefreshCcw size={20} />
+                  <div className="size-11 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
+                    <RefreshCcw size={22} />
                   </div>
-                  <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-brand-dark bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     ĐANG XỬ LÝ
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">ĐANG XỬ LÝ</p>
-                  <p className="text-3xl font-black text-ink mt-1">{summary.inProgressBugs}</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div className="bg-amber-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.inProgressBugs / summary.totalBugs) * 100 : 0}%` }} />
-                  </div>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider">ĐANG XỬ LÝ</p>
+                  <p className="text-3xl font-bold text-ink mt-1">{summary.inProgressBugs}</p>
                 </div>
               </div>
 
               {/* Card 4: LỖI KHẨN CẤP */}
-              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="size-10 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
-                    <ShieldAlert size={20} />
+                  <div className="size-11 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
+                    <ShieldAlert size={22} />
                   </div>
-                  <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-danger bg-danger/10 border border-danger/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     CẦN CHÚ Ý
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
-                  <p className="text-3xl font-black text-rose-600 mt-1">{summary.criticalBugs}</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div className="bg-rose-600 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.criticalBugs / summary.totalBugs) * 100 : 0}%` }} />
-                  </div>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
+                  <p className="text-3xl font-bold text-danger mt-1">{summary.criticalBugs}</p>
                 </div>
               </div>
 
               {/* Card 5: ĐÃ GIẢI QUYẾT */}
-              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+              <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="size-10 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={20} />
+                  <div className="size-11 rounded-xl bg-success/10 text-success border border-success/20 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={22} />
                   </div>
-                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="text-[10px] font-extrabold text-success bg-success/10 border border-success/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     HOÀN THÀNH
                   </span>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-muted uppercase tracking-wider">ĐÃ GIẢI QUYẾT</p>
-                  <p className="text-3xl font-black text-emerald-600 mt-1">{summary.resolvedBugs}</p>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${summary.totalBugs > 0 ? (summary.resolvedBugs / summary.totalBugs) * 100 : 0}%` }} />
-                  </div>
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider">ĐÃ GIẢI QUYẾT</p>
+                  <p className="text-3xl font-bold text-success mt-1">{summary.resolvedBugs}</p>
                 </div>
               </div>
             </div>
@@ -1096,74 +1081,66 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                 return (
                   <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                     {/* Card 1: TỶ LỆ XỬ LÝ (RESOLVE RATE) */}
-                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
                       <div className="flex justify-between items-center">
-                        <div className="size-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
-                          <CheckCircle2 size={20} />
+                        <div className="size-11 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
+                          <CheckCircle2 size={22} />
                         </div>
-                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                        <span className="text-xs font-bold text-success bg-success/10 border border-success/20 px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
                           ↑ {formatRate(qaMetrics.resolveRate)}
                         </span>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỶ LỆ XỬ LÝ</p>
-                        <p className="text-3xl font-black text-ink mt-1">{formatRate(qaMetrics.resolveRate)}</p>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                          <div className="bg-amber-700 h-full rounded-full" style={{ width: formatRate(qaMetrics.resolveRate) }} />
-                        </div>
+                        <p className="text-xs font-medium text-muted uppercase tracking-wider">TỶ LỆ XỬ LÝ</p>
+                        <p className="text-3xl font-bold text-ink mt-1">{formatRate(qaMetrics.resolveRate)}</p>
                       </div>
                     </div>
 
                     {/* Card 2: TỶ LỆ MỞ LẠI (REOPEN RATE) */}
-                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
                       <div className="flex justify-between items-center">
-                        <div className="size-10 rounded-xl bg-rose-100/70 text-rose-600 flex items-center justify-center shrink-0">
-                          <RefreshCcw size={20} />
+                        <div className="size-11 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
+                          <RefreshCcw size={22} />
                         </div>
-                        <span className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                        <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/20 px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
                           ↑ {formatRate(qaMetrics.reopenRate)}
                         </span>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">TỶ LỆ MỞ LẠI</p>
-                        <p className="text-3xl font-black text-ink mt-1">{formatRate(qaMetrics.reopenRate)}</p>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                          <div className="bg-rose-600 h-full rounded-full" style={{ width: formatRate(qaMetrics.reopenRate) }} />
-                        </div>
+                        <p className="text-xs font-medium text-muted uppercase tracking-wider">TỶ LỆ MỞ LẠI</p>
+                        <p className="text-3xl font-bold text-ink mt-1">{formatRate(qaMetrics.reopenRate)}</p>
                       </div>
                     </div>
 
                     {/* Card 3: LỖI KHẨN CẤP */}
-                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
                       <div className="flex justify-between items-center">
-                        <div className="size-10 rounded-xl bg-orange-100/70 text-orange-600 flex items-center justify-center shrink-0">
-                          <ShieldAlert size={20} />
+                        <div className="size-11 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
+                          <ShieldAlert size={22} />
                         </div>
-                        <span className="text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/20 px-2.5 py-0.5 rounded-full">
                           ! {qaMetrics.totalCriticalBugs}
                         </span>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
-                        <p className="text-3xl font-black text-ink mt-1">{qaMetrics.totalCriticalBugs}</p>
-                        <p className="text-[11px] font-semibold text-muted mt-2">Yêu cầu xử lý ngay lập tức</p>
+                        <p className="text-xs font-medium text-muted uppercase tracking-wider">LỖI KHẨN CẤP</p>
+                        <p className="text-3xl font-bold text-danger mt-1">{qaMetrics.totalCriticalBugs}</p>
                       </div>
                     </div>
 
                     {/* Card 4: LỖI QUÁ HẠN */}
-                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
+                    <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
                       <div className="flex justify-between items-center">
-                        <div className="size-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                          <BugIcon size={20} />
+                        <div className="size-11 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
+                          <BugIcon size={22} />
                         </div>
-                        <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/20 px-2.5 py-0.5 rounded-full">
                           ! {qaMetrics.totalOverdueBugs}
                         </span>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold text-muted uppercase tracking-wider">LỖI QUÁ HẠN</p>
-                        <p className="text-3xl font-black text-ink mt-1">{qaMetrics.totalOverdueBugs}</p>
-                        <p className="text-[11px] font-semibold text-muted mt-2">Số lỗi trễ hạn cần chú ý</p>
+                        <p className="text-xs font-medium text-muted uppercase tracking-wider">LỖI QUÁ HẠN</p>
+                        <p className="text-3xl font-bold text-ink mt-1">{qaMetrics.totalOverdueBugs}</p>
                       </div>
                     </div>
                   </div>

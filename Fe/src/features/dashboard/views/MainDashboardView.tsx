@@ -297,28 +297,26 @@ export function MainDashboardView({
 
             {/* Sub-Tab Toggle Pills */}
             <div className="inline-flex rounded-full bg-slate-100 p-1 border border-line/60">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                leadingIcon={<LayoutDashboard size={14} />}
+                className={activeTab === 'overview' ? '!rounded-full !bg-brand !text-white !border-transparent' : '!rounded-full !bg-transparent !border-transparent !text-muted-dark hover:!text-ink'}
                 onClick={() => setActiveTab('overview')}
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                  activeTab === 'overview'
-                    ? 'bg-brand text-white shadow-xs'
-                    : 'text-muted-dark hover:text-ink'
-                }`}
               >
-                <LayoutDashboard size={14} /> Tổng quan
-              </button>
-              <button
+                Tổng quan
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                leadingIcon={<Clock size={14} />}
+                className={activeTab === 'timesheet' ? '!rounded-full !bg-brand !text-white !border-transparent' : '!rounded-full !bg-transparent !border-transparent !text-muted-dark hover:!text-ink'}
                 onClick={() => setActiveTab('timesheet')}
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                  activeTab === 'timesheet'
-                    ? 'bg-brand text-white shadow-xs'
-                    : 'text-muted-dark hover:text-ink'
-                }`}
               >
-                <Clock size={14} /> Timesheet cá nhân
-              </button>
+                Timesheet cá nhân
+              </Button>
             </div>
           </div>
 
@@ -364,10 +362,10 @@ export function MainDashboardView({
                     className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
-                        <FolderKanban size={20} />
+                      <div className="grid size-11 place-items-center rounded-xl bg-brand/10 text-brand border border-brand/20">
+                        <FolderKanban size={22} />
                       </div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-dark bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2 py-0.5 rounded-full">
                         ĐANG HOẠT ĐỘNG
                       </span>
                     </div>
@@ -384,10 +382,10 @@ export function MainDashboardView({
                     className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="grid size-10 place-items-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
-                        <Bell size={20} />
+                      <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
+                        <Bell size={22} />
                       </div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-dark bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2 py-0.5 rounded-full">
                         THÔNG BÁO
                       </span>
                     </div>
@@ -404,16 +402,16 @@ export function MainDashboardView({
                     className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-                        <CheckCircle2 size={20} />
+                      <div className="grid size-11 place-items-center rounded-xl bg-success/10 text-success border border-success/20">
+                        <CheckCircle2 size={22} />
                       </div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full">
                         HOÀN THÀNH
                       </span>
                     </div>
                     <div className="mt-4">
                       <p className="text-xs font-medium text-muted">Task hoàn thành</p>
-                      <p className="text-2xl font-bold text-emerald-600 mt-0.5">{doneTasks}</p>
+                      <p className="text-2xl font-bold text-success mt-0.5">{doneTasks}</p>
                     </div>
                   </motion.div>
 
@@ -424,16 +422,16 @@ export function MainDashboardView({
                     className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="grid size-10 place-items-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
-                        <AlertCircle size={20} />
+                      <div className="grid size-11 place-items-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                        <AlertCircle size={22} />
                       </div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/10 px-2 py-0.5 rounded-full">
                         CẦN CHÚ Ý
                       </span>
                     </div>
                     <div className="mt-4">
                       <p className="text-xs font-medium text-muted">Task trễ hạn</p>
-                      <p className="text-2xl font-bold text-rose-600 mt-0.5">{overdueTasks}</p>
+                      <p className="text-2xl font-bold text-danger mt-0.5">{overdueTasks}</p>
                     </div>
                   </motion.div>
                 </motion.div>

@@ -1,6 +1,6 @@
 # Quy chuẩn UI/UX — Hệ thống ERP/Quản lý dự án nội bộ HiCAS
 
-**Phiên bản:** 1.0  
+**Phiên bản:** 1.1  
 **Phạm vi:** HiCAS One — React + TypeScript  
 **Đối tượng:** Designer, Frontend Developer, QA, Product Owner
 
@@ -53,11 +53,12 @@ Quy tắc: không quá hai màu nhấn trên một màn hình; màu ngữ nghĩa
 
 ## 3. Typography
 
-- Font: `Inter`; dự phòng `-apple-system`, `Segoe UI`, Roboto, Helvetica, Arial, sans-serif.
+- Font: `Be Vietnam Pro`; dự phòng `Inter`, `-apple-system`, `Segoe UI`, Roboto, Helvetica, Arial, sans-serif.
 - Dữ liệu bảng/báo cáo bật tabular numbers (`font-variant-numeric: tabular-nums`).
 - `h1`: 28/36, 700. `h2`: 22/30, 600. `h3`: 18/26, 600.
 - Body mặc định: 14/22, 400. Label: 14/22, 500. Small: 13/18. Caption: 12/16.
 - ERP dùng base 14px để hiển thị dữ liệu hiệu quả; không tự ý phóng body lên 16px.
+- **Không dùng font khác** ngoài Be Vietnam Pro; không import Google Fonts riêng trong component.
 
 ## 4. Spacing và app shell
 
@@ -75,12 +76,14 @@ Mọi control nền tảng phải import từ `src/components/ui` theo `Luat.md`
 
 ### 5.1. Button
 
-- Primary: nền cam, chữ trắng; một khu vực chỉ có một primary.
-- Secondary: nền trắng, border gray-300, text gray-900.
-- Danger: nền đỏ, chữ trắng; hành động không thể hoàn tác phải mở confirm dialog.
+- Primary: nền cam `brand`, chữ trắng; một khu vực chỉ có một primary.
+- Secondary: nền trắng, border `line`, text `ink`; dùng cho action phụ, navigation tab, bộ lọc.
+- Danger: nền đỏ `danger`, chữ trắng; hành động không thể hoàn tác phải mở confirm dialog.
 - Ghost: không nền/viền, chữ primary; dùng cho action phụ trong bảng.
 - Icon truyền qua `leadingIcon`/`trailingIcon`. Icon-only dùng `iconOnly`, bắt buộc `aria-label` và tooltip (`title`).
 - Text không xuống dòng. Loading vô hiệu hóa button, có spinner và nhãn xử lý rõ nghĩa.
+- **Cấm** override màu primary button bằng `className` gradient hoặc màu tùy ý.
+- **Tab điều hướng active**: dùng `variant="secondary"` với `className` chỉ ghi đè `!bg-brand !text-white !border-transparent`; không dùng màu Tailwind tùy ý như indigo, teal, amber.
 
 ### 5.2. Form
 
@@ -114,10 +117,12 @@ Mọi control nền tảng phải import từ `src/components/ui` theo `Luat.md`
 
 ## 6. Icon và hình ảnh
 
-- Chỉ dùng Lucide Icons, stroke 1.5–2px.
-- Kích thước: 16px inline/button nhỏ, 20px toolbar/menu, 24px dashboard.
-- Icon trạng thái dùng màu ngữ nghĩa tương ứng.
+- Chỉ dùng **Lucide Icons**, stroke 1.5–2px.
+- Kích thước: 16px inline/button nhỏ, 20px toolbar/menu, 24px dashboard/stat card.
+- Icon trạng thái dùng màu ngữ nghĩa tương ứng (`text-success`, `text-danger`, `text-info`, `text-brand`).
 - Empty illustration là line-art đơn giản, đơn sắc hoặc điểm cam; không dùng ảnh trang trí rối.
+- **Stat card icon box**: kích thước `size-11` (44px), `rounded-xl`, nền dùng token opacity `bg-success/10`, `bg-danger/10`, `bg-info/10`, `bg-brand/10`; không dùng Tailwind color bậc 50 (`bg-emerald-50`, `bg-sky-50`).
+- **Cấm** dùng icon từ bộ khác (Font Awesome, Material Icons, HeroIcons, Emoji) trong hệ thống.
 
 ## 7. Tương tác và accessibility
 
@@ -142,9 +147,13 @@ View không gọi API. Không render menu/action ngoài quyền và không dùng
 ## 9. Checklist bàn giao
 
 - Đúng MVC, phân quyền và component UI chung.
-- Đúng token đen–cam, type scale 14px và spacing 4px.
-- Có loading/empty/error/success/disabled.
-- Kiểm tra keyboard, focus, contrast và confirm destructive action.
+- Font `Be Vietnam Pro` hiển thị đúng ở mọi màn hình.
+- Đúng token đen–cam, type scale 14px và spacing thang 4px.
+- Không có màu hex hardcode (`#xxxxxx`) hay Tailwind color utilities không qua token trong JSX.
+- Không có `<button>`, `<input>`, `<select>` raw trong View (phải dùng component từ `src/components/ui`).
+- Primary button luôn là cam `brand`; tab active dùng `!bg-brand !text-white !border-transparent`.
+- Có loading skeleton/empty/error/success/disabled đúng pattern.
+- Kiểm tra keyboard, focus, contrast và confirm trước destructive action.
 - Test cả ADMIN/USER và Network không có request sai quyền.
 - Test desktop `1024/1280/1920px`; kiểm tra tối thiểu ở `360/768px` nếu màn hình hỗ trợ mobile.
-- `npm run lint` và `npm run build` thành công.
+- `npm run lint` và `npm run build` thành công 0 lỗi.

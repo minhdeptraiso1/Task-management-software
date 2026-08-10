@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Calendar,
   ListTodo,
-  Lightbulb,
   AlertTriangle,
   FileText,
   Activity,
@@ -372,24 +371,19 @@ export function SprintClosingView({
         <div className="space-y-6">
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* Goal Achieved Card */}
+            {/* Sprint Goal Evaluation */}
             {(() => {
+              const isEvaluated = Boolean(report.review)
               const isAchieved = report.review?.goalAchieved
-              const isEvaluated = !!report.review
               const goalBadgeText = !isEvaluated ? 'CHƯA ĐÁNH GIÁ' : isAchieved ? 'ĐẠT MỤC TIÊU' : 'CHƯA ĐẠT'
-              const goalBadgeClass = !isEvaluated 
-                ? 'text-amber-700 bg-amber-50 border-amber-200'
-                : isAchieved
-                ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                : 'text-rose-600 bg-rose-50 border-rose-200'
+              const goalBadgeClass = !isEvaluated ? 'text-brand-dark bg-brand/10 border-brand/20' : isAchieved ? 'text-success bg-success/10 border-success/20' : 'text-danger bg-danger/10 border-danger/20'
               const goalText = !isEvaluated ? 'Chưa đánh giá' : isAchieved ? 'Đã hoàn thành' : 'Chưa đạt mục tiêu'
-              const iconBgClass = !isEvaluated ? 'bg-amber-100/70 text-amber-700' : isAchieved ? 'bg-emerald-100/70 text-emerald-700' : 'bg-rose-100/70 text-rose-600'
-              const barBgClass = !isEvaluated ? 'bg-amber-500' : isAchieved ? 'bg-emerald-500' : 'bg-rose-500'
+              const iconBgClass = !isEvaluated ? 'bg-brand/10 text-brand border-brand/20' : isAchieved ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'
 
               return (
-                <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+                <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                   <div className="flex justify-between items-center">
-                    <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${iconBgClass}`}>
+                    <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBgClass}`}>
                       <Trophy size={20} />
                     </div>
                     <span className={`text-[10px] font-extrabold border px-2.5 py-0.5 rounded-full uppercase tracking-wider ${goalBadgeClass}`}>
@@ -397,75 +391,63 @@ export function SprintClosingView({
                     </span>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-muted uppercase tracking-wider">MỤC TIÊU SPRINT</p>
-                    <p className="text-xl font-black text-ink mt-1 truncate">{goalText}</p>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                      <div className={`h-full rounded-full ${barBgClass}`} style={{ width: !isEvaluated ? '50%' : isAchieved ? '100%' : '30%' }} />
-                    </div>
+                    <p className="text-xs font-medium text-muted uppercase tracking-wider">MỤC TIÊU SPRINT</p>
+                    <p className="text-xl font-bold text-ink mt-1 truncate">{goalText}</p>
                   </div>
                 </div>
               )
             })()}
 
             {/* Backlog Items Completion */}
-            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
               <div className="flex justify-between items-center">
-                <div className="size-10 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
+                <div className="size-10 rounded-xl bg-success/10 text-success border border-success/20 flex items-center justify-center shrink-0">
                   <CheckCircle2 size={20} />
                 </div>
-                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="text-[10px] font-extrabold text-success bg-success/10 border border-success/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   HOÀN THÀNH
                 </span>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-muted uppercase tracking-wider">NGHIỆM THU BACKLOG</p>
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">NGHIỆM THU BACKLOG</p>
                 <div className="flex items-baseline gap-1.5 mt-1">
-                  <span className="text-3xl font-black text-ink">{report.completedBacklogItemCount}</span>
-                  <span className="text-xs font-bold text-muted">/ {report.backlogItemCount} items</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${backlogCompletionRate}%` }} />
+                  <span className="text-3xl font-bold text-ink">{report.completedBacklogItemCount}</span>
+                  <span className="text-xs font-bold text-muted">/ {report.backlogItemCount} items ({Math.round(backlogCompletionRate)}%)</span>
                 </div>
               </div>
             </div>
 
             {/* Total Story Points */}
-            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
               <div className="flex justify-between items-center">
-                <div className="size-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
+                <div className="size-10 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
                   <Target size={20} />
                 </div>
-                <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="text-[10px] font-extrabold text-brand-dark bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   TỔNG ĐIỂM
                 </span>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-muted uppercase tracking-wider">QUY MÔ STORY POINT</p>
-                <p className="text-3xl font-black text-ink mt-1">{report.totalStoryPoints} pt</p>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                  <div className="bg-amber-500 h-full rounded-full" style={{ width: '100%' }} />
-                </div>
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">QUY MÔ STORY POINT</p>
+                <p className="text-3xl font-bold text-ink mt-1">{report.totalStoryPoints} pt</p>
               </div>
             </div>
 
             {/* Action Items count */}
-            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
+            <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
               <div className="flex justify-between items-center">
-                <div className="size-10 rounded-xl bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0">
+                <div className="size-10 rounded-xl bg-info/10 text-info border border-info/20 flex items-center justify-center shrink-0">
                   <ListTodo size={20} />
                 </div>
-                <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="text-[10px] font-extrabold text-info bg-info/10 border border-info/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   RETROSPECTIVE
                 </span>
               </div>
               <div>
-                <p className="text-[11px] font-bold text-muted uppercase tracking-wider">HÀNH ĐỘNG CẢI TIẾN</p>
-                <p className="text-3xl font-black text-ink mt-1">
+                <p className="text-xs font-medium text-muted uppercase tracking-wider">HÀNH ĐỘNG CẢI TIẾN</p>
+                <p className="text-3xl font-bold text-ink mt-1">
                   {report.retrospective?.actionItems.length || 0} việc
                 </p>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
-                  <div className="bg-indigo-500 h-full rounded-full" style={{ width: report.retrospective?.actionItems.length ? '100%' : '15%' }} />
-                </div>
               </div>
             </div>
           </div>
@@ -898,13 +880,11 @@ export function SprintClosingView({
 
           {/* Three pillars cards with color headers and badges */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Went Well */}
-            <div className="rounded-2xl border border-emerald-200/80 bg-white shadow-2xs overflow-hidden transition-all hover:shadow-xs">
-              <div className="bg-emerald-50/80 px-4 py-3 border-b border-emerald-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-800">
-                  <CheckCircle2 size={16} className="text-emerald-600" /> Điểm làm tốt (Went Well)
-                </div>
-                <span className="text-[10px] font-extrabold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+            {/* Điểm làm tốt */}
+            <div className="rounded-2xl border border-success/30 bg-white shadow-xs overflow-hidden transition-all hover:shadow-md">
+              <div className="bg-success/10 px-4.5 py-3 border-b border-success/20 flex items-center justify-between">
+                <span className="text-sm font-extrabold text-success">Điểm làm tốt</span>
+                <span className="text-[10px] font-extrabold text-success bg-white border border-success/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   KHUYẾN KHÍCH
                 </span>
               </div>
@@ -913,17 +893,15 @@ export function SprintClosingView({
                 onChange={e => setWentWell(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Những việc, quy trình đã hoạt động hiệu quả và cần duy trì..."
-                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-emerald-700/40"
+                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-muted"
               />
             </div>
 
-            {/* Went Wrong */}
-            <div className="rounded-2xl border border-rose-200/80 bg-white shadow-2xs overflow-hidden transition-all hover:shadow-xs">
-              <div className="bg-rose-50/80 px-4 py-3 border-b border-rose-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-rose-800">
-                  <AlertTriangle size={16} className="text-rose-600" /> Điểm chưa tốt (Went Wrong)
-                </div>
-                <span className="text-[10px] font-extrabold text-rose-700 bg-white border border-rose-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+            {/* Điểm chưa tốt */}
+            <div className="rounded-2xl border border-danger/30 bg-white shadow-xs overflow-hidden transition-all hover:shadow-md">
+              <div className="bg-danger/10 px-4.5 py-3 border-b border-danger/20 flex items-center justify-between">
+                <span className="text-sm font-extrabold text-danger">Điểm chưa tốt</span>
+                <span className="text-[10px] font-extrabold text-danger bg-white border border-danger/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   CẦN KHẮC PHỤC
                 </span>
               </div>
@@ -932,17 +910,15 @@ export function SprintClosingView({
                 onChange={e => setWentWrong(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Khó khăn, xung đột, ước lượng sai thời gian hoặc sự cố kỹ thuật..."
-                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-rose-700/40"
+                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-muted"
               />
             </div>
 
-            {/* Improvement */}
-            <div className="rounded-2xl border border-sky-200/80 bg-white shadow-2xs overflow-hidden transition-all hover:shadow-xs">
-              <div className="bg-sky-50/80 px-4 py-3 border-b border-sky-100 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-sky-800">
-                  <Lightbulb size={16} className="text-sky-600" /> Ý kiến cải tiến (Improvement)
-                </div>
-                <span className="text-[10px] font-extrabold text-sky-700 bg-white border border-sky-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+            {/* Ý kiến cải tiến */}
+            <div className="rounded-2xl border border-info/30 bg-white shadow-xs overflow-hidden transition-all hover:shadow-md">
+              <div className="bg-info/10 px-4.5 py-3 border-b border-info/20 flex items-center justify-between">
+                <span className="text-sm font-extrabold text-info">Ý kiến cải tiến</span>
+                <span className="text-[10px] font-extrabold text-info bg-white border border-info/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                   HÀNH ĐỘNG
                 </span>
               </div>
@@ -951,7 +927,7 @@ export function SprintClosingView({
                 onChange={e => setImprovement(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Giải pháp cụ thể, hành động khắc phục lỗi ở các Sprint sau..."
-                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-sky-700/40"
+                className="w-full text-xs p-3.5 border-0 focus:ring-0 focus:outline-none bg-transparent text-ink font-medium h-32 resize-none placeholder:text-muted"
               />
             </div>
           </div>
@@ -960,12 +936,12 @@ export function SprintClosingView({
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between border-b border-line/50 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0">
+                <div className="size-8 rounded-lg bg-brand text-white flex items-center justify-center shrink-0 shadow-xs">
                   <ListTodo size={16} />
                 </div>
                 <div>
                   <h5 className="text-xs font-extrabold text-ink">
-                    Hành động cụ thể cho Sprint tiếp theo (Action Items)
+                    Hành động cụ thể cho Sprint tiếp theo
                   </h5>
                   <p className="text-[11px] font-medium text-muted">Phân công chi tiết người phụ trách và hạn chót hoàn thành.</p>
                 </div>

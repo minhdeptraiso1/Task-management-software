@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.analytics.BurnupChartResponse;
 import com.project.taskmanagement.dto.response.analytics.CumulativeFlowResponse;
 import com.project.taskmanagement.dto.response.analytics.ProjectAnalyticsSummaryResponse;
@@ -7,6 +8,8 @@ import com.project.taskmanagement.dto.response.analytics.VelocityChartResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -16,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.REPORTS, description = "Analytics velocity, burnup và cumulative flow của Project/Sprint")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

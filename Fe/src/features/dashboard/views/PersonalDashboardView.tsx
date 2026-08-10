@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert, FolderKanban, Bell, ChevronLeft, ChevronRight, Target } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert, FolderKanban, Bell, ChevronLeft, ChevronRight, Target, BookOpen } from 'lucide-react'
 import type { User } from '../../user/models/user.model'
 import type { MyDashboardResponse, MyTaskPageResponse, MyTimeSummaryResponse } from '../models/dashboard.model'
 import { Button } from '../../../components/ui'
@@ -71,16 +71,23 @@ export function PersonalDashboardView({
 
   if (loading && !dashboard) {
     return (
-      <div className="grid h-64 place-items-center p-8">
-        <span className="size-8 animate-spin rounded-full border-4 border-brand border-r-transparent" />
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-48 rounded-lg bg-panel animate-pulse" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-panel animate-pulse" />)}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 h-64 rounded-2xl bg-panel animate-pulse" />
+          <div className="h-64 rounded-2xl bg-panel animate-pulse" />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="p-8 text-center text-rose-600 bg-rose-50/50 rounded-2xl border border-rose-100 m-6">
-        <AlertCircle className="mx-auto mb-2 size-8 text-rose-500" />
+      <div className="p-8 text-center text-danger bg-danger/10 rounded-2xl border border-danger/20 m-6">
+        <AlertCircle className="mx-auto mb-2 size-8 text-danger" />
         <p className="font-semibold text-sm">{error}</p>
       </div>
     )
@@ -164,10 +171,10 @@ export function PersonalDashboardView({
             className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
           >
             <div className="flex items-center justify-between">
-              <div className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+              <div className="grid size-11 place-items-center rounded-xl bg-brand/10 text-brand border border-brand/20">
                 <FolderKanban size={22} />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-dark bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2 py-0.5 rounded-full">
                 ĐANG HOẠT ĐỘNG
               </span>
             </div>
@@ -184,10 +191,10 @@ export function PersonalDashboardView({
             className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
           >
             <div className="flex items-center justify-between">
-              <div className="grid size-11 place-items-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
+              <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
                 <Bell size={22} />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-dark bg-slate-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2 py-0.5 rounded-full">
                 THÔNG BÁO
               </span>
             </div>
@@ -204,16 +211,16 @@ export function PersonalDashboardView({
             className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
           >
             <div className="flex items-center justify-between">
-              <div className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <div className="grid size-11 place-items-center rounded-xl bg-success/10 text-success border border-success/20">
                 <CheckCircle2 size={22} />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full">
                 HOÀN THÀNH
               </span>
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium text-muted">Task hoàn thành</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-0.5">{dashboard.taskSummary.doneTasks}</p>
+              <p className="text-2xl font-bold text-success mt-0.5">{dashboard.taskSummary.doneTasks}</p>
             </div>
           </motion.div>
 
@@ -224,16 +231,16 @@ export function PersonalDashboardView({
             className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col justify-between"
           >
             <div className="flex items-center justify-between">
-              <div className="grid size-11 place-items-center rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+              <div className="grid size-11 place-items-center rounded-xl bg-danger/10 text-danger border border-danger/20">
                 <AlertCircle size={22} />
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/10 px-2 py-0.5 rounded-full">
                 CẦN CHÚ Ý
               </span>
             </div>
             <div className="mt-4">
               <p className="text-xs font-medium text-muted">Task trễ hạn</p>
-              <p className="text-2xl font-bold text-rose-600 mt-0.5">{dashboard.taskSummary.overdueTasks}</p>
+              <p className="text-2xl font-bold text-danger mt-0.5">{dashboard.taskSummary.overdueTasks}</p>
             </div>
           </motion.div>
         </motion.div>
@@ -446,7 +453,6 @@ export function PersonalDashboardView({
             </section>
           )}
 
-          {/* Dedicated Hướng dẫn sử dụng Card (1 ô riêng dưới Thời gian làm việc) */}
           <section className="rounded-2xl border border-line/70 bg-white shadow-xs p-6 space-y-4">
             <div className="border-b border-line/60 pb-3">
               <h2 className="font-bold text-ink text-sm">Hướng dẫn sử dụng</h2>
@@ -454,8 +460,9 @@ export function PersonalDashboardView({
             </div>
             <Button
               type="button"
-              variant="primary"
-              className="w-full justify-center bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-2.5 shadow-xs"
+              variant="secondary"
+              className="w-full justify-center"
+              leadingIcon={<BookOpen size={16} />}
               onClick={() => setShowGuideModal(true)}
             >
               Xem Hướng dẫn sử dụng

@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.task.*;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.kanban.KanbanBoardResponse;
@@ -7,6 +8,8 @@ import com.project.taskmanagement.dto.response.task.TaskPageResponse;
 import com.project.taskmanagement.dto.response.task.TaskResponse;
 import com.project.taskmanagement.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.TASKS, description = "Quản lý Task, phân công, trạng thái và Kanban trong Project")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/tasks"

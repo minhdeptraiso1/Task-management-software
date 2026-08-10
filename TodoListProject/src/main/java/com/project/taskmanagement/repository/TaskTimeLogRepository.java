@@ -5,7 +5,6 @@ import com.project.taskmanagement.repository.projection.report.ReportTimeLogExce
 import com.project.taskmanagement.repository.projection.report.ProjectTimeDailyView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeMemberView;
 import com.project.taskmanagement.repository.projection.report.ProjectTimeTaskView;
-import com.project.taskmanagement.repository.projection.timelogexport.TimeLogExportRowView;
 import com.project.taskmanagement.repository.projection.timesheet.TimesheetDailySummaryView;
 import com.project.taskmanagement.repository.projection.timesheet.TimesheetEntryView;
 import com.project.taskmanagement.repository.projection.timesheet.TimesheetUserSummaryView;
@@ -34,19 +33,6 @@ public interface TaskTimeLogRepository
             Pageable pageable
     );
 
-    List<TaskTimeLog>
-    findAllByTaskIdOrderByWorkDateAscCreatedAtAsc(
-            UUID taskId
-    );
-
-    Page<TaskTimeLog>
-    findAllByUserIdAndWorkDateBetweenOrderByWorkDateDesc(
-            UUID userId,
-            LocalDate fromDate,
-            LocalDate toDate,
-            Pageable pageable
-    );
-
     @Query("""
             SELECT COALESCE(SUM(t.minutes), 0)
             FROM TaskTimeLog t
@@ -55,20 +41,6 @@ public interface TaskTimeLogRepository
     Long sumMinutesByTaskId(
             @Param("taskId")
             UUID taskId
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(t.minutes), 0)
-            FROM TaskTimeLog t
-            WHERE t.taskId = :taskId
-              AND t.userId = :userId
-            """)
-    Long sumMinutesByTaskIdAndUserId(
-            @Param("taskId")
-            UUID taskId,
-
-            @Param("userId")
-            UUID userId
     );
 
     @Query("""
@@ -140,16 +112,6 @@ public interface TaskTimeLogRepository
             GROUP BY t.taskId
             """)
     List<Object[]> sumMinutesGroupedByTaskIds(
-            @Param("taskIds")
-            List<UUID> taskIds
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(t.minutes), 0)
-            FROM TaskTimeLog t
-            WHERE t.taskId IN :taskIds
-            """)
-    Long sumMinutesByTaskIds(
             @Param("taskIds")
             List<UUID> taskIds
     );
@@ -414,22 +376,6 @@ public interface TaskTimeLogRepository
 
             @Param("taskId")
             UUID taskId
-    );
-
-    @Query("""
-            SELECT COALESCE(SUM(tl.minutes), 0)
-            FROM TaskTimeLog tl
-            JOIN Task t
-                ON t.id = tl.taskId
-            WHERE t.projectId = :projectId
-              AND t.currentSprintId = :sprintId
-            """)
-    Long sumMinutesByProjectIdAndSprintId(
-            @Param("projectId")
-            UUID projectId,
-
-            @Param("sprintId")
-            UUID sprintId
     );
 
     @Query("""
@@ -698,42 +644,6 @@ public interface TaskTimeLogRepository
               AND tl.workDate BETWEEN :fromDate AND :toDate
             """)
     long countTimesheetLogs(
-            @Param("projectId") UUID projectId,
-            @Param("userId") UUID userId,
-            @Param("taskId") UUID taskId,
-            @Param("fromDate") LocalDate fromDate,
-            @Param("toDate") LocalDate toDate
-    );
-
-    @Query("""
-            SELECT tl.id AS id,
-                   p.id AS projectId,
-                   p.code AS projectCode,
-                   p.name AS projectName,
-                   s.id AS sprintId,
-                   s.name AS sprintName,
-                   t.id AS taskId,
-                   t.title AS taskTitle,
-                   u.id AS userId,
-                   u.username AS username,
-                   u.email AS email,
-                   tl.workDate AS workDate,
-                   tl.minutes AS minutes,
-                   tl.description AS description,
-                   tl.createdAt AS createdAt,
-                   tl.updatedAt AS updatedAt
-            FROM TaskTimeLog tl
-            JOIN Task t ON t.id = tl.taskId
-            JOIN Project p ON p.id = t.projectId
-            LEFT JOIN Sprint s ON s.id = t.currentSprintId
-            JOIN User u ON u.id = tl.userId
-            WHERE p.id = :projectId
-              AND (:userId IS NULL OR u.id = :userId)
-              AND (:taskId IS NULL OR t.id = :taskId)
-              AND tl.workDate BETWEEN :fromDate AND :toDate
-            ORDER BY tl.workDate DESC, tl.createdAt DESC
-            """)
-    List<TimeLogExportRowView> findTimeLogExportRows(
             @Param("projectId") UUID projectId,
             @Param("userId") UUID userId,
             @Param("taskId") UUID taskId,

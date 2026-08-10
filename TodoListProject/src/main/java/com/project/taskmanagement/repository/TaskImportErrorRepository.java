@@ -11,11 +11,6 @@ import java.util.UUID;
 public interface TaskImportErrorRepository
         extends JpaRepository<TaskImportError, UUID> {
 
-    List<TaskImportError>
-    findAllByImportBatchIdOrderByRowNumberAsc(
-            UUID importBatchId
-    );
-
     Page<TaskImportError>
     findAllByImportBatchIdOrderByRowNumberAscCreatedAtAsc(
             UUID importBatchId,
@@ -27,11 +22,4 @@ public interface TaskImportErrorRepository
             UUID importBatchId
     );
 
-    long countByImportBatchId(
-            UUID importBatchId
-    );
-
-    void deleteAllByImportBatchId(
-            UUID importBatchId
-    );
 }

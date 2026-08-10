@@ -29,13 +29,6 @@ public interface TaskImportBatchRepository
             Pageable pageable
     );
 
-    Page<TaskImportBatch>
-    findAllByProjectIdAndSprintIdOrderByCreatedAtDesc(
-            UUID projectId,
-            UUID sprintId,
-            Pageable pageable
-    );
-
     long countByProjectIdAndStatus(
             UUID projectId,
             TaskImportStatus status

@@ -35,10 +35,6 @@ public interface ProjectMemberRepository
             UUID projectId
     );
 
-    List<ProjectMember> findAllByUserId(
-            UUID userId
-    );
-
     List<ProjectMember> findAllByProjectIdAndRole(
             UUID projectId,
             ProjectMemberRole role

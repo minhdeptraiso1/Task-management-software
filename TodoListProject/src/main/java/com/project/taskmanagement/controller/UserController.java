@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.user.CreateUserRequest;
 import com.project.taskmanagement.dto.request.user.UpdateUserRequest;
 import com.project.taskmanagement.dto.request.user.UserSearchRequest;
@@ -37,7 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Tag(
-        name = "User",
+        name = OpenApiTags.USERS,
         description = "API quản lý tài khoản người dùng"
 )
 @SecurityRequirement(name = "bearerAuth")
@@ -339,7 +340,7 @@ public class UserController {
     ) {
         userService.deleteUserById(id);
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
     // ===================== USER ROLES =====================
     @Operation(

@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.audit.AuditLogPageResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.AuditLogService;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Set;
 
 @Tag(
-        name = "Audit Log",
+        name = OpenApiTags.AUDIT,
         description = "API quản lý lịch sử hoạt động hệ thống"
 )
 @SecurityRequirement(name = "bearerAuth")

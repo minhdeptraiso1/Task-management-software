@@ -58,12 +58,12 @@ public class BugCommentServiceImpl implements BugCommentService {
     public BugCommentResponse create(UUID projectId, UUID bugId, CreateBugCommentRequest request) {
         User currentUser = currentUserService.getActiveCurrentUser();
         Bug bug = requireProjectMemberAndBug(projectId, bugId, currentUser);
-        String content = normalizeRequired(request.content(), ErrorCode.VALIDATION_ERROR);
+        String content = normalizeRequired(request.content(), ErrorCode.BUG_COMMENT_CONTENT_INVALID);
 
         if (request.parentId() != null) {
             BugComment parent = getCommentOrThrow(projectId, bugId, request.parentId());
             if (parent.getParentId() != null) {
-                throw new BusinessException(ErrorCode.INVALID_PARAMETER);
+                throw new BusinessException(ErrorCode.BUG_COMMENT_REPLY_DEPTH_INVALID);
             }
         }
 
@@ -109,7 +109,7 @@ public class BugCommentServiceImpl implements BugCommentService {
         BugComment comment = getCommentOrThrow(projectId, bugId, commentId);
         validateOwner(comment.getAuthorUserId(), currentUser, ErrorCode.BUG_COMMENT_ACCESS_DENIED);
         Map<String, Object> oldValue = snapshot(comment);
-        comment.setContent(normalizeRequired(request.content(), ErrorCode.VALIDATION_ERROR));
+        comment.setContent(normalizeRequired(request.content(), ErrorCode.BUG_COMMENT_CONTENT_INVALID));
         BugComment saved = bugCommentRepository.save(comment);
         log(projectId, saved.getId(), ProjectActivityAction.BUG_COMMENT_UPDATED,
                 currentUser.getId(), oldValue, snapshot(saved));

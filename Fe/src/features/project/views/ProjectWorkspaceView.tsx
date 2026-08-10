@@ -214,49 +214,49 @@ interface Props {
 }
 
 function statusClass(status: ProjectStatus) {
-  if (status === 'ACTIVE') return 'bg-[#ecfdf3] text-success'
-  if (status === 'CANCELLED') return 'bg-[#fff0ed] text-danger'
-  if (status === 'COMPLETED') return 'bg-[#eff6ff] text-info'
+  if (status === 'ACTIVE') return 'bg-success/10 text-success'
+  if (status === 'CANCELLED') return 'bg-danger/10 text-danger'
+  if (status === 'COMPLETED') return 'bg-info/10 text-info'
   if (status === 'ARCHIVED') return 'bg-panel text-muted'
 }
 
 function getProjectStatusBadgeStyle(status: ProjectStatus) {
   switch (status) {
     case 'ACTIVE':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80 shadow-2xs'
+      return 'bg-success/10 text-success border-success/20 hover:bg-success/20 shadow-2xs'
     case 'COMPLETED':
-      return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/80 shadow-2xs'
+      return 'bg-info/10 text-info border-info/20 hover:bg-info/20 shadow-2xs'
     case 'CANCELLED':
-      return 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80 shadow-2xs'
+      return 'bg-danger/10 text-danger border-danger/20 hover:bg-danger/20 shadow-2xs'
     case 'ARCHIVED':
     default:
-      return 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200/80 shadow-2xs'
+      return 'bg-panel text-muted border-line hover:bg-panel/80 shadow-2xs'
   }
 }
 
 function getProjectStatusDotColor(status: ProjectStatus) {
   switch (status) {
-    case 'ACTIVE': return 'bg-emerald-500'
-    case 'COMPLETED': return 'bg-blue-500'
-    case 'CANCELLED': return 'bg-rose-500'
-    case 'ARCHIVED': default: return 'bg-slate-500'
+    case 'ACTIVE': return 'bg-success'
+    case 'COMPLETED': return 'bg-info'
+    case 'CANCELLED': return 'bg-danger'
+    case 'ARCHIVED': default: return 'bg-muted'
   }
 }
 
 function getProjectStatusCardStyle(st: ProjectStatus, isCurrent: boolean) {
   if (isCurrent) {
     switch (st) {
-      case 'ACTIVE': return 'bg-emerald-50/90 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-      case 'COMPLETED': return 'bg-blue-50/90 border-blue-300 ring-2 ring-blue-500/20 shadow-xs'
-      case 'CANCELLED': return 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
-      case 'ARCHIVED': default: return 'bg-slate-100 border-slate-300 ring-2 ring-slate-400/20 shadow-xs'
+      case 'ACTIVE': return 'bg-success/10 border-success/40 ring-2 ring-success/20 shadow-xs'
+      case 'COMPLETED': return 'bg-info/10 border-info/40 ring-2 ring-info/20 shadow-xs'
+      case 'CANCELLED': return 'bg-danger/10 border-danger/40 ring-2 ring-danger/20 shadow-xs'
+      case 'ARCHIVED': default: return 'bg-panel border-line ring-2 ring-muted/20 shadow-xs'
     }
   }
   switch (st) {
-    case 'ACTIVE': return 'bg-emerald-50/30 border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/70'
-    case 'COMPLETED': return 'bg-blue-50/30 border-blue-100 hover:border-blue-300 hover:bg-blue-50/70'
-    case 'CANCELLED': return 'bg-rose-50/30 border-rose-100 hover:border-rose-300 hover:bg-rose-50/70'
-    case 'ARCHIVED': default: return 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/70'
+    case 'ACTIVE': return 'bg-success/5 border-success/20 hover:border-success/40 hover:bg-success/10'
+    case 'COMPLETED': return 'bg-info/5 border-info/20 hover:border-info/40 hover:bg-info/10'
+    case 'CANCELLED': return 'bg-danger/5 border-danger/20 hover:border-danger/40 hover:bg-danger/10'
+    case 'ARCHIVED': default: return 'bg-canvas border-line hover:border-line/80 hover:bg-panel/70'
   }
 }
 
@@ -279,7 +279,7 @@ function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; 
         <Input label="Tên dự án" value={name} onChange={event => setName(event.target.value)} required placeholder="Hệ thống ERP nội bộ" />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-[#3f3f46]">Mô tả</label>
+        <label className="mb-2 block text-sm font-medium text-ink">Mô tả</label>
         <textarea className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={description} onChange={event => setDescription(event.target.value)} placeholder="Mục tiêu, phạm vi, ghi chú..." />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -310,7 +310,7 @@ function ProjectEditModal({ open, project, saving, onClose, onSave }: { open: bo
     <form className="space-y-4" onSubmit={submit}>
       <Input name="name" label="Tên dự án" defaultValue={project.name ?? ''} required />
       <div>
-        <label className="mb-2 block text-sm font-medium text-[#3f3f46]">Mô tả</label>
+        <label className="mb-2 block text-sm font-medium text-ink">Mô tả</label>
         <textarea name="description" className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" defaultValue={project.description ?? ''} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -919,31 +919,31 @@ export function ProjectWorkspaceView({
           <div className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur-sm px-5 py-3 shadow-2xs">
             <div className="flex flex-wrap items-center justify-start gap-2">
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-indigo-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
+                <Button variant="secondary" className={activeTab === 'dashboard' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<LayoutDashboard size={16} />} onClick={() => onTabChange('dashboard')}>Tổng quan</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'board' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FolderKanban size={16} />} onClick={() => onTabChange('board')}>Sprint Board</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'members' ? '!bg-teal-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
+                <Button variant="secondary" className={activeTab === 'members' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<UsersRound size={16} />} onClick={() => onTabChange('members')}>Thành viên</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'activities' ? '!bg-blue-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
+                <Button variant="secondary" className={activeTab === 'activities' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
+                <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-amber-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
+                <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-rose-500 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
+                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-indigo-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
+                <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'imports' ? '!bg-emerald-600 !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FileSpreadsheet size={16} />} onClick={() => onTabChange('imports')}>Lịch sử Import</Button>
+                <Button variant="secondary" className={activeTab === 'imports' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FileSpreadsheet size={16} />} onClick={() => onTabChange('imports')}>Lịch sử Import</Button>
               </motion.div>
             </div>
           </div>

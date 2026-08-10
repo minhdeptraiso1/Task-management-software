@@ -556,7 +556,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
       if (targetSprintId) {
         next[targetSprintId] = [
-          { ...movingItem, sprintId: targetSprintId, status: 'IN_SPRINT' },
+          { ...movingItem, sprintId: targetSprintId, status: movingItem.status === 'DRAFT' ? 'READY' : movingItem.status },
           ...(next[targetSprintId] ?? []),
         ]
       }
@@ -605,11 +605,24 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
 
   const handleMoveToSprint = async (itemId: string, sprintId: string, sourceSprintId?: string | null) => {
     if (!selectedProject) return
+    const currentItem = backlogItems.content.find(b => b.id === itemId)
+      || Object.values(sprintItems).flat().find(b => b.id === itemId)
+
     moveItemInBoard(itemId, sprintId)
     setSaving(true)
     try {
       if (sourceSprintId) await removeBacklogItemFromSprint(selectedProject.id, sourceSprintId, itemId)
       await addBacklogItemToSprint(selectedProject.id, sprintId, itemId)
+
+      // Auto update status to READY (Sẵn sàng) if item status is DRAFT
+      if (currentItem && currentItem.status === 'DRAFT') {
+        try {
+          await updateBacklogItemStatus(selectedProject.id, itemId, 'READY')
+        } catch {
+          // status update fallback
+        }
+      }
+
       await reloadBoard()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Không kéo item vào sprint được')

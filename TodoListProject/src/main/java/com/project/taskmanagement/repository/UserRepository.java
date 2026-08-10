@@ -17,28 +17,12 @@ public interface UserRepository
             String username
     );
 
-    Optional<User> findByUsernameIgnoreCase(
-            String username
-    );
-
-    Optional<User> findByEmail(
-            String email
-    );
-
     Optional<User> findByEmailIgnoreCase(
             String email
     );
 
-    boolean existsByUsername(
-            String username
-    );
-
     boolean existsByUsernameIgnoreCase(
             String username
-    );
-
-    boolean existsByEmail(
-            String email
     );
 
     boolean existsByEmailIgnoreCase(

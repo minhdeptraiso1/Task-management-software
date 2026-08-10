@@ -1,10 +1,13 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.admin.UpdateUserRoleRequest;
 import com.project.taskmanagement.dto.response.admin.AdminUserResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.AdminUserAccessService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.ADMIN, description = "Quản trị tài khoản, trạng thái và quyền truy cập người dùng")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/admin/users")
 @PreAuthorize("hasRole('ADMIN')")

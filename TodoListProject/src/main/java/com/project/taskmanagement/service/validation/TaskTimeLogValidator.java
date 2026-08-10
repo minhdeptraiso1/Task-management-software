@@ -92,7 +92,7 @@ public final class TaskTimeLogValidator {
 
         if (normalized.length() > 2000) {
             throw new BusinessException(
-                    ErrorCode.VALIDATION_ERROR
+                    ErrorCode.TASK_TIME_LOG_DESCRIPTION_TOO_LONG
             );
         }
 

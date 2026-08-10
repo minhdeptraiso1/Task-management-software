@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.bug.AssignBugRequest;
 import com.project.taskmanagement.dto.request.bug.BugSearchRequest;
 import com.project.taskmanagement.dto.request.bug.CreateBugRequest;
@@ -13,6 +14,8 @@ import com.project.taskmanagement.dto.response.bug.BugSummaryResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.BugService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.BUGS, description = "Quản lý Bug, QA workflow, phân công và trạng thái")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/bugs")
 @RequiredArgsConstructor
@@ -194,7 +199,7 @@ public class BugController {
     ) {
         bugService.delete(projectId, bugId);
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 
     @Operation(summary = "Tổng hợp Bug của Project")

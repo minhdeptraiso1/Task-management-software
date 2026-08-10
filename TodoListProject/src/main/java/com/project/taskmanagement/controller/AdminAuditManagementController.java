@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.admin.AdminFileAuditSearchRequest;
 import com.project.taskmanagement.dto.request.admin.AdminImportAuditSearchRequest;
 import com.project.taskmanagement.dto.request.admin.SystemAuditSearchRequest;
@@ -12,6 +13,8 @@ import com.project.taskmanagement.service.AdminAuditManagementService;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Set;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.AUDIT, description = "Tra cứu System Audit, Import Audit và tổng hợp audit dành cho ADMIN")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")

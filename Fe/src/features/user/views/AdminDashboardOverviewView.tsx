@@ -12,7 +12,11 @@ import {
   Activity,
   UserCheck,
   Clock,
-  Sparkles
+  Sparkles,
+  Database,
+  Server,
+  Layers,
+  FolderArchive
 } from 'lucide-react'
 import { Button, toast } from '../../../components/ui'
 import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
@@ -146,45 +150,35 @@ export function AdminDashboardOverviewView({
       animate="animate"
       className="space-y-6 p-6"
     >
-      {/* System Status Banner */}
-      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-            <Activity size={20} />
+      {/* System Status Header Banner */}
+      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md">
+        <div className="flex items-center gap-3.5">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-brand/10 text-brand border border-brand/20 shrink-0">
+            <Server size={22} />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">
-                {systemStatus?.info.app?.name ?? 'Hệ thống HICAS ONE'}
+              <h2 className="text-sm font-extrabold text-ink">
+                {systemStatus?.info.app?.name ?? 'Task Management Agile Scrum Backend'}
               </h2>
               {systemStatus?.info.app?.version && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                <span className="rounded-full bg-brand/10 border border-brand/20 px-2.5 py-0.5 text-[10px] font-extrabold text-brand-dark">
                   v{systemStatus.info.app.version}
                 </span>
               )}
             </div>
-            <p className="truncate text-xs text-slate-500">
+            <p className="truncate text-xs font-medium text-muted mt-0.5">
               {systemStatusError
                 ? systemStatusError
-                : systemStatus?.info.app?.description ?? `Cập nhật lúc ${new Date(systemSummary.generatedAt).toLocaleString('vi-VN')} (${systemSummary.timezone})`}
+                : `${systemStatus?.info.app?.description ?? 'Backend Spring Boot cho hệ thống quản lý công việc IT theo Agile/Scrum'} • Cập nhật lúc ${new Date(systemSummary.generatedAt).toLocaleString('vi-VN')}`}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${
-            systemStatusLoading
-              ? 'border-amber-200 bg-amber-50 text-amber-700'
-              : healthUp
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-rose-200 bg-rose-50 text-rose-700'
-          }`}>
-            <span className={`size-2 rounded-full ${systemStatusLoading ? 'animate-pulse bg-amber-500' : healthUp ? 'animate-pulse bg-emerald-500' : 'bg-rose-500'}`} />
-            {systemStatusLoading ? 'Đang kiểm tra' : healthUp ? 'Hệ thống ổn định' : 'Hệ thống cần kiểm tra'}
-          </span>
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button
             variant="secondary"
             size="sm"
-            className="!border-indigo-300 !bg-indigo-50 !text-indigo-800 hover:!bg-indigo-100"
+            className="!border-indigo-200 !bg-indigo-50/80 !text-indigo-700 hover:!bg-indigo-100 font-bold"
             leadingIcon={<Sparkles size={14} className={digestRunning ? 'animate-spin' : ''} />}
             loading={digestRunning}
             onClick={handleRunDailyDigest}
@@ -195,7 +189,7 @@ export function AdminDashboardOverviewView({
           <Button
             variant="secondary"
             size="sm"
-            className="!border-amber-300 !bg-amber-50 !text-amber-800 hover:!bg-amber-100"
+            className="!border-amber-200 !bg-amber-50/80 !text-amber-800 hover:!bg-amber-100 font-bold"
             leadingIcon={<Clock size={14} className={reminderRunning ? 'animate-spin' : ''} />}
             loading={reminderRunning}
             onClick={handleRunReminders}
@@ -209,24 +203,73 @@ export function AdminDashboardOverviewView({
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statusItems.map(([label, status]) => {
-          const isUp = status === 'UP'
-          return (
-            <div key={label} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-2xs">
-              <span className="text-xs font-semibold text-slate-600">{label}</span>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${isUp ? 'text-emerald-600' : status ? 'text-rose-600' : 'text-slate-400'}`}>
-                <span className={`size-2 rounded-full ${isUp ? 'bg-emerald-500' : status ? 'bg-rose-500' : 'bg-slate-300'}`} />
-                {status ?? (systemStatus ? 'Đã ẩn chi tiết' : 'Chưa có dữ liệu')}
-              </span>
+      {/* Backend API & Infrastructure Health Monitoring Panel */}
+      <motion.div variants={itemVariants} className="rounded-2xl border border-line/70 bg-canvas/60 p-5 shadow-xs space-y-3.5">
+        <div className="flex items-center justify-between border-b border-line/50 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Activity size={16} className="text-brand" />
+            <h3 className="text-xs font-extrabold text-ink uppercase tracking-wider">Trạng Thái API & Hạ Tầng Backend (Health Monitoring)</h3>
+          </div>
+          {systemStatus?.checkedAt && (
+            <span className="text-[11px] font-medium text-muted">
+              Kiểm tra gần nhất: {new Date(systemStatus.checkedAt).toLocaleString('vi-VN')}
+            </span>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {/* Card 1: API Backend Status (Hệ thống ổn định) */}
+          <div className="flex items-center justify-between rounded-xl border border-line/70 bg-white p-3.5 shadow-2xs hover:border-brand/30 hover:shadow-xs transition-all duration-200">
+            <div className="flex items-center gap-2.5">
+              <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${healthUp ? 'bg-success/10 text-success border border-success/20' : 'bg-danger/10 text-danger border border-danger/20'}`}>
+                <Activity size={16} />
+              </div>
+              <span className="text-xs font-bold text-ink">API Backend</span>
             </div>
-          )
-        })}
-        {systemStatus?.checkedAt && (
-          <p className="col-span-full text-right text-[11px] text-slate-400">
-            Kiểm tra gần nhất: {new Date(systemStatus.checkedAt).toLocaleString('vi-VN')}
-          </p>
-        )}
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold border ${
+              systemStatusLoading
+                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                : healthUp
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : 'border-danger/30 bg-danger/10 text-danger'
+            }`}>
+              <span className={`size-2 rounded-full ${systemStatusLoading ? 'animate-pulse bg-amber-500' : healthUp ? 'animate-pulse bg-success' : 'bg-danger'}`} />
+              {systemStatusLoading ? 'Đang kiểm tra' : healthUp ? 'Hệ thống ổn định' : 'Cần kiểm tra'}
+            </span>
+          </div>
+
+          {/* Infrastructure Component Cards */}
+          {statusItems.map(([label, status]) => {
+            const isUp = status === 'UP'
+            const getIcon = () => {
+              if (label.includes('sở dữ liệu')) return <Database size={16} />
+              if (label.includes('Redis')) return <Layers size={16} />
+              if (label.includes('đĩa')) return <HardDrive size={16} />
+              return <FolderArchive size={16} />
+            }
+
+            return (
+              <div key={label} className="flex items-center justify-between rounded-xl border border-line/70 bg-white p-3.5 shadow-2xs hover:border-brand/30 hover:shadow-xs transition-all duration-200">
+                <div className="flex items-center gap-2.5">
+                  <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${isUp ? 'bg-success/10 text-success border border-success/20' : 'bg-danger/10 text-danger border border-danger/20'}`}>
+                    {getIcon()}
+                  </div>
+                  <span className="text-xs font-bold text-ink">{label}</span>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold border ${
+                  isUp
+                    ? 'border-success/30 bg-success/10 text-success'
+                    : status
+                      ? 'border-danger/30 bg-danger/10 text-danger'
+                      : 'border-line bg-panel text-muted'
+                }`}>
+                  <span className={`size-2 rounded-full ${isUp ? 'animate-pulse bg-success' : status ? 'bg-danger' : 'bg-muted'}`} />
+                  {status ?? (systemStatus ? 'Đã ẩn' : 'N/A')}
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </motion.div>
 
       {/* Top 6 KPI Summary Cards */}
@@ -234,67 +277,79 @@ export function AdminDashboardOverviewView({
         {/* User Card */}
         <motion.div
           variants={itemVariants}
-          className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all cursor-pointer"
+          className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between"
           onClick={() => onNavigateSection?.('members')}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Người dùng</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform">
-              <Users size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
+              <Users size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2.5 py-0.5 rounded-full border border-line">NGƯỜI DÙNG</span>
           </div>
-          <p className="mt-3 text-2xl font-black text-slate-900">{userSummary.totalUsers}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="flex items-center gap-1 text-emerald-600 font-bold">
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Tổng số người dùng</p>
+            <p className="text-2xl font-bold text-ink mt-0.5">{userSummary.totalUsers}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="flex items-center gap-1 text-success font-bold">
               <UserCheck size={12} /> {userSummary.activeUsers} hoạt động
             </span>
-            <span className="text-slate-400">{userSummary.disabledUsers} khóa</span>
+            <span>{userSummary.disabledUsers} khóa</span>
           </div>
         </motion.div>
 
         {/* Project Card */}
-        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all">
+        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Dự án</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:scale-110 transition-transform">
-              <FolderKanban size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-brand/10 text-brand border border-brand/20">
+              <FolderKanban size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-dark bg-brand/10 px-2.5 py-0.5 rounded-full border border-brand/20">DỰ ÁN</span>
           </div>
-          <p className="mt-3 text-2xl font-black text-slate-900">{projectSummary.totalProjects}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-indigo-600">{projectSummary.activeProjects} đang chạy</span>
-            <span className="text-slate-400">{projectSummary.completedProjects} hoàn thành</span>
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Tổng số dự án</p>
+            <p className="text-2xl font-bold text-ink mt-0.5">{projectSummary.totalProjects}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="font-bold text-brand-dark">{projectSummary.activeProjects} đang chạy</span>
+            <span>{projectSummary.completedProjects} hoàn thành</span>
           </div>
         </motion.div>
 
         {/* Sprint Card */}
-        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all">
+        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Sprint</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 group-hover:scale-110 transition-transform">
-              <Zap size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
+              <Zap size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-info bg-info/10 px-2.5 py-0.5 rounded-full border border-info/20">SPRINT</span>
           </div>
-          <p className="mt-3 text-2xl font-black text-slate-900">{sprintSummary.totalSprints}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-amber-600">{sprintSummary.activeSprints} đang mở</span>
-            <span className="text-slate-400">{sprintSummary.planningSprints} kế hoạch</span>
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Tổng số Sprint</p>
+            <p className="text-2xl font-bold text-ink mt-0.5">{sprintSummary.totalSprints}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="font-bold text-info">{sprintSummary.activeSprints} đang mở</span>
+            <span>{sprintSummary.planningSprints} kế hoạch</span>
           </div>
         </motion.div>
 
         {/* Task Card */}
-        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all">
+        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Công việc</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:scale-110 transition-transform">
-              <CheckSquare size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-success/10 text-success border border-success/20">
+              <CheckSquare size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-success bg-success/10 px-2.5 py-0.5 rounded-full border border-success/20">CÔNG VIỆC</span>
           </div>
-          <p className="mt-3 text-2xl font-black text-slate-900">{taskSummary.totalTasks}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-emerald-600">{taskSummary.doneTasks} hoàn thành</span>
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Tổng số công việc</p>
+            <p className="text-2xl font-bold text-ink mt-0.5">{taskSummary.totalTasks}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="font-bold text-success">{taskSummary.doneTasks} hoàn thành</span>
             {taskSummary.overdueTasks > 0 && (
-              <span className="font-bold text-rose-600 flex items-center gap-0.5">
+              <span className="font-bold text-danger flex items-center gap-0.5">
                 <AlertTriangle size={11} /> {taskSummary.overdueTasks} quá hạn
               </span>
             )}
@@ -302,18 +357,21 @@ export function AdminDashboardOverviewView({
         </motion.div>
 
         {/* Bug Card */}
-        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all">
+        <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Lỗi (Bugs)</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 group-hover:scale-110 transition-transform">
-              <Bug size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+              <Bug size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/10 px-2.5 py-0.5 rounded-full border border-danger/20">LỖI (BUGS)</span>
           </div>
-          <p className="mt-3 text-2xl font-black text-slate-900">{bugSummary.totalBugs}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-rose-600">{bugSummary.openBugs + bugSummary.inProgressBugs} cần xử lý</span>
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Tổng số lỗi</p>
+            <p className="text-2xl font-bold text-ink mt-0.5">{bugSummary.totalBugs}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="font-bold text-danger">{bugSummary.openBugs + bugSummary.inProgressBugs} cần xử lý</span>
             {bugSummary.criticalBugs > 0 && (
-              <span className="font-bold text-rose-700 bg-rose-100 px-1 rounded text-[10px]">
+              <span className="font-bold text-danger bg-danger/10 px-1.5 py-0.5 rounded text-[10px] border border-danger/20">
                 {bugSummary.criticalBugs} nghiêm trọng
               </span>
             )}
@@ -323,18 +381,21 @@ export function AdminDashboardOverviewView({
         {/* Storage Card */}
         <motion.div
           variants={itemVariants}
-          className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-md transition-all cursor-pointer"
+          className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col justify-between"
           onClick={() => onNavigateSection?.('files')}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Dung lượng File</span>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600 group-hover:scale-110 transition-transform">
-              <HardDrive size={16} />
+            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
+              <HardDrive size={22} />
             </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-info bg-info/10 px-2.5 py-0.5 rounded-full border border-info/20">LƯU TRỮ</span>
           </div>
-          <p className="mt-3 text-xl font-black text-slate-900 truncate">{formatBytes(attachmentSummary.totalSizeBytes)}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span className="font-bold text-purple-600">{attachmentSummary.totalAttachments} đính kèm</span>
+          <div className="mt-4">
+            <p className="text-xs font-medium text-muted">Dung lượng File</p>
+            <p className="text-2xl font-bold text-ink mt-0.5 truncate">{formatBytes(attachmentSummary.totalSizeBytes)}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
+            <span className="font-bold text-info">{attachmentSummary.totalAttachments} file đính kèm</span>
           </div>
         </motion.div>
       </motion.div>

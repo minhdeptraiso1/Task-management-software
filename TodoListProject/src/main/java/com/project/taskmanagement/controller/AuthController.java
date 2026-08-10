@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.auth.ChangePasswordRequest;
 import com.project.taskmanagement.dto.request.auth.LoginRequest;
 import com.project.taskmanagement.dto.request.auth.LogoutRequest;
@@ -31,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(
-        name = "Auth",
+        name = OpenApiTags.AUTH,
         description = "API xác thực, quản lý mật khẩu và phiên đăng nhập"
 )
 @RestController
@@ -219,7 +220,7 @@ public class AuthController {
                 request.refreshToken()
         );
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 
     // ===================== CHANGE PASSWORD =====================
@@ -277,7 +278,7 @@ public class AuthController {
                 request
         );
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 
     // ===================== LOGOUT ALL =====================
@@ -324,7 +325,7 @@ public class AuthController {
 
         authService.logoutAll(accessToken);
 
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 
     // ===================== PRIVATE HELPERS =====================

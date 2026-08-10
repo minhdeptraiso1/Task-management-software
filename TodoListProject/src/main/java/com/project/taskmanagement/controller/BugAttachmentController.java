@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.bug.BugAttachmentResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.enums.RateLimitAction;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.service.RateLimitService;
 import com.project.taskmanagement.service.context.CurrentUserService;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,6 +30,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.BUGS, description = "Upload, download và xóa file đính kèm của Bug")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/bugs/{bugId}/attachments")
 @RequiredArgsConstructor
@@ -99,6 +104,6 @@ public class BugAttachmentController {
             @PathVariable UUID attachmentId
     ) {
         bugAttachmentService.delete(projectId, bugId, attachmentId);
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 }

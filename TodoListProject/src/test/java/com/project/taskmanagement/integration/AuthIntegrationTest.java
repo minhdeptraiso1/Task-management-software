@@ -37,7 +37,9 @@ class AuthIntegrationTest extends BaseIntegrationTest {
                                 )
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.message").value("Thành công"))
+                .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
@@ -64,7 +66,9 @@ class AuthIntegrationTest extends BaseIntegrationTest {
                                 )
                 )
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").exists());
+                .andExpect(jsonPath("$.code").exists())
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.path").value("/auth/login"));
     }
 }

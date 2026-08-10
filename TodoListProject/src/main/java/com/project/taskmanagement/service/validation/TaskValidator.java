@@ -80,46 +80,6 @@ public final class TaskValidator {
         }
     }
 
-    public static void validateStatusTransition(
-            TaskStatus currentStatus,
-            TaskStatus newStatus
-    ) {
-        if (currentStatus == newStatus) {
-            return;
-        }
-
-        boolean valid = switch (currentStatus) {
-
-            case TODO -> newStatus == TaskStatus.IN_PROGRESS
-                    || newStatus == TaskStatus.BLOCKED
-                    || newStatus == TaskStatus.CANCELLED;
-
-            case IN_PROGRESS -> newStatus == TaskStatus.TODO
-                    || newStatus == TaskStatus.IN_REVIEW
-                    || newStatus == TaskStatus.BLOCKED
-                    || newStatus == TaskStatus.CANCELLED;
-
-            case IN_REVIEW -> newStatus == TaskStatus.IN_PROGRESS
-                    || newStatus == TaskStatus.DONE
-                    || newStatus == TaskStatus.BLOCKED
-                    || newStatus == TaskStatus.CANCELLED;
-
-            case BLOCKED -> newStatus == TaskStatus.TODO
-                    || newStatus == TaskStatus.IN_PROGRESS
-                    || newStatus == TaskStatus.CANCELLED;
-
-            case DONE -> newStatus == TaskStatus.IN_PROGRESS;
-
-            case CANCELLED -> newStatus == TaskStatus.TODO;
-        };
-
-        if (!valid) {
-            throw new BusinessException(
-                    ErrorCode.TASK_STATUS_TRANSITION_INVALID
-            );
-        }
-    }
-
     public static void validateSprintActive(
             Sprint sprint
     ) {

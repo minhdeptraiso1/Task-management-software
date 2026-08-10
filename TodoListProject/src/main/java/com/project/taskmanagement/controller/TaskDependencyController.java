@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.task.BlockTaskRequest;
 import com.project.taskmanagement.dto.request.task.CreateTaskDependencyRequest;
 import com.project.taskmanagement.dto.request.task.UnblockTaskRequest;
@@ -9,6 +10,8 @@ import com.project.taskmanagement.dto.response.task.TaskResponse;
 import com.project.taskmanagement.dto.response.task.TaskRiskResponse;
 import com.project.taskmanagement.service.TaskDependencyService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.TASKS, description = "Quản lý quan hệ phụ thuộc và blocker giữa các Task")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}")
 @RequiredArgsConstructor

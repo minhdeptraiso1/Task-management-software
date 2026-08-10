@@ -10,37 +10,37 @@ const statuses: BacklogItemStatus[] = ['DRAFT', 'READY', 'IN_SPRINT', 'DONE', 'C
 
 export function priorityClass(priority: BacklogPriority) {
   switch (priority) {
-    case 'LOW': return 'bg-slate-100 text-slate-600 border border-slate-200 font-medium'
-    case 'MEDIUM': return 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-    case 'HIGH': return 'bg-orange-50 text-orange-700 border border-orange-200 font-bold'
-    case 'URGENT': return 'bg-red-50 text-red-700 border border-red-200 font-extrabold'
-    default: return 'bg-gray-50 text-gray-600 border border-gray-200'
+    case 'LOW': return 'bg-panel text-muted border border-line font-medium'
+    case 'MEDIUM': return 'bg-info/10 text-info border border-info/20 font-medium'
+    case 'HIGH': return 'bg-brand/10 text-brand-dark border border-brand/20 font-bold'
+    case 'URGENT': return 'bg-danger/10 text-danger border border-danger/20 font-extrabold'
+    default: return 'bg-panel text-muted border border-line'
   }
 }
 
 export function statusClass(status: BacklogItemStatus) {
   switch (status) {
-    case 'DRAFT': return 'bg-amber-50 text-amber-800 border border-amber-300/80 font-semibold'
-    case 'READY': return 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold'
-    case 'IN_SPRINT': return 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold'
-    case 'DONE': return 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold'
-    case 'CANCELLED': return 'bg-slate-100 text-slate-500 border border-slate-200 line-through opacity-70'
-    default: return 'bg-gray-50 text-gray-600 border border-gray-200'
+    case 'DRAFT': return 'bg-brand/10 text-brand-dark border border-brand/30 font-semibold'
+    case 'READY': return 'bg-info/10 text-info border border-info/20 font-semibold'
+    case 'IN_SPRINT': return 'bg-info/10 text-info border border-info/30 font-semibold'
+    case 'DONE': return 'bg-success/10 text-success border border-success/20 font-bold'
+    case 'CANCELLED': return 'bg-panel text-muted border border-line line-through opacity-70'
+    default: return 'bg-panel text-muted border border-line'
   }
 }
 
 export function typeClass(type: BacklogItemType) {
-  if (type === 'EPIC') return 'bg-purple-100 text-purple-800 border border-purple-300 font-bold'
-  if (type === 'FEATURE') return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-  if (type === 'USER_STORY') return 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold'
-  return 'bg-slate-100 text-slate-700 border border-slate-200'
+  if (type === 'EPIC') return 'bg-info/10 text-info border border-info/30 font-bold'
+  if (type === 'FEATURE') return 'bg-brand/10 text-brand-dark border border-brand/20'
+  if (type === 'USER_STORY') return 'bg-info/10 text-info border border-info/20 font-semibold'
+  return 'bg-panel text-muted border border-line'
 }
 
 function priorityIndicatorClass(priority: BacklogPriority) {
-  if (priority === 'URGENT') return 'bg-red-500'
-  if (priority === 'HIGH') return 'bg-orange-500'
-  if (priority === 'MEDIUM') return 'bg-blue-500'
-  return 'bg-slate-400'
+  if (priority === 'URGENT') return 'bg-danger'
+  if (priority === 'HIGH') return 'bg-brand'
+  if (priority === 'MEDIUM') return 'bg-info'
+  return 'bg-muted'
 }
 
 export interface BacklogCardProps {

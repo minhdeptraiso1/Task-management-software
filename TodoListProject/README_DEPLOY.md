@@ -40,6 +40,35 @@ docker compose ps
 
 Frontend Nginx proxy `/api` và `/api/ws` vào backend trong Docker network, vì vậy trình duyệt sử dụng cùng origin và WebSocket không cần địa chỉ backend riêng.
 
+Nginx được sinh từ `Fe/nginx.conf.template` mỗi lần container khởi động. Muốn đổi backend không cần sửa hoặc build lại frontend image; cập nhật `.env` rồi recreate container frontend:
+
+```env
+# Backend cùng Docker Compose
+NGINX_BACKEND_URL=http://backend:8080
+NGINX_BACKEND_HOST=backend
+
+# Hoặc backend HTTPS bên ngoài
+# NGINX_BACKEND_URL=https://task-management-software-q6r5.onrender.com
+# NGINX_BACKEND_HOST=task-management-software-q6r5.onrender.com
+```
+
+```bash
+docker compose up -d --no-deps --force-recreate frontend
+```
+
+`VITE_API_URL` vẫn là biến build-time của Vite và mặc định là `/api`. Với Docker deployment nên giữ `/api`; biến runtime của Nginx phía trên sẽ chọn backend thật.
+
+Template cũng đọc biến `PORT` khi container khởi động. Full stack gán `PORT` từ `FRONTEND_CONTAINER_PORT` và mặc định là `8080`. Khi dùng Caddy hoặc Cloudflare Tunnel, giữ cổng nội bộ `8080` để route `frontend:8080` tiếp tục hoạt động; khi deploy frontend độc lập trên Render/Railway có thể dùng `PORT` do nền tảng cấp.
+
+### Mẫu env khi deploy frontend và backend riêng
+
+- Backend: copy `TodoListProject/.env.backend.example` và khai báo các biến tương ứng trên dịch vụ backend.
+- Frontend Docker: tham khảo `Fe/.env.example`. `VITE_API_URL=/api` là build-time; các biến `NGINX_*` và `PORT` là runtime.
+- Full stack Docker/VPS: copy `TodoListProject/.env.example` thành `.env`.
+- Production có Caddy: copy `TodoListProject/.env.prod.example` thành `.env.prod`.
+
+Các secret và kết nối production như `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `JWT_SECRET`, `FILE_STORAGE_ROOT_PATH` và `CORS_ALLOWED_ORIGINS` không có fallback trong profile `prod`, vì vậy backend sẽ dừng sớm nếu cấu hình thiếu. Các giá trị vận hành không nhạy cảm như cache TTL, giới hạn file và batch size vẫn có default an toàn trong `application.yaml`, nhưng đã được liệt kê đầy đủ trong env mẫu để có thể điều chỉnh mà không sửa mã nguồn.
+
 ## 4. Tài khoản demo
 
 Profile `docker` nạp dữ liệu demo. Mật khẩu dùng chung cho các tài khoản dưới đây là `123456`:

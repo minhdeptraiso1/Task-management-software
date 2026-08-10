@@ -20,11 +20,6 @@ public interface ProjectRepository
             String code
     );
 
-    boolean existsByCodeIgnoreCaseAndIdNot(
-            String code,
-            UUID id
-    );
-
     long countByStatus(
             ProjectStatus status
     );

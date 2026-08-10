@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.taskcomment.CreateTaskCommentRequest;
 import com.project.taskmanagement.dto.request.taskcomment.UpdateTaskCommentRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.dto.response.taskcomment.TaskCommentReplyRespo
 import com.project.taskmanagement.dto.response.taskcomment.TaskCommentResponse;
 import com.project.taskmanagement.service.TaskCommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.COMMENTS, description = "Bình luận, reply và mention trong Task")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/tasks/{taskId}/comments"

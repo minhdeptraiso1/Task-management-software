@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.bugreport.BugReportRequest;
 import com.project.taskmanagement.dto.response.bugreport.BugDashboardResponse;
 import com.project.taskmanagement.dto.response.bugreport.BugReportResponse;
@@ -7,6 +8,8 @@ import com.project.taskmanagement.dto.response.bugreport.QaMetricsResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.BugReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.REPORTS, description = "Dashboard và chỉ số chất lượng Bug/QA")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}")
 @RequiredArgsConstructor

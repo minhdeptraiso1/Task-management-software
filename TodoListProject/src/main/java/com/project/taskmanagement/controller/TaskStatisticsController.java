@@ -1,10 +1,13 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.taskstatistics.SprintBurndownResponse;
 import com.project.taskmanagement.dto.response.taskstatistics.SprintTaskStatisticsResponse;
 import com.project.taskmanagement.service.TaskStatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -15,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.TASKS, description = "Thống kê Task theo Sprint và trạng thái")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/sprints/{sprintId}"

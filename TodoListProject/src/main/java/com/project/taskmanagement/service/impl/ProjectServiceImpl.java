@@ -430,7 +430,7 @@ public class ProjectServiceImpl
              */
             if (normalizedName.isBlank()) {
                 throw new BusinessException(
-                        ErrorCode.VALIDATION_ERROR
+                        ErrorCode.PROJECT_NAME_REQUIRED
                 );
             }
 

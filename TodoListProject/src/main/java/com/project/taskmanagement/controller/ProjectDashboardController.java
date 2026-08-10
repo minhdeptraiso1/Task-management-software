@@ -1,11 +1,14 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.dashboard.ProjectDashboardActivityResponse;
 import com.project.taskmanagement.dto.response.dashboard.ProjectDashboardMemberWorkloadResponse;
 import com.project.taskmanagement.dto.response.dashboard.ProjectDashboardResponse;
 import com.project.taskmanagement.service.ProjectDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.DASHBOARD, description = "Dashboard tổng quan, sức khỏe và tiến độ Project")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping(
         "/projects/{projectId}/dashboard"

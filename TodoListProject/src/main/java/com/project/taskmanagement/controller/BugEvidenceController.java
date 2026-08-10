@@ -1,11 +1,14 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.bug.CreateBugEvidenceRequest;
 import com.project.taskmanagement.dto.request.bug.UpdateBugEvidenceRequest;
 import com.project.taskmanagement.dto.response.bug.BugEvidenceResponse;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.service.BugEvidenceService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.BUGS, description = "Quản lý bằng chứng kiểm thử và tái hiện Bug")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/bugs/{bugId}/evidences")
 @RequiredArgsConstructor
@@ -68,6 +73,6 @@ public class BugEvidenceController {
             @PathVariable UUID evidenceId
     ) {
         bugEvidenceService.delete(projectId, bugId, evidenceId);
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 }

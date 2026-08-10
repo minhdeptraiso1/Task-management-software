@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.response.attachment.AttachmentPageResponse;
 import com.project.taskmanagement.dto.response.attachment.AttachmentResponse;
 import com.project.taskmanagement.dto.response.attachment.AttachmentUsageResponse;
@@ -14,6 +15,11 @@ import com.project.taskmanagement.service.model.LoadedFile;
 import com.project.taskmanagement.service.validation.PageableValidator;
 import com.project.taskmanagement.util.DownloadHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +42,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 import java.util.Set;
 
+@Tag(name = OpenApiTags.ATTACHMENTS, description = "Upload, download, tra cứu và xóa mềm file đính kèm")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/attachments")
 @RequiredArgsConstructor
@@ -54,7 +62,10 @@ public class AttachmentController {
     RateLimitService rateLimitService;
     CurrentUserService currentUserService;
 
-    @Operation(summary = "Upload attachment cho entity")
+    @Operation(
+            summary = "Upload attachment cho entity",
+            description = "Upload file multipart cho Task, Task Comment, Bug hoặc Bug Evidence. File được kiểm tra loại, dung lượng và quyền trong Project."
+    )
     @PostMapping(path = "/{entityType}/{entityId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponseSever<AttachmentResponse> upload(
             @PathVariable UUID projectId,
@@ -113,7 +124,18 @@ public class AttachmentController {
         return ApiResponseSever.ok(attachmentService.getFileSecuritySummary(projectId));
     }
 
-    @Operation(summary = "Download attachment")
+    @Operation(
+            summary = "Download attachment",
+            description = "Tải file qua API có kiểm tra quyền Project; thư mục lưu trữ không được public trực tiếp."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Nội dung file nhị phân",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    schema = @Schema(type = "string", format = "binary")
+            )
+    )
     @GetMapping("/{attachmentId}/download")
     public ResponseEntity<Resource> download(
             @PathVariable UUID projectId,
@@ -143,6 +165,6 @@ public class AttachmentController {
             @PathVariable UUID attachmentId
     ) {
         attachmentService.delete(projectId, attachmentId);
-        return ApiResponseSever.ok(null);
+        return ApiResponseSever.ok();
     }
 }

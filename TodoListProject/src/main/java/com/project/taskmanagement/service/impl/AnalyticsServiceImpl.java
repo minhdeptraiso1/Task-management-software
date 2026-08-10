@@ -446,12 +446,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         );
     }
 
-    private long countCurrentStatus(List<Task> tasks, TaskStatus status) {
-        return tasks.stream()
-                .filter(task -> task.getStatus() == status)
-                .count();
-    }
-
     private long safeLong(Number value) {
         return value == null ? 0L : value.longValue();
     }

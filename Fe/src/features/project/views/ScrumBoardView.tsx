@@ -133,10 +133,10 @@ interface ScrumBoardViewProps {
 }
 
 function taskPriorityClass(priority: TaskPriority) {
-  if (priority === 'URGENT') return 'bg-red-50 text-red-600 ring-1 ring-red-500/20'
-  if (priority === 'HIGH') return 'bg-orange-50 text-orange-600 ring-1 ring-orange-500/20'
-  if (priority === 'MEDIUM') return 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20'
-  return 'bg-slate-50 text-slate-600 ring-1 ring-slate-500/20'
+  if (priority === 'URGENT') return 'bg-rose-50 text-rose-600 border border-rose-200 font-extrabold'
+  if (priority === 'HIGH') return 'bg-amber-50 text-amber-700 border border-amber-200 font-extrabold'
+  if (priority === 'MEDIUM') return 'bg-blue-50 text-blue-700 border border-blue-200 font-extrabold'
+  return 'bg-slate-50 text-slate-600 border border-slate-200 font-extrabold'
 }
 
 function taskPriorityIndicatorClass(priority: TaskPriority) {
@@ -148,9 +148,9 @@ function taskPriorityIndicatorClass(priority: TaskPriority) {
 
 function formatMinutes(minutes?: number | null) {
   if (!minutes) return '0h'
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  return `${hours ? `${hours}h` : ''}${rest ? ` ${rest}m` : ''}`.trim()
+  const hours = minutes / 60
+  const formatted = Number.isInteger(hours) ? `${hours}` : `${parseFloat(hours.toFixed(1))}`
+  return `${formatted}h`
 }
 
 function today() {
@@ -159,7 +159,8 @@ function today() {
 
 function formatDisplayDate(dateStr: string | null | undefined) {
   if (!dateStr) return '...'
-  const parts = dateStr.split('-')
+  const cleanStr = dateStr.split('T')[0]
+  const parts = cleanStr.split('-')
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
   return dateStr
 }
@@ -376,6 +377,19 @@ function TaskDetailModal({
   const [editEstimatedMinutes, setEditEstimatedMinutes] = useState(task?.estimatedMinutes ?? 0)
   const [editStartDate, setEditStartDate] = useState(task?.startDate ?? '')
   const [editDueDate, setEditDueDate] = useState(task?.dueDate ?? '')
+
+  useEffect(() => {
+    setEditingTask(false)
+    if (task) {
+      setEditTitle(task.title ?? '')
+      setEditDescription(task.description ?? '')
+      setEditType(task.type ?? 'DEVELOPMENT')
+      setEditPriority(task.priority ?? 'MEDIUM')
+      setEditEstimatedMinutes(task.estimatedMinutes ?? 0)
+      setEditStartDate(task.startDate ? task.startDate.split('T')[0] : '')
+      setEditDueDate(task.dueDate ? task.dueDate.split('T')[0] : '')
+    }
+  }, [task?.id])
   const [unblockModalOpen, setUnblockModalOpen] = useState(false)
   const [unblockStatus, setUnblockStatus] = useState<TaskStatus>('TODO')
   const [selectedDepTaskId, setSelectedDepTaskId] = useState('')
@@ -841,17 +855,20 @@ function TaskCard({ task, canDrag, onDragStart, onDragEnd, onOpen }: { task: Kan
       <div className={`absolute bottom-0 left-0 top-0 w-1 transition-colors ${taskPriorityIndicatorClass(task.priority)} opacity-80 group-hover:opacity-100`} />
 
       <div className="flex flex-col p-3.5 pl-4">
-        {/* Top bar: Type & Status */}
-        <div className="mb-2.5 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 border border-slate-200/60">
-              {taskTypeLabels[task.type]}
-            </span>
+        {/* Top bar: Type on left, Priority & Overdue on right */}
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-600 border border-slate-200/80 shrink-0">
+            {taskTypeLabels[task.type]}
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
             {task.overdue && (
-              <span className="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600 border border-red-100">
-                Quá hạn
+              <span className="rounded bg-rose-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-600 border border-rose-200">
+                QUÁ HẠN
               </span>
             )}
+            <span className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider ${taskPriorityClass(task.priority)}`}>
+              {taskPriorityLabels[task.priority]}
+            </span>
           </div>
         </div>
 
@@ -866,21 +883,15 @@ function TaskCard({ task, canDrag, onDragStart, onDragEnd, onOpen }: { task: Kan
           <p className="line-clamp-1">{task.backlogItemTitle}</p>
         </div>
 
-        {/* Bottom bar: Priority & Meta (Time / Assignee) */}
+        {/* Bottom bar: Meta (Time / Assignee) */}
         <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-          <span className={`rounded-md px-2 py-1 text-[10px] font-bold tracking-wide ${taskPriorityClass(task.priority)}`}>
-            {taskPriorityLabels[task.priority]}
-          </span>
-
-          <div className="flex items-center gap-2.5 text-[11px] font-medium text-slate-500">
-            <div className="flex items-center gap-1" title="Thời gian log / Ước tính">
-              <Clock3 size={12} className="text-slate-400" />
-              <span>{formatMinutes(task.spentMinutes)}<span className="mx-0.5 text-slate-300">/</span>{formatMinutes(task.estimatedMinutes)}</span>
-            </div>
-            <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100" title="Người phụ trách">
-              <UserRound size={12} className="text-slate-400" />
-              <span className="max-w-[70px] truncate">{task.assigneeUsername || 'Chưa giao'}</span>
-            </div>
+          <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500 shrink-0 whitespace-nowrap" title="Thời gian log / Ước tính">
+            <Clock3 size={12} className="text-slate-400 shrink-0" />
+            <span className="whitespace-nowrap">{formatMinutes(task.spentMinutes)}<span className="mx-0.5 text-slate-300">/</span>{formatMinutes(task.estimatedMinutes)}</span>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 text-[11px] font-medium text-slate-600" title="Người phụ trách">
+            <UserRound size={12} className="text-slate-400 shrink-0" />
+            <span className="max-w-[80px] truncate">{task.assigneeUsername || 'Chưa giao'}</span>
           </div>
         </div>
       </div>
@@ -1296,114 +1307,108 @@ function SprintTaskKanban({
       </div>
     )}
 
-    {/* 3. 6 Thẻ Thống Kê Tiến Độ Sprint Cao Cấp (Matching Image 1 Style) */}
+    {/* 3. 6 Thẻ Thống Kê Tiến Độ Sprint */}
     <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
       {/* Card 1: Tổng Task */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-info/10 text-info border border-info/20 flex items-center justify-center shrink-0">
             <ListTodo size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-info/10 text-info border border-info/20">
             TỔNG QUAN
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TỔNG SỐ TASK</p>
-          <p className="text-2xl font-black text-slate-900">{localTotalTasks}</p>
-          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{localCompletedTasks}/{localTotalTasks} hoàn thành</p>
+          <p className="text-xs font-medium text-muted mb-0.5">TỔNG SỐ TASK</p>
+          <p className="text-2xl font-bold text-ink">{localTotalTasks}</p>
+          <p className="text-[11px] font-medium text-muted mt-0.5">{localCompletedTasks}/{localTotalTasks} hoàn thành</p>
         </div>
-        <div className="h-1 w-full bg-indigo-600 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
 
       {/* Card 2: Hoàn thành */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-success/10 text-success border border-success/20 flex items-center justify-center shrink-0">
             <CheckCircle2 size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-success/10 text-success border border-success/20">
             HOÀN THÀNH
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TIẾN ĐỘ THỰC TẾ</p>
-          <p className="text-2xl font-black text-emerald-600">{Math.round(localCompletionRate)}%</p>
-          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{progress ? `/ ${progress.expectedProgressRate.toFixed(0)}% kỳ vọng` : 'Chưa có dữ liệu'}</p>
+          <p className="text-xs font-medium text-muted mb-0.5">TIẾN ĐỘ THỰC TẾ</p>
+          <p className="text-2xl font-bold text-success">{Math.round(localCompletionRate)}%</p>
+          <p className="text-[11px] font-medium text-muted mt-0.5">{progress ? `/ ${progress.expectedProgressRate.toFixed(0)}% kỳ vọng` : 'Chưa có dữ liệu'}</p>
         </div>
-        <div className="h-1 w-full bg-emerald-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
 
       {/* Card 3: Đã Log */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
             <Clock3 size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-brand/10 text-brand-dark border border-brand/20">
             THỜI GIAN
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">ĐÃ LOG THỜI GIAN</p>
-          <p className="text-2xl font-black text-amber-600">{formatMinutes(localSpentMinutes)}</p>
-          <p className="text-[11px] font-bold text-slate-400 mt-0.5">Tổng thời gian làm</p>
+          <p className="text-xs font-medium text-muted mb-0.5">ĐÃ LOG THỜI GIAN</p>
+          <p className="text-2xl font-bold text-brand-dark">{formatMinutes(localSpentMinutes)}</p>
+          <p className="text-[11px] font-medium text-muted mt-0.5">Tổng thời gian làm</p>
         </div>
-        <div className="h-1 w-full bg-amber-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
 
       {/* Card 4: Số ngày Sprint */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-info/10 text-info border border-info/20 flex items-center justify-center shrink-0">
             <CalendarDays size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-info/10 text-info border border-info/20">
             THỜI HẠN
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">SỐ NGÀY SPRINT</p>
-          <p className="text-2xl font-black text-blue-600">{progress ? `${progress.elapsedDays}/${progress.totalDays}` : '0/0'}</p>
-          <p className="text-[11px] font-bold text-slate-400 mt-0.5">{progress ? `${progress.daysRemaining} ngày còn lại` : 'Chưa chạy'}</p>
+          <p className="text-xs font-medium text-muted mb-0.5">SỐ NGÀY SPRINT</p>
+          <p className="text-2xl font-bold text-info">{progress ? `${progress.elapsedDays}/${progress.totalDays}` : '0/0'}</p>
+          <p className="text-[11px] font-medium text-muted mt-0.5">{progress ? `${progress.daysRemaining} ngày còn lại` : 'Chưa chạy'}</p>
         </div>
-        <div className="h-1 w-full bg-blue-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
 
       {/* Card 5: Task quá hạn */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
             <AlertTriangle size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-danger/10 text-danger border border-danger/20">
             CẦN CHÚ Ý
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TASK QUÁ HẠN</p>
-          <p className="text-2xl font-black text-rose-600">{progress?.overdueTasks ?? 0}</p>
-          <p className="text-[11px] font-bold text-rose-400 mt-0.5">Cần xử lý gấp</p>
+          <p className="text-xs font-medium text-muted mb-0.5">TASK QUÁ HẠN</p>
+          <p className="text-2xl font-bold text-danger">{progress?.overdueTasks ?? 0}</p>
+          <p className="text-[11px] font-medium text-danger mt-0.5">Cần xử lý gấp</p>
         </div>
-        <div className="h-1 w-full bg-rose-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
 
       {/* Card 6: Task bị chặn */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs flex flex-col justify-between transition hover:shadow-md relative overflow-hidden group">
+      <div className="rounded-2xl border border-line/70 bg-white p-4 shadow-xs flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="size-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+          <div className="size-10 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
             <ShieldAlert size={18} />
           </div>
-          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wider uppercase bg-orange-50 text-orange-700 border border-orange-200">
+          <span className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase bg-brand/10 text-brand-dark border border-brand/20">
             ĐANG CHỜ
           </span>
         </div>
         <div className="mt-3">
-          <p className="text-[11px] font-extrabold text-slate-500 tracking-wider uppercase mb-0.5">TASK ĐANG CHỜ</p>
-          <p className="text-2xl font-black text-orange-600">{progress?.blockedTasks ?? 0}</p>
-          <p className="text-[11px] font-bold text-orange-400 mt-0.5">Cần gỡ vướng</p>
+          <p className="text-xs font-medium text-muted mb-0.5">TASK ĐANG CHỜ</p>
+          <p className="text-2xl font-bold text-brand-dark">{progress?.blockedTasks ?? 0}</p>
+          <p className="text-[11px] font-medium text-muted mt-0.5">Cần gỡ vướng</p>
         </div>
-        <div className="h-1 w-full bg-orange-500 rounded-full mt-3 transition-transform duration-300 group-hover:scale-x-105" />
       </div>
     </div>
 
@@ -1447,10 +1452,18 @@ function SprintTaskKanban({
         <div className="flex flex-wrap gap-2 items-center">
           {canManage && <Button leadingIcon={<Plus size={17} />} onClick={onCreateTaskClick}>Tạo Task</Button>}
           {selectedSprintId && <Button variant="outline-blue" leadingIcon={<Download size={17} className={`transition-transform duration-300 ${isTemplateAnim ? 'translate-y-1.5' : ''}`} />} onClick={handleDownloadTemplate}>File mẫu</Button>}
-          {selectedSprintId && canManage && <Button as="label" variant="outline-green" onClick={handleImportClick} className="!h-11 cursor-pointer">
-            <Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} /> Import
-            <input className="hidden" type="file" accept=".xlsx,.xls" onChange={handleImport} />
-          </Button>}
+          {selectedSprintId && canManage && (
+            <Button
+              as="label"
+              variant="outline-green"
+              onClick={handleImportClick}
+              className="cursor-pointer"
+              leadingIcon={<Import size={17} className={`transition-transform duration-300 ${isImportAnim ? 'translate-y-1.5' : ''}`} />}
+            >
+              Import Task
+              <input className="hidden" type="file" accept=".xlsx,.xls" onChange={handleImport} />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1922,7 +1935,7 @@ export function ScrumBoardView({
           const payload = getPayload(event)
           if (payload.sprintId) onMoveToBacklog(payload.itemId, payload.sprintId)
         }}
-        className={`min-h-[560px] w-[340px] shrink-0 rounded-2xl border bg-gradient-to-b from-white to-[#f8fafc] p-3 transition ${dragOver === 'backlog' ? 'border-brand ring-2 ring-brand/20' : 'border-line'}`}
+        className={`min-h-[560px] w-[340px] shrink-0 rounded-2xl border bg-canvas p-3 transition ${dragOver === 'backlog' ? 'border-brand ring-2 ring-brand/20' : 'border-line'}`}
       >
         <div className="mb-3 flex items-center justify-between">
           <div><p className="font-bold">Product Backlog</p><p className="text-xs text-muted">{backlogItems.length} item chưa vào sprint</p></div>
@@ -1947,13 +1960,13 @@ export function ScrumBoardView({
           }}
           className={`min-h-[560px] w-[360px] shrink-0 rounded-2xl border bg-white p-3 transition hover:border-brand hover:shadow-lg ${dragOver === sprint.id ? 'border-brand ring-2 ring-brand/20' : 'border-brand-line/80'}`}
         >
-          <div className="mb-4 relative rounded-2xl bg-[#1e1e1e] p-5 text-white shadow-xl">
+          <div className="mb-4 relative rounded-2xl bg-brand-black p-5 text-white shadow-xl">
             <div className="relative flex items-start justify-between gap-3">
               <div>
                 <p className="text-lg font-bold text-white">{sprint.name}</p>
                 <p className="mt-1.5 text-sm text-white/70">{sprint.goal || 'Chưa có mục tiêu sprint'}</p>
               </div>
-              <span className="shrink-0 rounded-full border border-brand/50 bg-[#ff7849]/20 px-3 py-1 text-xs font-semibold text-brand shadow-sm">{sprintStatusLabels[sprint.status]}</span>
+              <span className="shrink-0 rounded-full border border-brand/50 bg-brand/20 px-3 py-1 text-xs font-semibold text-brand shadow-sm">{sprintStatusLabels[sprint.status]}</span>
             </div>
             <div className="relative mt-4 flex items-center gap-2 text-sm font-medium text-white/80">
               <CalendarDays size={16} className="text-brand" />

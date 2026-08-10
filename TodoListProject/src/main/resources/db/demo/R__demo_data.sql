@@ -11,7 +11,8 @@ VALUES
 ('10000000-0000-0000-0000-000000000005', 'dev.lan', 'dev.lan@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'EMPLOYEE', TRUE, now() - interval '80 days', now(), 'demo', 'demo'),
 ('10000000-0000-0000-0000-000000000006', 'qa.linh', 'qa.linh@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'EMPLOYEE', TRUE, now() - interval '70 days', now(), 'demo', 'demo'),
 ('10000000-0000-0000-0000-000000000007', 'viewer.demo', 'viewer@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'EMPLOYEE', TRUE, now() - interval '60 days', now(), 'demo', 'demo'),
-('10000000-0000-0000-0000-000000000008', 'locked.demo', 'locked@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'EMPLOYEE', FALSE, now() - interval '50 days', now(), 'demo', 'demo')
+('10000000-0000-0000-0000-000000000008', 'locked.demo', 'locked@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'EMPLOYEE', FALSE, now() - interval '50 days', now(), 'demo', 'demo'),
+('10000000-0000-0000-0000-000000000009', 'pm.demo', 'pm@hicas.demo', '$2a$10$SLFWIgDoFq49uquyFJDoReLBUcVmElHLISAfXp/TgY3EwN07VCRsC', 'MANAGER', TRUE, now() - interval '95 days', now(), 'demo', 'demo')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO projects (id, code, name, description, status, start_date, end_date, created_by_user_id, created_at, updated_at, created_by, updated_by)
@@ -35,7 +36,8 @@ VALUES
 ('21000000-0000-0000-0000-000000000007','20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000007','VIEWER',now()-interval '60 days',now()-interval '60 days',now(),'demo','demo'),
 ('21000000-0000-0000-0000-000000000008','20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','OWNER',now()-interval '20 days',now()-interval '20 days',now(),'demo','demo'),
 ('21000000-0000-0000-0000-000000000009','20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000004','DEVELOPER',now()-interval '15 days',now()-interval '15 days',now(),'demo','demo'),
-('21000000-0000-0000-0000-000000000010','20000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','OWNER',now()-interval '60 days',now()-interval '60 days',now(),'demo','demo')
+('21000000-0000-0000-0000-000000000010','20000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','OWNER',now()-interval '60 days',now()-interval '60 days',now(),'demo','demo'),
+('21000000-0000-0000-0000-000000000011','20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000009','PROJECT_MANAGER',now()-interval '88 days',now()-interval '88 days',now(),'demo','demo')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sprints (id, project_id, name, goal, status, start_date, end_date, started_at, completed_at, created_by_user_id, created_at, updated_at, created_by, updated_by)

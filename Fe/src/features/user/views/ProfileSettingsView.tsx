@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, ArrowLeft, KeyRound, LogOut } from 'lucide-react'
+import { AlertCircle, ArrowLeft, KeyRound, LogOut, BookOpen } from 'lucide-react'
 import { Button, Input, ConfirmDialog } from '../../../components/ui'
 import { changePassword, logoutAll } from '../../auth/services/auth.service'
 import type { User } from '../models/user.model'
@@ -60,13 +60,19 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll, onOpenGu
   return (
     <div className="min-h-screen bg-canvas">
       <header className="flex h-14 items-center gap-4 bg-brand-black px-5 text-white shadow-sm md:px-6">
-        <button
+        <Button
+          as="button"
+          variant="ghost"
+          iconOnly
+          aria-label="Quay lại"
+          title="Quay lại"
           onClick={onBack}
-          className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/20"
+          className="!text-white hover:!bg-white/20"
+          size="sm"
         >
           <ArrowLeft size={18} />
-        </button>
-        <h1 className="text-lg font-semibold tracking-wide">Cài đặt cá nhân</h1>
+        </Button>
+        <h1 className="text-lg font-semibold tracking-wide">Đặt cài đặt cá nhân</h1>
       </header>
 
       <main className="mx-auto max-w-2xl p-6 md:p-10">
@@ -89,7 +95,7 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll, onOpenGu
               </div>
             )}
             {success && (
-              <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700 border border-green-200">
+              <div className="flex items-center gap-2 rounded-lg bg-success/10 p-3 text-sm text-success border border-success/20">
                 <KeyRound size={16} />
                 <p>{success}</p>
               </div>
@@ -130,13 +136,14 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll, onOpenGu
               <h4 className="font-semibold border-b border-line pb-2">
                 Trợ giúp & Hướng dẫn sử dụng
               </h4>
-              <p className="text-sm text-body">
+              <p className="text-sm text-muted">
                 Xem quy trình vận hành dự án từ lúc khởi tạo đến khi đóng Sprint (A → Z), phân quyền từng vai trò và chi tiết các tính năng hệ thống.
               </p>
               <Button
                 type="button"
-                variant="primary"
-                className="w-full justify-center bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold py-3 shadow-md transition-all hover:shadow-lg"
+                variant="secondary"
+                className="w-full justify-center"
+                leadingIcon={<BookOpen size={16} />}
                 onClick={() => onOpenGuide ? onOpenGuide() : setShowGuide(true)}
               >
                 Xem Hướng dẫn sử dụng dự án (A → Z)

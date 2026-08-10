@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.report.ProjectMemberReportRequest;
 import com.project.taskmanagement.dto.request.report.ProjectTimeReportRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
@@ -8,6 +9,8 @@ import com.project.taskmanagement.dto.response.report.ProjectTimeReportResponse;
 import com.project.taskmanagement.dto.response.report.SprintReportResponse;
 import com.project.taskmanagement.service.ProjectReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.REPORTS, description = "Báo cáo Sprint, thành viên và thời gian làm việc của Project")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/reports")
 @RequiredArgsConstructor

@@ -1,11 +1,14 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.projectmember.AddProjectMemberRequest;
 import com.project.taskmanagement.dto.request.projectmember.UpdateProjectMemberRoleRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.projectmember.ProjectMemberResponse;
 import com.project.taskmanagement.service.ProjectMemberService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.PROJECT_MEMBERS, description = "Quản lý thành viên và vai trò trong Project")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/members")
 @RequiredArgsConstructor

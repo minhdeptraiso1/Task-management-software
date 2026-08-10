@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
 import { Button, Input } from '../../../components/ui'
@@ -77,9 +77,31 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+
+  useEffect(() => {
+    const savedRemember = localStorage.getItem('remember_me') === 'true'
+    const savedEmail = localStorage.getItem('remembered_email') || ''
+    const savedPassword = localStorage.getItem('remembered_password') || ''
+
+    if (savedRemember && savedEmail) {
+      setRememberMe(true)
+      setEmail(savedEmail)
+      setPassword(savedPassword)
+    }
+  }, [])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    if (rememberMe) {
+      localStorage.setItem('remember_me', 'true')
+      localStorage.setItem('remembered_email', email.trim())
+      localStorage.setItem('remembered_password', password)
+    } else {
+      localStorage.removeItem('remember_me')
+      localStorage.removeItem('remembered_email')
+      localStorage.removeItem('remembered_password')
+    }
     onSubmit(email.trim(), password)
   }
 
@@ -245,6 +267,22 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
                   />
                 }
               />
+            </motion.div>
+
+            <motion.div
+              variants={fadeDownItemVariants}
+              style={{ willChange: 'transform, opacity' }}
+              className="flex items-center justify-between pt-0.5 pb-1"
+            >
+              <label className="inline-flex items-center gap-2.5 cursor-pointer select-none text-xs font-semibold text-ink hover:text-brand transition-colors">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={event => setRememberMe(event.target.checked)}
+                  className="size-4 rounded border-line text-brand focus:ring-brand/20 accent-brand cursor-pointer"
+                />
+                Ghi nhớ đăng nhập
+              </label>
             </motion.div>
 
             {error && (

@@ -1,5 +1,6 @@
 server:
-  port: ${SERVER_PORT:8080}
+  # Render/Railway thường cấp PORT; SERVER_PORT dùng khi chạy local/Docker.
+  port: ${PORT:${SERVER_PORT:8080}}
   servlet:
     context-path: ${CONTEXT_PATH:/api}
 spring:
@@ -44,9 +45,13 @@ spring:
 springdoc:
   api-docs:
     enabled: false
+    path: /v3/api-docs
   swagger-ui:
     enabled: false
-    path: /swagger
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
 
 management:
   endpoints:

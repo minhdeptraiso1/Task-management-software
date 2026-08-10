@@ -1,5 +1,6 @@
 package com.project.taskmanagement.controller;
 
+import com.project.taskmanagement.config.OpenApiTags;
 import com.project.taskmanagement.dto.request.imports.TaskImportHistorySearchRequest;
 import com.project.taskmanagement.dto.response.core.ApiResponseSever;
 import com.project.taskmanagement.dto.response.imports.TaskImportBatchDetailResponse;
@@ -9,6 +10,8 @@ import com.project.taskmanagement.service.TaskImportHistoryService;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.PageableValidator;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Set;
 import java.util.UUID;
 
+@Tag(name = OpenApiTags.TASKS, description = "Lịch sử và chi tiết các lần import Task bằng Excel")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/projects/{projectId}/task-imports")
 @RequiredArgsConstructor

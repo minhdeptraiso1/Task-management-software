@@ -361,7 +361,7 @@ public class BacklogItemServiceImpl
 
             if (normalizedTitle.isBlank()) {
                 throw new BusinessException(
-                        ErrorCode.VALIDATION_ERROR
+                        ErrorCode.BACKLOG_ITEM_TITLE_REQUIRED
                 );
             }
 

@@ -21,6 +21,42 @@
   --color-line: #d4d4d8;
 }
 
+.font-cinzel { font-family: "Cinzel", serif; }
+.font-cormorant { font-family: "Cormorant Garamond", serif; }
+.font-space-mono { font-family: "Space Mono", monospace; }
+
+@keyframes ambientPulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.15); }
+}
+
+@keyframes lightBeam {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes luxuryShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-ambient-pulse {
+  animation: ambientPulse 6s ease-in-out infinite;
+}
+
+.animate-light-beam {
+  animation: lightBeam 20s linear infinite;
+}
+
+.text-gold-shimmer {
+  background: linear-gradient(110deg, #ffffff 0%, #fff7ed 35%, #f7941d 50%, #ffc20e 65%, #ffffff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: luxuryShimmer 4s ease-in-out infinite;
+}
+
 * { box-sizing: border-box; }
 html { 
   font-size: 14.5px; 

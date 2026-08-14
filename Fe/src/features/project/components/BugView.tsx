@@ -1533,7 +1533,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
       )}
 
       {/* Modal Báo cáo Bug mới */}
-      <Modal open={createOpen} title="Báo cáo Bug mới (QA)" onClose={() => setCreateOpen(false)} showClose={false}>
+      <Modal open={createOpen} title="Báo cáo Bug mới" onClose={() => setCreateOpen(false)} showClose={false}>
         <form onSubmit={handleSaveCreate} className="space-y-4">
           <Input 
             label="Tiêu đề lỗi" 
@@ -1644,7 +1644,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
       </Modal>
 
       {/* Modal Chỉnh sửa Bug */}
-      <Modal open={Boolean(editBug)} title="Chỉnh sửa thông tin Bug (QA)" onClose={() => setEditBug(null)} showClose={false}>
+      <Modal open={Boolean(editBug)} title="Chỉnh sửa thông tin Bug" onClose={() => setEditBug(null)} showClose={false}>
         <form onSubmit={handleSaveEdit} className="space-y-4">
           <Input 
             label="Tiêu đề lỗi" 

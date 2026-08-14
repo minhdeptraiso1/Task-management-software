@@ -21,6 +21,7 @@ public final class OpenApiTags {
     public static final String BUGS = "Bugs / QA";
     public static final String ADMIN = "Administration";
     public static final String AUDIT = "System Audit";
+    public static final String AI = "AI Assistant";
 
     private OpenApiTags() {
     }

@@ -4,6 +4,7 @@ export type ButtonVariant =
   | 'primary' 
   | 'secondary' 
   | 'ghost' 
+  | 'outline'
   | 'danger'
   | 'solid-blue'
   | 'solid-green'
@@ -15,9 +16,13 @@ export type ButtonVariant =
   | 'outline-indigo'
   | 'outline-teal'
 
+export type ButtonTone = 'brand' | 'danger' | 'success' | 'warning' | 'info' | 'neutral' | 'dark'
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement | HTMLLabelElement> {
   as?: ElementType
   variant?: ButtonVariant
+  tone?: ButtonTone
+  active?: boolean
   size?: 'sm' | 'md'
   loading?: boolean
   /** @deprecated Dùng leadingIcon để vị trí icon rõ ràng hơn. */

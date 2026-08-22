@@ -11,18 +11,18 @@ const statuses: BacklogItemStatus[] = ['DRAFT', 'READY', 'IN_SPRINT', 'DONE', 'C
 export function priorityClass(priority: BacklogPriority) {
   switch (priority) {
     case 'LOW': return 'bg-panel text-muted border border-line font-medium'
-    case 'MEDIUM': return 'bg-info/10 text-info border border-info/20 font-medium'
-    case 'HIGH': return 'bg-brand/10 text-brand-dark border border-brand/20 font-bold'
-    case 'URGENT': return 'bg-danger/10 text-danger border border-danger/20 font-extrabold'
+    case 'MEDIUM': return 'bg-warning/15 text-warning-dark border border-warning/30 font-medium'
+    case 'HIGH': return 'bg-danger/10 text-danger border border-danger/20 font-bold'
+    case 'URGENT': return 'bg-danger-strong/10 text-danger-strong border border-danger-strong/20 font-extrabold'
     default: return 'bg-panel text-muted border border-line'
   }
 }
 
 export function statusClass(status: BacklogItemStatus) {
   switch (status) {
-    case 'DRAFT': return 'bg-brand/10 text-brand-dark border border-brand/30 font-semibold'
+    case 'DRAFT': return 'bg-panel text-muted border border-line font-semibold'
     case 'READY': return 'bg-info/10 text-info border border-info/20 font-semibold'
-    case 'IN_SPRINT': return 'bg-info/10 text-info border border-info/30 font-semibold'
+    case 'IN_SPRINT': return 'bg-warning/15 text-warning-dark border border-warning/30 font-semibold'
     case 'DONE': return 'bg-success/10 text-success border border-success/20 font-bold'
     case 'CANCELLED': return 'bg-panel text-muted border border-line line-through opacity-70'
     default: return 'bg-panel text-muted border border-line'
@@ -30,16 +30,17 @@ export function statusClass(status: BacklogItemStatus) {
 }
 
 export function typeClass(type: BacklogItemType) {
-  if (type === 'EPIC') return 'bg-info/10 text-info border border-info/30 font-bold'
-  if (type === 'FEATURE') return 'bg-brand/10 text-brand-dark border border-brand/20'
-  if (type === 'USER_STORY') return 'bg-info/10 text-info border border-info/20 font-semibold'
+  if (type === 'EPIC') return 'bg-cat-cyan/10 text-cat-cyan border border-cat-cyan/20 font-bold'
+  if (type === 'FEATURE') return 'bg-cat-purple/10 text-cat-purple border border-cat-purple/20 font-bold'
+  if (type === 'USER_STORY') return 'bg-cat-teal/10 text-cat-teal border border-cat-teal/20 font-semibold'
+  if (type === 'TECHNICAL') return 'bg-cat-pink/10 text-cat-pink border border-cat-pink/20 font-medium'
   return 'bg-panel text-muted border border-line'
 }
 
 function priorityIndicatorClass(priority: BacklogPriority) {
-  if (priority === 'URGENT') return 'bg-danger'
-  if (priority === 'HIGH') return 'bg-brand'
-  if (priority === 'MEDIUM') return 'bg-info'
+  if (priority === 'URGENT') return 'bg-danger-strong'
+  if (priority === 'HIGH') return 'bg-danger'
+  if (priority === 'MEDIUM') return 'bg-warning'
   return 'bg-muted'
 }
 

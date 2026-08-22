@@ -6,8 +6,7 @@ import {
   Trash2, 
   Plus, 
   Search, 
-  RefreshCcw, 
-  RotateCcw,
+  RefreshCw, 
   CheckCircle2,
   Download,
   FileText,
@@ -26,10 +25,12 @@ import {
   ActionMenu, 
   ActionItem, 
   Button, 
+  ResetButton,
   ConfirmDialog, 
   Input, 
   Modal, 
   Select,
+  Textarea,
   toast
 } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
@@ -467,12 +468,23 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
       linkedTaskId: '',
       reopenedOnly: false,
       overdueOnly: false,
-      dueDateFrom: '',
-      dueDateTo: '',
       createdFrom: '',
       createdTo: ''
     })
     setPage(0)
+  }
+
+  const handleClearReportFilters = () => {
+    setReportFilters({
+      fromDate: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      toDate: new Date().toISOString().split('T')[0],
+      sprintId: '',
+      assigneeUserId: '',
+      status: '',
+      severity: '',
+      priority: '',
+      overdueOnly: false
+    })
   }
 
   const handleOpenCreate = () => {
@@ -662,25 +674,25 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
   return (
     <div className="space-y-6">
       {/* Sub-tab switcher */}
-      <div className="flex border-b border-line gap-4">
-        <button
+      <div className="flex border-b border-line gap-2 pb-2">
+        <Button
           type="button"
+          variant="secondary"
+          active={activeSubTab === 'list'}
+          size="sm"
           onClick={() => setActiveSubTab('list')}
-          className={`pb-3 text-sm font-bold border-b-2 transition ${
-            activeSubTab === 'list' ? 'border-b-brand text-brand border-brand' : 'border-transparent text-muted hover:text-ink'
-          }`}
         >
           Danh sách lỗi
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          active={activeSubTab === 'dashboard'}
+          size="sm"
           onClick={() => setActiveSubTab('dashboard')}
-          className={`pb-3 text-sm font-bold border-b-2 transition ${
-            activeSubTab === 'dashboard' ? 'border-b-brand text-brand border-brand' : 'border-transparent text-muted hover:text-ink'
-          }`}
         >
           Báo cáo & Thống kê (Dashboard)
-        </button>
+        </Button>
       </div>
 
           {activeSubTab === 'list' ? (
@@ -724,7 +736,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
               <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between space-y-2">
                 <div className="flex justify-between items-center">
                   <div className="size-11 rounded-xl bg-brand/10 text-brand border border-brand/20 flex items-center justify-center shrink-0">
-                    <RefreshCcw size={22} />
+                    <RefreshCw size={22} />
                   </div>
                   <span className="text-[10px] font-extrabold text-brand-dark bg-brand/10 border border-brand/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     ĐANG XỬ LÝ
@@ -847,15 +859,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     ]}
                   />
                 </div>
-                <Button 
-                  variant="outline-amber" 
-                  iconOnly
-                  leadingIcon={<RotateCcw size={16} />}
-                  onClick={handleClearFilters}
-                  title="Đặt lại bộ lọc"
-                  aria-label="Đặt lại bộ lọc"
-                  className="!h-10 !w-10 shrink-0"
-                />
+                <ResetButton iconOnly className="!h-10 !w-10 shrink-0" onReset={handleClearFilters} />
               </div>
             </div>
           </div>
@@ -894,7 +898,8 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     {/* Main Title & Subtags */}
                     <button 
                       type="button" 
-                      className="space-y-1.5 text-left flex-1 min-w-0" 
+                      className="space-y-1.5 text-left flex-1 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 rounded-lg p-1 -m-1" 
+                      aria-label={`Xem chi tiết lỗi: ${bug.title}`}
                       onClick={() => setSelectedBugDetails(bug)}
                     >
                       <h3 className="text-base font-extrabold text-ink hover:text-brand transition leading-snug">{bug.title}</h3>
@@ -915,8 +920,9 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                       <button
                         type="button"
                         onClick={() => setStatusModalBug(bug)}
-                        className={`rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(bug.status)}`}
+                        className={`rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getStatusBadgeClass(bug.status)}`}
                         title="Bấm để đổi trạng thái"
+                        aria-label={`Đổi trạng thái lỗi (trạng thái hiện tại: ${bugStatusLabels[bug.status]})`}
                       >
                         <div className={`size-2 rounded-full shrink-0 ${getStatusDotColor(bug.status)}`} />
                         <span>{bugStatusLabels[bug.status]}</span>
@@ -930,8 +936,9 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                       <button
                         type="button"
                         onClick={() => setAssigneeModalBug(bug)}
-                        className="rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer bg-slate-100 text-slate-700 border border-slate-200"
+                        className="rounded-full px-3.5 py-1 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap transition hover:scale-105 hover:shadow-xs cursor-pointer bg-slate-100 text-slate-700 border border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
                         title="Bấm để phân công người xử lý"
+                        aria-label={`Phân công người xử lý lỗi (hiện tại: ${bug.assigneeUsername || 'Chưa gán'})`}
                       >
                         <div className="size-4 rounded-full bg-slate-800 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
                           {(bug.assigneeUsername || 'C').substring(0, 1).toUpperCase()}
@@ -945,7 +952,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                       <ActionMenu>
                         <ActionItem onClick={() => setStatusModalBug(bug)}>
-                          <RefreshCcw size={15} /> Đổi trạng thái
+                          <RefreshCw size={15} /> Đổi trạng thái
                         </ActionItem>
                         <ActionItem onClick={() => setAssigneeModalBug(bug)}>
                           <UserPlus size={15} /> Phân công người xử lý
@@ -1042,24 +1049,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                 />
               </div>
               <div className="space-y-1 flex items-end">
-                <Button 
-                  variant="outline-amber" 
-                  iconOnly
-                  leadingIcon={<RotateCcw size={16} />}
-                  title="Đặt lại bộ lọc"
-                  aria-label="Đặt lại bộ lọc"
-                  className="!h-10 !w-10 shrink-0"
-                  onClick={() => setReportFilters({
-                    fromDate: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
-                    toDate: new Date().toISOString().split('T')[0],
-                    sprintId: '',
-                    assigneeUserId: '',
-                    status: '',
-                    severity: '',
-                    priority: '',
-                    overdueOnly: false
-                  })}
-                />
+                <ResetButton iconOnly className="!h-10 !w-10 shrink-0" onReset={handleClearReportFilters} />
               </div>
             </div>
           </div>
@@ -1100,7 +1090,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     <div className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between">
                       <div className="flex justify-between items-center">
                         <div className="size-11 rounded-xl bg-danger/10 text-danger border border-danger/20 flex items-center justify-center shrink-0">
-                          <RefreshCcw size={22} />
+                          <RefreshCw size={22} />
                         </div>
                         <span className="text-xs font-bold text-danger bg-danger/10 border border-danger/20 px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
                           ↑ {formatRate(qaMetrics.reopenRate)}
@@ -1150,14 +1140,14 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
               {/* Breakdown distributions with Recharts (Donut Ring Chart with Center Text & Bar Charts) */}
               {reportData && (() => {
                 const STATUS_COLORS: Record<string, string> = {
-                  OPEN: '#3b82f6',
-                  ASSIGNED: '#6366f1',
-                  IN_PROGRESS: '#f59e0b',
-                  RESOLVED: '#10b981',
-                  VERIFIED: '#14b8a6',
-                  REOPENED: '#a855f7',
-                  CLOSED: '#64748b',
-                  CANCELLED: '#f43f5e'
+                  OPEN: 'var(--color-info)',
+                  ASSIGNED: 'var(--color-info)',
+                  IN_PROGRESS: 'var(--color-warning)',
+                  RESOLVED: 'var(--color-success)',
+                  VERIFIED: 'var(--color-success)',
+                  REOPENED: 'var(--color-danger)',
+                  CLOSED: 'var(--color-muted)',
+                  CANCELLED: 'var(--color-muted)'
                 }
 
                 const toggleStatusVisibility = (statusKey: string) => {
@@ -1197,7 +1187,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                   return (
                     <path
                       d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
-                      stroke={stroke || props.fill || '#94a3b8'}
+                      stroke={stroke || props.fill || 'var(--color-muted)'}
                       strokeWidth={1.5}
                       fill="none"
                       strokeLinecap="round"
@@ -1222,7 +1212,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     <text
                       x={ex}
                       y={ey}
-                      fill="#1e293b"
+                      fill="var(--color-ink)"
                       textAnchor={isRight ? 'start' : 'end'}
                       dominantBaseline="central"
                       style={{ fontSize: '12px', fontWeight: 800 }}
@@ -1238,7 +1228,7 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     statusKey: s.status,
                     name: bugStatusLabels[s.status] || s.status,
                     value: hiddenStatuses.includes(s.status) ? 0 : s.total,
-                    color: STATUS_COLORS[s.status] || '#94a3b8'
+                    color: STATUS_COLORS[s.status] || 'var(--color-muted)'
                   }))
 
                 const severityBarData = reportData.bySeverity.map(s => {
@@ -1250,9 +1240,9 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     name: bugSeverityLabels[s.severity] || s.severity,
                     'Số lỗi': val,
                     percentLabel: val > 0 ? `${pct.toFixed(1)}%` : '',
-                    fill: s.severity === 'CRITICAL' ? '#e11d48' :
-                          s.severity === 'HIGH' ? '#f97316' :
-                          s.severity === 'MEDIUM' ? '#f59e0b' : '#3b82f6'
+                    fill: s.severity === 'CRITICAL' ? 'var(--color-danger-strong)' :
+                          s.severity === 'HIGH' ? 'var(--color-danger)' :
+                          s.severity === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-info)'
                   }
                 })
 
@@ -1267,9 +1257,9 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                           s.priority === 'MEDIUM' ? 'Vừa' : 'Thấp',
                     'Số lỗi': val,
                     percentLabel: val > 0 ? `${pct.toFixed(1)}%` : '',
-                    fill: s.priority === 'URGENT' ? '#ef4444' :
-                          s.priority === 'HIGH' ? '#f97316' :
-                          s.priority === 'MEDIUM' ? '#f59e0b' : '#64748b'
+                    fill: s.priority === 'URGENT' ? 'var(--color-danger-strong)' :
+                          s.priority === 'HIGH' ? 'var(--color-danger)' :
+                          s.priority === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-muted)'
                   }
                 })
 
@@ -1342,12 +1332,14 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                                     key={s.status}
                                     type="button"
                                     onClick={() => toggleStatusVisibility(s.status)}
-                                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                                       isHidden 
                                         ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
                                         : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
                                     }`}
                                     title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                                    aria-pressed={!isHidden}
+                                    aria-label={`Lọc trạng thái ${bugStatusLabels[s.status] || s.status} trên biểu đồ`}
                                   >
                                     <span 
                                       className="size-3 rounded-full shrink-0 transition-transform duration-200" 
@@ -1407,12 +1399,14 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                               key={sev}
                               type="button"
                               onClick={() => toggleSeverityVisibility(sev)}
-                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                                 isHidden 
                                   ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
                                   : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
                               }`}
                               title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                              aria-pressed={!isHidden}
+                              aria-label={`Lọc độ nghiêm trọng ${bugSeverityLabels[sev] || sev} trên biểu đồ`}
                             >
                               <span 
                                 className="size-3 rounded-full shrink-0 transition-transform duration-200" 
@@ -1468,12 +1462,14 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                               key={pri}
                               type="button"
                               onClick={() => togglePriorityVisibility(pri)}
-                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                                 isHidden 
                                   ? 'bg-slate-100 text-slate-400 border-slate-200 line-through opacity-50' 
                                   : 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:scale-105 hover:shadow-xs'
                               }`}
                               title={isHidden ? 'Bấm để hiển thị' : 'Bấm để ẩn'}
+                              aria-pressed={!isHidden}
+                              aria-label={`Lọc độ ưu tiên ${priorityLabels[pri] || pri} trên biểu đồ`}
                             >
                               <span 
                                 className="size-3 rounded-full shrink-0 transition-transform duration-200" 
@@ -1706,45 +1702,37 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted uppercase">Mô tả lỗi</label>
-            <textarea 
-              className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              placeholder="Chi tiết về môi trường, hệ điều hành..."
-              value={formDesc}
-              onChange={e => setFormDesc(e.target.value)}
-            />
-          </div>
+          <Textarea 
+            label="Mô tả lỗi"
+            placeholder="Chi tiết về môi trường, hệ điều hành..."
+            value={formDesc}
+            onChange={e => setFormDesc(e.target.value)}
+            rows={3}
+          />
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted uppercase">Các bước tái hiện (Reproduction Steps)</label>
-            <textarea 
-              className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              placeholder="1. Vào trang đăng nhập&#10;2. Bỏ trống mật khẩu&#10;3. Click Đăng nhập..."
-              value={formSteps}
-              onChange={e => setFormSteps(e.target.value)}
-            />
-          </div>
+          <Textarea 
+            label="Các bước tái hiện (Reproduction Steps)"
+            placeholder="1. Vào trang đăng nhập&#10;2. Bỏ trống mật khẩu&#10;3. Click Đăng nhập..."
+            value={formSteps}
+            onChange={e => setFormSteps(e.target.value)}
+            rows={4}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted uppercase">Kết quả mong muốn</label>
-              <textarea 
-                className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="Nên báo lỗi đỏ..."
-                value={formExpected}
-                onChange={e => setFormExpected(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted uppercase">Kết quả thực tế</label>
-              <textarea 
-                className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="Trang web bị crash trắng màn hình..."
-                value={formActual}
-                onChange={e => setFormActual(e.target.value)}
-              />
-            </div>
+            <Textarea 
+              label="Kết quả mong muốn"
+              placeholder="Nên báo lỗi đỏ..."
+              value={formExpected}
+              onChange={e => setFormExpected(e.target.value)}
+              rows={2}
+            />
+            <Textarea 
+              label="Kết quả thực tế"
+              placeholder="Trang web bị crash trắng màn hình..."
+              value={formActual}
+              onChange={e => setFormActual(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -1799,7 +1787,9 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                         await handleStatusChange(statusModalBug.id, st)
                         setStatusModalBug(null)
                       }}
-                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getStatusCardStyle(st, isCurrent)}`}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getStatusCardStyle(st, isCurrent)}`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Chọn trạng thái ${bugStatusLabels[st]}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`size-2.5 rounded-full shrink-0 ${getStatusDotColor(st)}`} />
@@ -1843,11 +1833,13 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                     await handleAssignChange(assigneeModalBug.id, null)
                     setAssigneeModalBug(null)
                   }}
-                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                     !assigneeModalBug.assigneeUserId 
                       ? 'border-slate-500 bg-slate-100 text-slate-800 ring-2 ring-slate-400/40 shadow-xs' 
                       : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
                   }`}
+                  aria-pressed={!assigneeModalBug.assigneeUserId}
+                  aria-label="Chọn chưa gán người xử lý"
                 >
                   <div className="flex items-center gap-2">
                     <div className="size-7 rounded-full bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center">
@@ -1869,11 +1861,13 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
                         await handleAssignChange(assigneeModalBug.id, m.userId)
                         setAssigneeModalBug(null)
                       }}
-                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                         isCurrent 
                           ? 'border-indigo-500 bg-indigo-50/90 text-indigo-800 ring-2 ring-indigo-400/40 shadow-xs' 
                           : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
                       }`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Gán cho ${m.username}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="size-7 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
@@ -2167,8 +2161,9 @@ function BugDetailModal({
                 type="button"
                 onClick={() => setSeverityModalOpen(true)}
                 disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getSeverityBadgeClass(bug.severity)}`}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getSeverityBadgeClass(bug.severity)}`}
                 title="Bấm để đổi độ nghiêm trọng"
+                aria-label={`Thay đổi độ nghiêm trọng (hiện tại: ${bugSeverityLabels[bug.severity]})`}
               >
                 <span>{bugSeverityLabels[bug.severity]}</span>
                 <Pencil size={11} className="opacity-70 shrink-0" />
@@ -2182,8 +2177,9 @@ function BugDetailModal({
                 type="button"
                 onClick={() => setPriorityModalOpen(true)}
                 disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getPriorityBadgeClass(bug.priority)}`}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getPriorityBadgeClass(bug.priority)}`}
                 title="Bấm để đổi độ ưu tiên"
+                aria-label={`Thay đổi độ ưu tiên (hiện tại: ${priorityLabels[bug.priority] || bug.priority})`}
               >
                 <span>{priorityLabels[bug.priority] || bug.priority}</span>
                 <Pencil size={11} className="opacity-70 shrink-0" />
@@ -2197,8 +2193,9 @@ function BugDetailModal({
                 type="button"
                 onClick={() => setAssigneeModalOpen(true)}
                 disabled={bug.status === 'CLOSED' || bug.status === 'CANCELLED'}
-                className="rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-2 transition hover:scale-105 hover:shadow-xs cursor-pointer bg-white text-slate-700 border border-slate-200"
+                className="rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-2 transition hover:scale-105 hover:shadow-xs cursor-pointer bg-white text-slate-700 border border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
                 title="Bấm để phân công người xử lý"
+                aria-label={`Phân công người xử lý (hiện tại: ${bug.assigneeUsername || 'Chưa gán'})`}
               >
                 <div className="size-4 rounded-full bg-slate-800 text-white font-bold text-[9px] flex items-center justify-center shrink-0">
                   {(bug.assigneeUsername || 'C').substring(0, 1).toUpperCase()}
@@ -2214,8 +2211,9 @@ function BugDetailModal({
               <button
                 type="button"
                 onClick={() => setStatusModalOpen(true)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(bug.status)}`}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 transition hover:scale-105 hover:shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getStatusBadgeClass(bug.status)}`}
                 title="Bấm để đổi trạng thái"
+                aria-label={`Thay đổi trạng thái (hiện tại: ${bugStatusLabels[bug.status]})`}
               >
                 <div className={`size-2 rounded-full shrink-0 ${getStatusDotColor(bug.status)}`} />
                 <span>{bugStatusLabels[bug.status]}</span>
@@ -2233,7 +2231,8 @@ function BugDetailModal({
                   key={status} 
                   type="button" 
                   onClick={() => onStatusChange(bug.id, status)}
-                  className={`px-3 py-1 text-xs font-bold rounded-xl transition hover:scale-105 hover:shadow-xs cursor-pointer ${getStatusBadgeClass(status)}`}
+                  className={`px-3 py-1 text-xs font-bold rounded-xl transition hover:scale-105 hover:shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getStatusBadgeClass(status)}`}
+                  aria-label={`Chuyển nhanh trạng thái sang ${bugStatusLabels[status]}`}
                 >
                   {bugStatusLabels[status]}
                 </button>
@@ -2243,43 +2242,47 @@ function BugDetailModal({
         </div>
 
         {/* Detail Tabs */}
-        <div className="border-b border-line flex gap-2">
-          <button 
+        <div className="border-b border-line flex gap-2 pb-2 overflow-x-auto">
+          <Button 
             type="button"
+            variant="secondary"
+            active={activeSubTab === 'info'}
+            size="sm"
+            leadingIcon={<FileText size={16} />}
             onClick={() => setActiveSubTab('info')}
-            className={`px-4 py-2.5 border-b-2 text-sm font-bold flex items-center gap-2 transition ${
-              activeSubTab === 'info' ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'
-            }`}
           >
-            <FileText size={16} /> Mô tả & Tái hiện
-          </button>
-          <button 
+            Mô tả & Tái hiện
+          </Button>
+          <Button 
             type="button"
+            variant="secondary"
+            active={activeSubTab === 'evidences'}
+            size="sm"
+            leadingIcon={<CheckSquare size={16} />}
             onClick={() => setActiveSubTab('evidences')}
-            className={`px-4 py-2.5 border-b-2 text-sm font-bold flex items-center gap-2 transition ${
-              activeSubTab === 'evidences' ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'
-            }`}
           >
-            <CheckSquare size={16} /> Bằng chứng QA ({evidences.length})
-          </button>
-          <button 
+            Bằng chứng QA ({evidences.length})
+          </Button>
+          <Button 
             type="button"
+            variant="secondary"
+            active={activeSubTab === 'comments'}
+            size="sm"
+            leadingIcon={<MessageSquare size={16} />}
             onClick={() => setActiveSubTab('comments')}
-            className={`px-4 py-2.5 border-b-2 text-sm font-bold flex items-center gap-2 transition ${
-              activeSubTab === 'comments' ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'
-            }`}
           >
-            <MessageSquare size={16} /> Bình luận ({comments.length})
-          </button>
-          <button 
+            Bình luận ({comments.length})
+          </Button>
+          <Button 
             type="button"
+            variant="secondary"
+            active={activeSubTab === 'attachments'}
+            size="sm"
+            leadingIcon={<Paperclip size={16} />}
             onClick={() => setActiveSubTab('attachments')}
-            className={`px-4 py-2.5 border-b-2 text-sm font-bold flex items-center gap-2 transition ${
-              activeSubTab === 'attachments' ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'
-            }`}
           >
-            <Paperclip size={16} /> Tệp đính kèm
-          </button>
+            Tệp đính kèm
+          </Button>
         </div>
 
         {/* Tab Content */}
@@ -2359,19 +2362,10 @@ function BugDetailModal({
                     <Input label="Môi trường (Environment)" value={evidenceEnv} onChange={e => setEvidenceEnv(e.target.value)} placeholder="Chrome v120 / iOS 17" />
                     <Input label="Ghi chú thêm" value={evidenceNote} onChange={e => setEvidenceNote(e.target.value)} placeholder="Ghi chú tùy chọn..." />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted uppercase">Các bước thực hiện</label>
-                    <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none focus:border-brand" value={evidenceSteps} onChange={e => setEvidenceSteps(e.target.value)} />
-                  </div>
+                  <Textarea label="Các bước thực hiện" value={evidenceSteps} onChange={e => setEvidenceSteps(e.target.value)} rows={2} />
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted uppercase">Kết quả mong muốn</label>
-                      <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none focus:border-brand" value={evidenceExpected} onChange={e => setEvidenceExpected(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted uppercase">Kết quả thực tế</label>
-                      <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none focus:border-brand" value={evidenceActual} onChange={e => setEvidenceActual(e.target.value)} />
-                    </div>
+                    <Textarea label="Kết quả mong muốn" value={evidenceExpected} onChange={e => setEvidenceExpected(e.target.value)} rows={2} />
+                    <Textarea label="Kết quả thực tế" value={evidenceActual} onChange={e => setEvidenceActual(e.target.value)} rows={2} />
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" type="button" variant="secondary" onClick={() => setEvidenceAddOpen(false)}>Hủy</Button>
@@ -2389,19 +2383,10 @@ function BugDetailModal({
                     <Input label="Môi trường" value={evidenceEnv} onChange={e => setEvidenceEnv(e.target.value)} />
                     <Input label="Ghi chú" value={evidenceNote} onChange={e => setEvidenceNote(e.target.value)} />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted uppercase">Các bước thực hiện</label>
-                    <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none" value={evidenceSteps} onChange={e => setEvidenceSteps(e.target.value)} />
-                  </div>
+                  <Textarea label="Các bước thực hiện" value={evidenceSteps} onChange={e => setEvidenceSteps(e.target.value)} rows={2} />
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted uppercase">Kết quả mong muốn</label>
-                      <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none" value={evidenceExpected} onChange={e => setEvidenceExpected(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted uppercase">Kết quả thực tế</label>
-                      <textarea className="min-h-16 w-full rounded-lg border border-line bg-white px-3.5 py-2 text-sm outline-none" value={evidenceActual} onChange={e => setEvidenceActual(e.target.value)} />
-                    </div>
+                    <Textarea label="Kết quả mong muốn" value={evidenceExpected} onChange={e => setEvidenceExpected(e.target.value)} rows={2} />
+                    <Textarea label="Kết quả thực tế" value={evidenceActual} onChange={e => setEvidenceActual(e.target.value)} rows={2} />
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" type="button" variant="secondary" onClick={() => setEditingEvidence(null)}>Hủy</Button>
@@ -2656,7 +2641,9 @@ function BugDetailModal({
                         onStatusChange(bug.id, st)
                         setStatusModalOpen(false)
                       }}
-                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getStatusCardStyle(st, isCurrent)}`}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getStatusCardStyle(st, isCurrent)}`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Chọn trạng thái ${bugStatusLabels[st]}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`size-2.5 rounded-full shrink-0 ${getStatusDotColor(st)}`} />
@@ -2702,7 +2689,9 @@ function BugDetailModal({
                         onSeverityChange(bug.id, sev)
                         setSeverityModalOpen(false)
                       }}
-                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getSeverityCardStyle(sev, isCurrent)}`}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getSeverityCardStyle(sev, isCurrent)}`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Chọn độ nghiêm trọng ${bugSeverityLabels[sev]}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`size-2.5 rounded-full shrink-0 ${getSeverityDotColor(sev)}`} />
@@ -2748,7 +2737,9 @@ function BugDetailModal({
                         onPriorityChange(bug.id, pri)
                         setPriorityModalOpen(false)
                       }}
-                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${getPriorityCardStyle(pri, isCurrent)}`}
+                      className={`p-3.5 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${getPriorityCardStyle(pri, isCurrent)}`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Chọn độ ưu tiên ${priorityLabels[pri] || pri}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`size-2.5 rounded-full shrink-0 ${getPriorityDotColor(pri)}`} />
@@ -2791,11 +2782,13 @@ function BugDetailModal({
                     onAssigneeChange(bug.id, null)
                     setAssigneeModalOpen(false)
                   }}
-                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                  className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                     !bug.assigneeUserId 
                       ? 'border-slate-500 bg-slate-100 text-slate-800 ring-2 ring-slate-400/40 shadow-xs' 
                       : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
                   }`}
+                  aria-pressed={!bug.assigneeUserId}
+                  aria-label="Chọn chưa gán người xử lý"
                 >
                   <div className="flex items-center gap-2">
                     <div className="size-7 rounded-full bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center">
@@ -2817,11 +2810,13 @@ function BugDetailModal({
                         onAssigneeChange(bug.id, m.userId)
                         setAssigneeModalOpen(false)
                       }}
-                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer ${
+                      className={`p-3 rounded-xl border text-xs font-bold text-left transition flex items-center justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 ${
                         isCurrent 
                           ? 'border-indigo-500 bg-indigo-50/90 text-indigo-800 ring-2 ring-indigo-400/40 shadow-xs' 
                           : 'border-line bg-white hover:bg-slate-50 text-slate-700 hover:border-slate-300'
                       }`}
+                      aria-pressed={isCurrent}
+                      aria-label={`Gán cho ${m.username}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="size-7 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">

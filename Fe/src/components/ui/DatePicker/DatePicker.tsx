@@ -215,7 +215,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function
   return (
     <div className="w-full relative">
       {label && (
-        <label className="mb-2 block text-sm font-medium text-[#3f3f46]" htmlFor={inputId}>
+        <label className="mb-2 block text-sm font-medium text-ink" htmlFor={inputId}>
           {label}
           {required && <span className="ml-1 text-danger" aria-hidden="true">*</span>}
         </label>
@@ -237,14 +237,14 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function
         ref={triggerRef}
         onClick={() => !disabled && setOpen(!open)}
         className={`h-11 w-full rounded-lg border bg-white px-3.5 text-sm outline-none transition flex items-center justify-between cursor-pointer select-none ${
-          open ? 'border-brand ring-2 ring-brand/20' : error ? 'border-danger' : 'border-line hover:border-slate-300'
+          open ? 'border-brand ring-2 ring-brand/20' : error ? 'border-danger' : 'border-line hover:border-muted'
         } ${disabled ? 'border-line bg-panel text-muted cursor-not-allowed' : ''} ${className}`}
       >
         <div className="flex items-center gap-2.5 overflow-hidden">
           {leadingIcon ? (
-            <span className="text-[#879087] shrink-0">{leadingIcon}</span>
+            <span className="text-muted shrink-0">{leadingIcon}</span>
           ) : (
-            <CalendarIcon size={16} className={`shrink-0 transition-colors ${value ? 'text-brand' : 'text-[#879087]'}`} />
+            <CalendarIcon size={16} className={`shrink-0 transition-colors ${value ? 'text-brand' : 'text-muted'}`} />
           )}
           <span className={`truncate text-sm ${value ? 'text-ink font-medium' : 'text-muted font-normal'}`}>
             {value ? formatDisplayString(value) : placeholder}

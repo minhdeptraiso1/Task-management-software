@@ -89,7 +89,7 @@ export function ProfileSettingsView({ user, onBack, onSuccessLogoutAll, onOpenGu
 
           <div className="space-y-8">
             {error && (
-              <div className="flex items-center gap-2 rounded-lg bg-danger/10 p-3 text-sm text-danger">
+              <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 p-3 text-sm text-danger font-medium">
                 <AlertCircle size={16} />
                 <p>{error}</p>
               </div>

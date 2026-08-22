@@ -51,6 +51,25 @@ Gradient không dùng cho nền chữ dài hoặc nhiều button lặp lại. Bu
 
 Quy tắc: không quá hai màu nhấn trên một màn hình; màu ngữ nghĩa chỉ biểu đạt trạng thái; text đạt WCAG AA 4.5:1.
 
+### 2.3. Màu phân loại (Category Colors)
+
+| Token | Giá trị | Vai trò phân loại thực thể (Non-semantic) |
+|---|---|---|
+| `cat-indigo` | `#4F46E5` | `SPRINT_REVIEW` (Meeting Type) |
+| `cat-purple` | `#7C3AED` | `RETROSPECTIVE` (Meeting Type), **`FEATURE`** (Backlog Type) |
+| `cat-cyan` | `#0284C7` | **`EPIC`** (Backlog Type), Documents, Planning |
+| `cat-teal` | `#0D9488` | **`USER_STORY`** (Backlog Type), Subtask, QA Audit |
+| `cat-pink` | `#DB2777` | **`TECHNICAL`** (Backlog Type), Refactor, Special Event |
+
+> 📌 **Lưu ý Kiến trúc Domain**:
+> - Khái niệm `BacklogItemType` trong `scrum.model.ts` gồm 4 loại: `EPIC`, `FEATURE`, `USER_STORY`, `TECHNICAL`.
+> - Thực thể `Bug` thuộc domain quản lý lỗi riêng (`bug.model.ts` & `BugView.tsx`), có dải màu `BugSeverity` (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) và `BugStatus` riêng biệt.
+
+**Quy tắc phân biệt Semantic Token vs Category Token:**
+- **Semantic Token** (`success`, `danger`, `danger-strong`, `warning`, `warning-dark`, `info`, `muted`): CHỈ dùng cho trạng thái công việc (mới mở, đang xử lý, hoàn thành, hủy), mức độ nghiêm trọng (khẩn cấp, cao, trung bình) hoặc thông báo lỗi/thành công hệ thống.
+- **Category Token** (`cat-indigo`, `cat-purple`, `cat-teal`, `cat-cyan`, `cat-pink`): CHỈ dùng cho phân loại bản chất thực thể (loại cuộc họp, loại công việc, định dạng tệp).
+- **Cấm**: Không dùng màu Semantic (như `success` hoặc màu thương hiệu `brand`) cho mục đích phân loại thực thể để tránh gây hiểu nhầm với trạng thái hoàn thành hoặc nút bấm CTA.
+
 ## 3. Typography
 
 - Font: `Be Vietnam Pro`; dự phòng `Inter`, `-apple-system`, `Segoe UI`, Roboto, Helvetica, Arial, sans-serif.
@@ -83,7 +102,7 @@ Mọi control nền tảng phải import từ `src/components/ui` theo `Luat.md`
 - Icon truyền qua `leadingIcon`/`trailingIcon`. Icon-only dùng `iconOnly`, bắt buộc `aria-label` và tooltip (`title`).
 - Text không xuống dòng. Loading vô hiệu hóa button, có spinner và nhãn xử lý rõ nghĩa.
 - **Cấm** override màu primary button bằng `className` gradient hoặc màu tùy ý.
-- **Tab điều hướng active**: dùng `variant="secondary"` với `className` chỉ ghi đè `!bg-brand !text-white !border-transparent`; không dùng màu Tailwind tùy ý như indigo, teal, amber.
+- **Tab điều hướng active**: dùng `variant="secondary"` đi kèm prop `active={true}` (ví dụ `<Button variant="secondary" active={selectedTab === tab.id}>`); KHÔNG dùng `!important` classes để ép màu.
 
 ### 5.2. Form
 
@@ -151,7 +170,7 @@ View không gọi API. Không render menu/action ngoài quyền và không dùng
 - Đúng token đen–cam, type scale 14px và spacing thang 4px.
 - Không có màu hex hardcode (`#xxxxxx`) hay Tailwind color utilities không qua token trong JSX.
 - Không có `<button>`, `<input>`, `<select>` raw trong View (phải dùng component từ `src/components/ui`).
-- Primary button luôn là cam `brand`; tab active dùng `!bg-brand !text-white !border-transparent`.
+- Primary button luôn là cam `brand`; tab active dùng `<Button variant="secondary" active={true}>` (không dùng `!` override).
 - Có loading skeleton/empty/error/success/disabled đúng pattern.
 - Kiểm tra keyboard, focus, contrast và confirm trước destructive action.
 - Test cả ADMIN/USER và Network không có request sai quyền.

@@ -8,7 +8,7 @@ import {
   Bug,
   HardDrive,
   AlertTriangle,
-  RefreshCcw,
+  RefreshCw,
   Activity,
   UserCheck,
   Clock,
@@ -18,7 +18,7 @@ import {
   Layers,
   FolderArchive
 } from 'lucide-react'
-import { Button, toast } from '../../../components/ui'
+import { Button, RefreshButton, toast } from '../../../components/ui'
 import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
 import { runTaskDueReminders, runDailyDigest } from '../services/admin.service'
 
@@ -119,7 +119,7 @@ export function AdminDashboardOverviewView({
         </div>
         <h3 className="mt-4 text-base font-bold text-slate-900">Không thể tải Dashboard</h3>
         <p className="mt-1 text-sm text-slate-500">{error}</p>
-        <Button className="mt-6" leadingIcon={<RefreshCcw size={16} />} onClick={onRefresh}>
+        <Button className="mt-6" leadingIcon={<RefreshCw size={16} />} onClick={onRefresh}>
           Thử lại
         </Button>
       </div>
@@ -197,9 +197,7 @@ export function AdminDashboardOverviewView({
           >
             Quét nhắc hẹn Task
           </Button>
-          <Button variant="secondary" size="sm" leadingIcon={<RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />} onClick={onRefresh}>
-            Làm mới
-          </Button>
+          <RefreshButton refreshing={loading} onRefresh={onRefresh} />
         </div>
       </motion.div>
 

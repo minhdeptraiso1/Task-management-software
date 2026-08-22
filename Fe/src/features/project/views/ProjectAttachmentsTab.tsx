@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getProjectAttachmentUsage, getFileSecuritySummary, getAllProjectAttachments, deleteAttachment } from '../services/attachment.service'
 import type { AttachmentUsage, FileSecuritySummary, AttachmentPage } from '../models/attachment.model'
-import { AlertCircle, ShieldCheck, Database, FileCode, Check, Ban, RefreshCcw, Download, Trash2, FileText, Image as ImageIcon, Video, FileArchive, FileSpreadsheet, File, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
-import { Button, ConfirmDialog, toast } from '../../../components/ui'
+import { AlertCircle, ShieldCheck, Database, FileCode, Check, Ban, RefreshCw, Download, Trash2, FileText, Image as ImageIcon, Video, FileArchive, FileSpreadsheet, File, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
+import { Button, RefreshButton, ConfirmDialog, toast } from '../../../components/ui'
 import { downloadExcelFile } from '../../../services/apiClient'
 
 function AnimatedNumber({ value, duration = 1000, formatter }: { value: number; duration?: number; formatter?: (val: number) => string }) {
@@ -129,7 +129,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCcw className="h-8 w-8 animate-spin text-brand" />
+          <RefreshCw className="h-8 w-8 animate-spin text-brand" />
           <p className="text-sm text-muted">Đang tải cấu hình lưu trữ & bảo mật...</p>
         </div>
       </div>
@@ -177,6 +177,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
   const maxStorageBytes = usage?.maxBytes || 524288000 // default 500MB
   const effectiveUsedBytes = Math.max(usage?.usedBytes || 0, attachmentListBytes)
   const effectiveRemainingBytes = Math.max(0, maxStorageBytes - effectiveUsedBytes)
+
   const effectiveUsageRate = maxStorageBytes > 0 ? (effectiveUsedBytes * 100) / maxStorageBytes : 0
 
   return (
@@ -186,14 +187,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
           <h3 className="text-lg font-bold text-ink">Lưu trữ & Bảo mật File</h3>
           <p className="text-sm text-muted">Thông tin dung lượng lưu trữ dự án và các quy tắc bảo mật tệp đính kèm.</p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          leadingIcon={<RefreshCcw size={14} />}
-          onClick={() => loadData(false)}
-        >
-          Làm mới
-        </Button>
+        <RefreshButton onRefresh={() => loadData(false)} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -324,7 +318,7 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
 
         {fileLoading ? (
           <div className="p-12 text-center text-xs text-muted">
-            <RefreshCcw className="mx-auto h-6 w-6 animate-spin text-brand mb-2" />
+            <RefreshCw className="mx-auto h-6 w-6 animate-spin text-brand mb-2" />
             Đang tải danh sách file...
           </div>
         ) : !attachments || attachments.content.length === 0 ? (

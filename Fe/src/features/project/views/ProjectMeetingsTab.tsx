@@ -14,7 +14,7 @@ import {
   Check,
   Copy,
 } from 'lucide-react'
-import { Button, Input, Modal } from '../../../components/ui'
+import { Button, Input, Modal, Textarea } from '../../../components/ui'
 import type { ProjectMeeting, ProjectMeetingType, CreateMeetingRequest } from '../models/meeting.model'
 import {
   getProjectMeetings,
@@ -36,39 +36,39 @@ const MEETING_TYPE_MAP: Record<
 > = {
   DAILY: {
     label: 'Daily Standup',
-    bg: 'bg-amber-50 font-bold',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
+    bg: 'bg-warning/15 font-bold',
+    text: 'text-warning-dark',
+    border: 'border-warning/30',
   },
   SPRINT_PLANNING: {
     label: 'Sprint Planning',
-    bg: 'bg-blue-50 font-bold',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
+    bg: 'bg-info/10 font-bold',
+    text: 'text-info',
+    border: 'border-info/20',
   },
   SPRINT_REVIEW: {
     label: 'Sprint Review',
-    bg: 'bg-indigo-50 font-bold',
-    text: 'text-indigo-700',
-    border: 'border-indigo-200',
+    bg: 'bg-cat-indigo/10 font-bold',
+    text: 'text-cat-indigo',
+    border: 'border-cat-indigo/20',
   },
   RETROSPECTIVE: {
     label: 'Retrospective',
-    bg: 'bg-purple-50 font-bold',
-    text: 'text-purple-700',
-    border: 'border-purple-200',
+    bg: 'bg-cat-purple/10 font-bold',
+    text: 'text-cat-purple',
+    border: 'border-cat-purple/20',
   },
   ISSUE_RESOLUTION: {
     label: 'Giải quyết rủi ro/Sự cố',
-    bg: 'bg-rose-50 font-bold',
-    text: 'text-rose-700',
-    border: 'border-rose-200',
+    bg: 'bg-danger/10 font-bold',
+    text: 'text-danger',
+    border: 'border-danger/20',
   },
   OTHER: {
     label: 'Cuộc họp khác',
-    bg: 'bg-slate-50 font-bold',
-    text: 'text-slate-700',
-    border: 'border-slate-200',
+    bg: 'bg-panel font-bold',
+    text: 'text-muted',
+    border: 'border-line',
   },
 }
 
@@ -466,17 +466,17 @@ export function ProjectMeetingsTab({
 
                     {/* Status capsule */}
                     {status === 'LIVE' ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200 animate-pulse">
-                        <span className="size-2 rounded-full bg-emerald-500" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-extrabold border border-success/20 animate-pulse">
+                        <span className="size-2 rounded-full bg-success" />
                         ĐANG DIỄN RA
                       </span>
                     ) : status === 'UPCOMING' ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[10px] font-extrabold border border-sky-200">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-info/10 text-info text-[10px] font-extrabold border border-info/20">
                         <Clock size={11} />
                         SẮP DIỄN RA
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-extrabold border border-slate-200">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-panel text-muted text-[10px] font-extrabold border border-line">
                         ĐÃ KẾT THÚC
                       </span>
                     )}
@@ -671,43 +671,30 @@ export function ProjectMeetingsTab({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-extrabold text-ink mb-1.5">
-                Thời gian bắt đầu <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                type="datetime-local"
-                value={createForm.startTime}
-                onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })}
-                required
-              />
-            </div>
+            <Input
+              type="datetime-local"
+              label="Thời gian bắt đầu"
+              value={createForm.startTime}
+              onChange={e => setCreateForm({ ...createForm, startTime: e.target.value })}
+              required
+            />
 
-            <div>
-              <label className="block text-xs font-extrabold text-ink mb-1.5">
-                Thời gian kết thúc <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                type="datetime-local"
-                value={createForm.endTime}
-                onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-extrabold text-ink mb-1.5">
-              Mô tả / Nội dung dự kiến
-            </label>
-            <textarea
-              value={createForm.description || ''}
-              onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
-              rows={3}
-              placeholder="Nhập nội dung chính, mục tiêu hoặc ghi chú cho các thành viên..."
-              className="w-full bg-white p-3 text-xs rounded-xl border border-line font-medium text-ink focus:outline-none focus:border-brand"
+            <Input
+              type="datetime-local"
+              label="Thời gian kết thúc"
+              value={createForm.endTime}
+              onChange={e => setCreateForm({ ...createForm, endTime: e.target.value })}
+              required
             />
           </div>
+
+          <Textarea
+            label="Mô tả / Nội dung dự kiến"
+            value={createForm.description || ''}
+            onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
+            rows={3}
+            placeholder="Nhập nội dung chính, mục tiêu hoặc ghi chú cho các thành viên..."
+          />
 
           <div className="flex justify-end gap-3 pt-3 border-t border-line">
             <Button

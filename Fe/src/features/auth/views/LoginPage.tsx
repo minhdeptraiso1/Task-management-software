@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
-import { Button, Input } from '../../../components/ui'
+import { Button, Checkbox, Input } from '../../../components/ui'
 
 export interface LoginPageProps {
   loading: boolean
@@ -277,15 +277,11 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
               style={{ willChange: 'transform, opacity' }}
               className="flex items-center justify-between pt-0.5 pb-1"
             >
-              <label className="inline-flex items-center gap-2.5 cursor-pointer select-none text-xs font-semibold text-ink hover:text-brand transition-colors">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={event => setRememberMe(event.target.checked)}
-                  className="size-4 rounded border-line text-brand focus:ring-brand/20 accent-brand cursor-pointer"
-                />
-                Ghi nhớ đăng nhập
-              </label>
+              <Checkbox
+                label="Ghi nhớ đăng nhập"
+                checked={rememberMe}
+                onChange={event => setRememberMe(event.target.checked)}
+              />
             </motion.div>
 
             {error && (
@@ -293,7 +289,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
                 variants={fadeDownItemVariants}
                 style={{ willChange: 'transform, opacity' }}
                 role="alert"
-                className="rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-danger"
+                className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger font-medium flex items-center gap-2"
               >
                 {error}
               </motion.p>

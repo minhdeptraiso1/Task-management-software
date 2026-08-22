@@ -23,11 +23,11 @@ import {
   UserPlus,
   UsersRound,
   FileSpreadsheet,
-  RotateCcw,
+  RotateCw,
   Paperclip,
   Video,
 } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, DatePicker, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import { UserGuideModal } from '../../user/views/UserGuideModal'
 import { ProjectAiAssistantModal } from '../components/ProjectAiAssistantModal'
@@ -826,36 +826,42 @@ export function ProjectWorkspaceView({
               innerClassName="mt-3 p-3.5 bg-canvas border border-line rounded-xl space-y-3.5 text-xs"
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Bắt đầu từ ngày</label>
-                  <Input type="date" value={filters.startDateFrom || ''} onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.startDateTo || ''} onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })} />
-                </div>
+                <DatePicker
+                  label="Bắt đầu từ ngày"
+                  value={filters.startDateFrom || ''}
+                  onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.startDateTo || ''}
+                  onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })}
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Kết thúc từ ngày</label>
-                  <Input type="date" value={filters.endDateFrom || ''} onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.endDateTo || ''} onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })} />
-                </div>
+                <DatePicker
+                  label="Kết thúc từ ngày"
+                  value={filters.endDateFrom || ''}
+                  onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.endDateTo || ''}
+                  onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })}
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Ngày tạo từ ngày</label>
-                  <Input type="date" value={filters.createdFrom || ''} onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.createdTo || ''} onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
-                </div>
+                <DatePicker
+                  label="Ngày tạo từ ngày"
+                  value={filters.createdFrom ? filters.createdFrom.substring(0, 10) : ''}
+                  onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.createdTo ? filters.createdTo.substring(0, 10) : ''}
+                  onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })}
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-2.5 border-t border-line/60">
@@ -1338,19 +1344,15 @@ export function ProjectWorkspaceView({
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-line/60">
-                    <Button
-                      variant="secondary"
-                      size="sm"
+                    <ResetButton
                       iconOnly
-                      title="Đặt lại bộ lọc"
-                      aria-label="Đặt lại bộ lọc"
                       onClick={() => {
                         const resetObj = { performedByUserId: '', entityType: '', action: '', fromDate: '', toDate: '', keyword: '' }
                         onActivityFiltersChange(resetObj)
                         onActivitySearch(resetObj)
                       }}
                       className="!px-3"
-                      leadingIcon={<RotateCcw size={16} />}
+                      leadingIcon={<RotateCw size={16} />}
                     />
                     <Button variant="primary" size="sm" loading={loading} leadingIcon={<Filter size={15} />} onClick={() => onActivitySearch(activityFilters)} className="!px-5 font-bold shadow-xs">
                       Áp dụng Lọc

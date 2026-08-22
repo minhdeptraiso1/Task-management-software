@@ -39,17 +39,18 @@ public class MeetingAiSuggestionServiceImpl implements MeetingAiSuggestionServic
         Project project = access.getProjectOrThrow(projectId);
         access.requireViewAccess(project, user);
         String prompt = promptBuilder.build(request, context.buildProjectContext(projectId));
+        String raw = null;
         try {
-            String raw = provider.generateText(prompt);
+            raw = provider.generateText(prompt);
             String clean = extractJsonObject(raw);
             MeetingSuggestionResponse response = objectMapper.readValue(clean, MeetingSuggestionResponse.class);
             log(projectId, user.getId(), request.getAdditionalNote(), raw, true, null);
             return response;
         } catch (BusinessException e) {
-            log(projectId, user.getId(), request.getAdditionalNote(), null, false, e.getMessage());
+            log(projectId, user.getId(), request.getAdditionalNote(), raw, false, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log(projectId, user.getId(), request.getAdditionalNote(), null, false, "AI trả về JSON không hợp lệ");
+            log(projectId, user.getId(), request.getAdditionalNote(), raw, false, "AI trả về JSON không hợp lệ");
             throw new BusinessException(ErrorCode.JSON_PROCESSING_ERROR, "AI trả về nội dung meeting không đúng định dạng JSON");
         }
     }

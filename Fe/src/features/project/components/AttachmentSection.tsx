@@ -3,7 +3,7 @@ import { Paperclip, Trash2, Download, FileText, Image as ImageIcon, Video, FileA
 import { getAttachments, uploadAttachment, deleteAttachment } from '../services/attachment.service'
 import type { Attachment, AttachmentEntityType } from '../models/attachment.model'
 import { downloadExcelFile } from '../../../services/apiClient'
-import { ConfirmDialog } from '../../../components/ui'
+import { Button, ConfirmDialog } from '../../../components/ui'
 
 interface AttachmentSectionProps {
   projectId: string
@@ -112,7 +112,7 @@ export default function AttachmentSection({
       </div>
 
       {error && (
-        <div className="rounded-lg bg-rose-50 p-3 text-xs text-rose-600 border border-rose-200">
+        <div className="rounded-xl border border-danger/20 bg-danger/10 p-3 text-xs text-danger font-medium">
           {error}
         </div>
       )}
@@ -162,24 +162,28 @@ export default function AttachmentSection({
                     <td className="p-3 text-muted">
                       {new Date(att.createdAt).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="p-3 text-right space-x-2">
-                      <button
+                    <td className="p-3 text-right space-x-1">
+                      <Button
                         type="button"
+                        variant="ghost"
+                        tone="brand"
+                        size="sm"
+                        leadingIcon={<Download size={14} />}
                         onClick={() => downloadExcelFile(att.downloadUrl, att.originalFileName)}
-                        className="text-brand hover:underline font-bold inline-flex items-center gap-1"
                       >
-                        <Download size={13} />
                         Tải về
-                      </button>
+                      </Button>
                       {att.canDelete && isEditable && (
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          tone="danger"
+                          size="sm"
+                          leadingIcon={<Trash2 size={14} />}
                           onClick={() => setDeleteConfirm({ open: true, attachmentId: att.id, fileName: att.originalFileName })}
-                          className="text-rose-600 hover:underline font-bold inline-flex items-center gap-1 ml-2"
                         >
-                          <Trash2 size={13} />
                           Xóa
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>

@@ -1,2 +1,6 @@
 export { Button } from './Button'
+export { RefreshButton } from './RefreshButton'
+export type { RefreshButtonProps } from './RefreshButton'
+export { ResetButton } from './ResetButton'
+export type { ResetButtonProps } from './ResetButton'
 export type { ButtonProps, ButtonVariant } from './Button.types'

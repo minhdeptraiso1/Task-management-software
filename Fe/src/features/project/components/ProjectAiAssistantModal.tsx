@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   SlidersHorizontal,
 } from 'lucide-react'
-import { Modal } from '../../../components/ui'
+import { Button, Modal } from '../../../components/ui'
 import { askProjectAi } from '../services/ai.service'
 import type { ChatMessage, ProjectAiAskResponse } from '../models/ai.model'
 import type { Project } from '../models/project.model'
@@ -435,88 +435,83 @@ export function ProjectAiAssistantModal({ open, onClose, project, initialTab = '
 
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                tone="dark"
+                size="sm"
+                leadingIcon={<RotateCcw size={14} />}
                 onClick={handleClearHistory}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-all cursor-pointer"
                 title="Xóa hội thoại"
               >
-                <RotateCcw size={14} />
                 <span className="hidden sm:inline">Xóa hội thoại</span>
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
-              onClick={onClose}
-              className="size-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              variant="ghost"
+              tone="dark"
+              size="sm"
+              iconOnly
               aria-label="Đóng"
-            >
-              <X size={18} />
-            </button>
+              title="Đóng"
+              onClick={onClose}
+              leadingIcon={<X size={18} />}
+            />
           </div>
         </div>
 
         {/* Navigation Tabs Bar */}
         <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-6 py-2 shrink-0 overflow-x-auto scrollbar-none">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            active={activeTab === 'chat'}
+            size="sm"
             onClick={() => setActiveTab('chat')}
-            className={`inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'chat'
-                ? '!bg-brand !text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
           >
-            <span>Hỏi đáp Project AI</span>
-          </button>
+            Hỏi đáp Project AI
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            active={activeTab === 'meeting'}
+            size="sm"
             onClick={() => setActiveTab('meeting')}
-            className={`inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold transition-all cursor-pointer relative whitespace-nowrap ${
-              activeTab === 'meeting'
-                ? '!bg-brand !text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
           >
-            <span>Gợi ý cuộc họp</span>
-          </button>
+            Gợi ý cuộc họp
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            active={activeTab === 'minutes'}
+            size="sm"
             onClick={() => setActiveTab('minutes')}
-            className={`inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold transition-all cursor-pointer relative whitespace-nowrap ${
-              activeTab === 'minutes'
-                ? '!bg-brand !text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
           >
-            <span>Biên bản họp AI</span>
-          </button>
+            Biên bản họp AI
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            active={activeTab === 'action-items'}
+            size="sm"
             onClick={() => setActiveTab('action-items')}
-            className={`inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold transition-all cursor-pointer relative whitespace-nowrap ${
-              activeTab === 'action-items'
-                ? '!bg-brand !text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
           >
-            <span>Đề xuất Action Items</span>
-          </button>
+            Đề xuất Action Items
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            active={activeTab === 'meetings'}
+            size="sm"
             onClick={() => setActiveTab('meetings')}
-            className={`inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'meetings'
-                ? '!bg-brand !text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
           >
-            <span>Lịch cuộc họp</span>
-          </button>
+            Lịch cuộc họp
+          </Button>
         </div>
 
         {activeTab === 'meetings' ? (

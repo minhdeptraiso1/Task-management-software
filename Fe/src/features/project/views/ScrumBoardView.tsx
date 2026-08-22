@@ -3,7 +3,7 @@ import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, Import, List
 import { 
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart 
 } from 'recharts'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel, toast } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, Input, Modal, Select, CollapsiblePanel, toast } from '../../../components/ui'
 import { exportSprintExcelReport, exportSprintPdfReport } from '../services/report.service'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
@@ -1590,9 +1590,9 @@ function SprintTaskKanban({
         </div>
 
         <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
-          <button
-            type="button"
-            onClick={() => setTaskFilters({
+          <ResetButton
+            label="Đặt lại bộ lọc"
+            onReset={() => setTaskFilters({
               keyword: '',
               assigneeUserId: '',
               reporterUserId: '',
@@ -1609,10 +1609,7 @@ function SprintTaskKanban({
               createdFrom: '',
               createdTo: ''
             })}
-            className="text-muted hover:text-ink font-semibold"
-          >
-            Đặt lại bộ lọc
-          </button>
+          />
         </div>
       </CollapsiblePanel>
 
@@ -1914,13 +1911,7 @@ export function ScrumBoardView({
       </div>
 
       <div className="flex justify-end gap-3 pt-2 border-t border-line/60">
-        <button
-          type="button"
-          onClick={() => setSprintFilters({ keyword: '', status: '' })}
-          className="text-muted hover:text-ink font-semibold"
-        >
-          Đặt lại bộ lọc
-        </button>
+        <ResetButton label="Đặt lại bộ lọc" onReset={() => setSprintFilters({ keyword: '', status: '' })} />
       </div>
     </CollapsiblePanel>
 

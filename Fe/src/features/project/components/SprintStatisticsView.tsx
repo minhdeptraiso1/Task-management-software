@@ -1,5 +1,5 @@
-import { Button } from '../../../components/ui'
-import { ChevronLeft, RefreshCcw, Download, Loader2, ShieldAlert, AlertTriangle } from 'lucide-react'
+import { Button, RefreshButton } from '../../../components/ui'
+import { ChevronLeft, Download, Loader2, ShieldAlert, AlertTriangle } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toJpeg } from 'html-to-image'
 import { jsPDF } from 'jspdf'
@@ -185,7 +185,6 @@ export function SprintStatisticsView({
   const printRef = useRef<HTMLDivElement>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isExportAnim, setIsExportAnim] = useState(false)
-  const [isRefreshAnim, setIsRefreshAnim] = useState(false)
 
   const handleExportPDF = async () => {
     if (!printRef.current || !statistics) return
@@ -224,12 +223,6 @@ export function SprintStatisticsView({
     await handleExportPDF()
   }
 
-  const handleRefreshClick = () => {
-    setIsRefreshAnim(true)
-    setTimeout(() => setIsRefreshAnim(false), 500)
-    if (onRefresh) onRefresh()
-  }
-
   return (
     <section ref={printRef} className="space-y-6 rounded-2xl border border-brand-line bg-gradient-to-br from-brand-soft/30 via-brand-cream/30 to-white p-5 shadow-[0_18px_45px_rgba(247,148,29,0.08)] animate-enter">
       {/* Header */}
@@ -251,11 +244,7 @@ export function SprintStatisticsView({
           >
             Xuất PDF
           </Button>
-          {onRefresh && (
-            <Button variant="outline-amber" size="sm" leadingIcon={<RefreshCcw size={16} className={`transition-transform duration-500 ${isRefreshAnim ? 'rotate-[360deg]' : ''}`} />} onClick={handleRefreshClick}>
-              Làm mới
-            </Button>
-          )}
+          {onRefresh && <RefreshButton onRefresh={onRefresh} />}
         </div>
       </div>
 

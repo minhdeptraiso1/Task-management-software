@@ -23,12 +23,14 @@ import {
   UserPlus,
   UsersRound,
   FileSpreadsheet,
-  RotateCcw,
+  RotateCw,
   Paperclip,
+  Video,
 } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ConfirmDialog, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, DatePicker, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import { UserGuideModal } from '../../user/views/UserGuideModal'
+import { ProjectAiAssistantModal } from '../components/ProjectAiAssistantModal'
 import {
   entityTypeLabels,
   projectActivityLabels,
@@ -102,6 +104,7 @@ import { PersonalDashboardController } from '../../dashboard/controllers/Persona
 import { ProjectDashboardTab } from './ProjectDashboardTab'
 import { ProjectAttachmentsTab } from './ProjectAttachmentsTab'
 import { ProjectTaskImportHistoryTab } from './ProjectTaskImportHistoryTab'
+import { ProjectMeetingsTab } from './ProjectMeetingsTab'
 import { TimesheetView } from '../components/TimesheetView'
 import { BugView } from '../components/BugView'
 import { ProjectActivityDetailModal } from './ProjectActivityDetailModal'
@@ -144,7 +147,7 @@ interface Props {
   candidateUsers: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports'
+  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -166,7 +169,7 @@ interface Props {
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
@@ -492,10 +495,77 @@ export function ProjectWorkspaceView({
   const [projectEditOpen, setProjectEditOpen] = useState(false)
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false)
   const [projectStatusModalOpen, setProjectStatusModalOpen] = useState(false)
+  const [aiModalOpen, setAiModalOpen] = useState(false)
+  const [aiInitialTab, setAiInitialTab] = useState<'chat' | 'meeting' | 'minutes' | 'action-items' | 'meetings' | undefined>(undefined)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [isActivityFilterVisible, setIsActivityFilterVisible] = useState(false)
   
+  // Floating AI Speech Bubble & Idle State:
+  // Shows welcome message "Bạn cần hỗ trợ gì không?" when entering project or hover.
+  // Before hiding/shrinking, changes text to "Hãy gọi tôi khi cần giúp đỡ nhé!" for 1.8s.
+  const [welcomeBubbleVisible, setWelcomeBubbleVisible] = useState(true)
+  const [bubbleMessage, setBubbleMessage] = useState('Bạn cần hỗ trợ gì không?')
+  const [isAvatarHovered, setIsAvatarHovered] = useState(false)
+  const [isAvatarIdle, setIsAvatarIdle] = useState(false)
+  
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const farewellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const resetIdleTimer = () => {
+    setIsAvatarIdle(false)
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+    if (farewellTimerRef.current) clearTimeout(farewellTimerRef.current)
+
+    // At 26s of idle (4s before 30s shrink): show farewell bubble "Hãy gọi tôi khi cần giúp đỡ nhé!"
+    farewellTimerRef.current = setTimeout(() => {
+      setBubbleMessage('Hãy gọi tôi khi cần giúp đỡ nhé! 👋')
+      setWelcomeBubbleVisible(true)
+    }, 26000)
+
+    // At 30s of idle: hide bubble & shrink avatar to 50%
+    idleTimerRef.current = setTimeout(() => {
+      setWelcomeBubbleVisible(false)
+      setIsAvatarIdle(true)
+    }, 30000)
+  }
+
+  useEffect(() => {
+    setWelcomeBubbleVisible(true)
+    setBubbleMessage('Bạn cần hỗ trợ gì không?')
+    resetIdleTimer()
+
+    // Farewell message right before initial 5s popup ends (at 3.2s)
+    const farewellTimer = setTimeout(() => {
+      setBubbleMessage('Hãy gọi tôi khi cần giúp đỡ nhé! 👋')
+    }, 3200)
+
+    const hideBubbleTimer = setTimeout(() => {
+      setWelcomeBubbleVisible(false)
+    }, 5000)
+
+    return () => {
+      clearTimeout(farewellTimer)
+      clearTimeout(hideBubbleTimer)
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      if (farewellTimerRef.current) clearTimeout(farewellTimerRef.current)
+    }
+  }, [selectedProject?.id])
+
+  const handleAvatarMouseEnter = () => {
+    setIsAvatarHovered(true)
+    setBubbleMessage('Bạn cần hỗ trợ gì không?')
+    resetIdleTimer()
+  }
+
+  const handleAvatarMouseLeave = () => {
+    setIsAvatarHovered(false)
+    setBubbleMessage('Hãy gọi tôi khi cần giúp đỡ nhé! 👋')
+    resetIdleTimer()
+  }
+
+  const speechBubbleVisible = welcomeBubbleVisible || isAvatarHovered
+
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [suggestionProjects, setSuggestionProjects] = useState<Project[]>([])
@@ -756,36 +826,42 @@ export function ProjectWorkspaceView({
               innerClassName="mt-3 p-3.5 bg-canvas border border-line rounded-xl space-y-3.5 text-xs"
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Bắt đầu từ ngày</label>
-                  <Input type="date" value={filters.startDateFrom || ''} onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.startDateTo || ''} onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })} />
-                </div>
+                <DatePicker
+                  label="Bắt đầu từ ngày"
+                  value={filters.startDateFrom || ''}
+                  onChange={e => onFiltersChange({ ...filters, startDateFrom: e.target.value || undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.startDateTo || ''}
+                  onChange={e => onFiltersChange({ ...filters, startDateTo: e.target.value || undefined })}
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Kết thúc từ ngày</label>
-                  <Input type="date" value={filters.endDateFrom || ''} onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.endDateTo || ''} onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })} />
-                </div>
+                <DatePicker
+                  label="Kết thúc từ ngày"
+                  value={filters.endDateFrom || ''}
+                  onChange={e => onFiltersChange({ ...filters, endDateFrom: e.target.value || undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.endDateTo || ''}
+                  onChange={e => onFiltersChange({ ...filters, endDateTo: e.target.value || undefined })}
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Ngày tạo từ ngày</label>
-                  <Input type="date" value={filters.createdFrom || ''} onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-extrabold text-muted-dark mb-1">Đến ngày</label>
-                  <Input type="date" value={filters.createdTo || ''} onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })} />
-                </div>
+                <DatePicker
+                  label="Ngày tạo từ ngày"
+                  value={filters.createdFrom ? filters.createdFrom.substring(0, 10) : ''}
+                  onChange={e => onFiltersChange({ ...filters, createdFrom: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                />
+                <DatePicker
+                  label="Đến ngày"
+                  value={filters.createdTo ? filters.createdTo.substring(0, 10) : ''}
+                  onChange={e => onFiltersChange({ ...filters, createdTo: e.target.value ? new Date(new Date(e.target.value).setHours(23, 59, 59, 999)).toISOString() : undefined })}
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-2.5 border-t border-line/60">
@@ -937,10 +1013,13 @@ export function ProjectWorkspaceView({
                 <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug (QA)</Button>
+                <Button variant="secondary" className={activeTab === 'bugs' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bug size={16} />} onClick={() => onTabChange('bugs')}>Quản lý Bug</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'attachments' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Paperclip size={16} />} onClick={() => onTabChange('attachments')}>Tài liệu & Bảo mật</Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
+                <Button variant="secondary" className={activeTab === 'meetings' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Video size={16} />} onClick={() => onTabChange('meetings')}>Cuộc họp</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'imports' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<FileSpreadsheet size={16} />} onClick={() => onTabChange('imports')}>Lịch sử Import</Button>
@@ -1265,19 +1344,15 @@ export function ProjectWorkspaceView({
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-line/60">
-                    <Button
-                      variant="secondary"
-                      size="sm"
+                    <ResetButton
                       iconOnly
-                      title="Đặt lại bộ lọc"
-                      aria-label="Đặt lại bộ lọc"
                       onClick={() => {
                         const resetObj = { performedByUserId: '', entityType: '', action: '', fromDate: '', toDate: '', keyword: '' }
                         onActivityFiltersChange(resetObj)
                         onActivitySearch(resetObj)
                       }}
                       className="!px-3"
-                      leadingIcon={<RotateCcw size={16} />}
+                      leadingIcon={<RotateCw size={16} />}
                     />
                     <Button variant="primary" size="sm" loading={loading} leadingIcon={<Filter size={15} />} onClick={() => onActivitySearch(activityFilters)} className="!px-5 font-bold shadow-xs">
                       Áp dụng Lọc
@@ -1390,6 +1465,19 @@ export function ProjectWorkspaceView({
             {activeTab === 'imports' && (
               <ProjectTaskImportHistoryTab projectId={selectedProject.id} />
             )}
+
+            {activeTab === 'meetings' && (
+              <ProjectMeetingsTab
+                projectId={selectedProject.id}
+                projectName={selectedProject.name}
+                projectCode={selectedProject.code}
+                userRole={selectedProject.currentUserRole || undefined}
+                onOpenAiAssistant={(tab) => {
+                  if (tab) setAiInitialTab(tab)
+                  setAiModalOpen(true)
+                }}
+              />
+            )}
           </div>
           </motion.div>
           )}
@@ -1461,6 +1549,60 @@ export function ProjectWorkspaceView({
     <UserGuideModal
       open={guideModalOpen}
       onClose={() => setGuideModalOpen(false)}
+    />
+
+    {selectedProject && (
+      <div
+        onMouseEnter={handleAvatarMouseEnter}
+        onMouseLeave={handleAvatarMouseLeave}
+        className={`fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 group transition-all duration-500 ease-out origin-bottom-right ${
+          isAvatarIdle && !isAvatarHovered
+            ? 'scale-50 opacity-45 hover:scale-100 hover:opacity-100'
+            : 'scale-100 opacity-100'
+        }`}
+      >
+        {/* Comic Speech Bubble Callout (shows on enter 5s, or hover) */}
+        <div
+          onClick={() => setAiModalOpen(true)}
+          className={`relative cursor-pointer rounded-2xl rounded-br-xs border border-amber-300/90 bg-white px-4 py-2.5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-amber-400 active:scale-95 transform ${
+            speechBubbleVisible
+              ? 'opacity-100 scale-100 translate-y-0'
+              : 'opacity-0 scale-90 translate-y-3 pointer-events-none'
+          }`}
+          title="Bấm để trao đổi với Trợ lý AI"
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">
+              Trợ lý AI HICAS
+            </span>
+            <span className="text-xs font-bold text-slate-800 leading-snug">
+              {bubbleMessage}
+            </span>
+          </div>
+          {/* Comic Speech Bubble Pointer Tail */}
+          <div className="absolute -bottom-1.5 right-7 size-3 rotate-45 border-b border-r border-amber-300/90 bg-white" />
+        </div>
+
+        {/* Circular AI Avatar Button (70px x 70px) */}
+        <button
+          type="button"
+          onClick={() => setAiModalOpen(true)}
+          className="relative size-[70px] rounded-full p-1 bg-gradient-to-tr from-brand via-amber-500 to-amber-300 shadow-2xl transition-all duration-300 hover:scale-108 hover:shadow-amber-500/40 active:scale-95 cursor-pointer border-3 border-white shrink-0"
+          title=""
+        >
+          <div className="relative size-full rounded-full overflow-hidden bg-slate-950">
+            <img src="/ai-avatar.jpg" alt="AI Assistant Mascot" className="size-full object-cover" />
+          </div>
+          <span className="absolute top-0.5 right-0.5 size-3.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+        </button>
+      </div>
+    )}
+
+    <ProjectAiAssistantModal
+      open={aiModalOpen}
+      onClose={() => setAiModalOpen(false)}
+      project={selectedProject}
+      initialTab={aiInitialTab}
     />
   </div>
 }

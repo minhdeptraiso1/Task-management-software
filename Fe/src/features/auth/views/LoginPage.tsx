@@ -1,12 +1,13 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
-import { Button, Input } from '../../../components/ui'
+import { Button, Checkbox, Input } from '../../../components/ui'
 
 export interface LoginPageProps {
   loading: boolean
   error: string
   onSubmit: (email: string, password: string) => void
+  isLoaded?: boolean
 }
 
 function Brand() {
@@ -73,11 +74,13 @@ const fadeDownItemVariants = {
   },
 }
 
-export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
+export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+
+  const animateState = isLoaded ? 'animate' : 'initial'
 
   useEffect(() => {
     const savedRemember = localStorage.getItem('remember_me') === 'true'
@@ -111,7 +114,7 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
       <motion.section
         variants={leftPanelVariants}
         initial="initial"
-        animate="animate"
+        animate={animateState}
         style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         className="relative hidden overflow-hidden bg-brand-black p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16"
       >
@@ -121,7 +124,7 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
         <motion.div
           variants={contentContainerVariants}
           initial="initial"
-          animate="animate"
+          animate={animateState}
           className="relative flex flex-col justify-between h-full"
         >
           <motion.div variants={fadeDownItemVariants} style={{ willChange: 'transform, opacity' }}>
@@ -183,14 +186,14 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
       <motion.section
         variants={rightPanelVariants}
         initial="initial"
-        animate="animate"
+        animate={animateState}
         style={{ willChange: 'transform', transform: 'translateZ(0)' }}
         className="flex items-center justify-center p-6 sm:p-10"
       >
         <motion.div
           variants={contentContainerVariants}
           initial="initial"
-          animate="animate"
+          animate={animateState}
           className="w-full max-w-md rounded-2xl border border-line bg-white p-6 shadow-[0_18px_60px_rgba(7,21,125,.08)] sm:p-9 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
         >
           <motion.div
@@ -274,15 +277,11 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
               style={{ willChange: 'transform, opacity' }}
               className="flex items-center justify-between pt-0.5 pb-1"
             >
-              <label className="inline-flex items-center gap-2.5 cursor-pointer select-none text-xs font-semibold text-ink hover:text-brand transition-colors">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={event => setRememberMe(event.target.checked)}
-                  className="size-4 rounded border-line text-brand focus:ring-brand/20 accent-brand cursor-pointer"
-                />
-                Ghi nhớ đăng nhập
-              </label>
+              <Checkbox
+                label="Ghi nhớ đăng nhập"
+                checked={rememberMe}
+                onChange={event => setRememberMe(event.target.checked)}
+              />
             </motion.div>
 
             {error && (
@@ -290,7 +289,7 @@ export function LoginPage({ loading, error, onSubmit }: LoginPageProps) {
                 variants={fadeDownItemVariants}
                 style={{ willChange: 'transform, opacity' }}
                 role="alert"
-                className="rounded-xl bg-[#fff0f0] px-4 py-3 text-sm text-danger"
+                className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger font-medium flex items-center gap-2"
               >
                 {error}
               </motion.p>

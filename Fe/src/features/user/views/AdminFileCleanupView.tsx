@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { cleanupDeletedFiles, cleanupOrphanFiles } from '../../project/services/attachment.service'
 import { getFileAudits } from '../services/admin.service'
 import type { FileCleanupResult } from '../../project/models/attachment.model'
-import { Button, Input } from '../../../components/ui'
-import { ShieldAlert, Trash2, ShieldCheck, RefreshCcw, AlertTriangle } from 'lucide-react'
+import { Button, RefreshButton, Input } from '../../../components/ui'
+import { ShieldAlert, Trash2, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react'
 
 export function AdminFileCleanupView() {
   const [limit, setLimit] = useState(100)
@@ -124,7 +124,7 @@ export function AdminFileCleanupView() {
         <div className="rounded-2xl border border-line bg-white p-6 shadow-sm flex flex-col justify-between">
           <div className="space-y-4">
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
-              <RefreshCcw className="text-amber-500" size={18} />
+              <RefreshCw className="text-amber-500" size={18} />
               Dọn dẹp tệp tin mồ côi (Orphans)
             </h3>
             <p className="text-xs text-muted leading-relaxed">
@@ -218,9 +218,7 @@ function AdminFileAuditList() {
             Lịch sử thao tác tải xuống (FILE_DOWNLOADED) và xóa (FILE_DELETED) tệp tin của người dùng.
           </p>
         </div>
-        <Button variant="secondary" size="sm" leadingIcon={<RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />} onClick={fetchFileAudits}>
-          Tải lại
-        </Button>
+        <RefreshButton refreshing={loading} onRefresh={fetchFileAudits} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-line/60">

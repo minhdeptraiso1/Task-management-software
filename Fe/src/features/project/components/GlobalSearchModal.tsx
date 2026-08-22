@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Search, X, FolderKanban, CalendarDays, Layers, CheckSquare, Bug, MessageSquare, CornerDownLeft, Loader2, Paperclip } from 'lucide-react'
 import { searchGlobal, searchInProject } from '../services/search.service'
 import type { SearchResultItem, SearchEntityType } from '../models/search.model'
+import { Button, Checkbox } from '../../../components/ui'
 
 interface GlobalSearchModalProps {
   open: boolean
@@ -222,43 +223,45 @@ export default function GlobalSearchModal({
           {loading ? (
             <Loader2 className="animate-spin text-brand mr-2" size={20} />
           ) : query ? (
-            <button 
+            <Button 
               type="button" 
+              variant="ghost"
+              tone="neutral"
+              size="sm"
+              iconOnly
+              aria-label="Xóa nội dung tìm kiếm"
+              title="Xóa nội dung tìm kiếm"
               onClick={() => { setQuery(''); setResults([]) }} 
-              className="text-slate-400 hover:text-slate-700 transition p-1.5 rounded-full hover:bg-slate-100"
-            >
-              <X size={20} />
-            </button>
+              leadingIcon={<X size={18} />}
+            />
           ) : null}
         </div>
 
         {/* Project Scope Toggle */}
         {currentProjectId && (
           <div className="flex items-center justify-between bg-canvas px-6 py-3 border-b border-line text-sm">
-            <span className="text-slate-500 font-semibold">Phạm vi tìm kiếm:</span>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="rounded border-line text-brand focus:ring-brand size-4 cursor-pointer"
-                checked={searchProjectOnly}
-                onChange={e => setSearchProjectOnly(e.target.checked)}
-              />
-              <span className="font-bold text-slate-800">Chỉ trong dự án hiện tại ({currentProjectCode})</span>
-            </label>
+            <span className="text-muted font-semibold">Phạm vi tìm kiếm:</span>
+            <Checkbox
+              label={`Chỉ trong dự án hiện tại (${currentProjectCode})`}
+              checked={searchProjectOnly}
+              onChange={e => setSearchProjectOnly(e.target.checked)}
+            />
           </div>
         )}
 
         {/* Entity Type Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto p-4 border-b border-line scrollbar-none bg-canvas">
           {ENTITY_TYPES.map(tab => (
-            <button
+            <Button
               key={tab.value}
               type="button"
+              variant="secondary"
+              active={selectedType === tab.value}
+              size="sm"
               onClick={() => setSelectedType(tab.value)}
-              className={`rounded-xl px-4 py-2 text-xs sm:text-sm font-bold transition whitespace-nowrap ${selectedType === tab.value ? 'bg-brand text-white shadow-md' : 'bg-white border border-line text-slate-600 hover:bg-slate-50'}`}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 

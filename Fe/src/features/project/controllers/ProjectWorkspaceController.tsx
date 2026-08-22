@@ -140,7 +140,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [openBugId, setOpenBugId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)

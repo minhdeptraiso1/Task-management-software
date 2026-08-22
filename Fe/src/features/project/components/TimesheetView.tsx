@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Clock3, FolderKanban, Users2, AlertTriangle, ChevronLeft, ChevronRight, RefreshCcw, Download, FileText, RotateCcw } from 'lucide-react'
-import { Button, Input, Select } from '../../../components/ui'
+import { Clock3, FolderKanban, Users2, AlertTriangle, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react'
+import { Button, ResetButton, RefreshButton, Input, Select } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
 import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary, exportProjectTimeLogsExcel, exportMyTimeLogsExcel } from '../services/timesheet.service'
@@ -39,10 +39,6 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'details' | 'daily' | 'users'>('details')
-
-  // Animation states for Reset & Reload buttons
-  const [isResetting, setIsResetting] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const loadTimesheet = useCallback(async () => {
     setLoading(true)
@@ -110,18 +106,6 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
     setSelectedUserId('')
     setSelectedTaskId('')
     setPage(0)
-  }
-
-  const handleResetFiltersWithAnim = () => {
-    setIsResetting(true)
-    handleResetFilters()
-    setTimeout(() => setIsResetting(false), 600)
-  }
-
-  const handleReloadWithAnim = () => {
-    setIsRefreshing(true)
-    void loadTimesheet()
-    setTimeout(() => setIsRefreshing(false), 600)
   }
 
   // Workload helper for daily grid styling
@@ -232,39 +216,8 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
               Xuất Excel
             </Button>
 
-            {/* Nút Đặt lại (Icon Mũi tên quay ngược, Hover hiện 'Đặt lại', Click xoay 1 vòng ngược chiều) */}
-            <button
-              type="button"
-              onClick={handleResetFiltersWithAnim}
-              title="Đặt lại"
-              className="relative group grid size-10 place-items-center rounded-xl border border-line/70 bg-white text-muted hover:border-brand hover:text-brand transition-all shadow-2xs"
-            >
-              <RotateCcw 
-                size={18} 
-                className="transition-transform duration-500 ease-in-out"
-                style={{ transform: isResetting ? 'rotate(-360deg)' : 'rotate(0deg)' }}
-              />
-              <span className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap z-20 pointer-events-none">
-                Đặt lại
-              </span>
-            </button>
-
-            {/* Nút Làm mới / Reload (Icon Reload, Hover hiện 'Làm mới', Click xoay 1 vòng thuận chiều) */}
-            <button
-              type="button"
-              onClick={handleReloadWithAnim}
-              title="Làm mới"
-              className="relative group grid size-10 place-items-center rounded-xl border border-line/70 bg-white text-muted hover:border-brand hover:text-brand transition-all shadow-2xs"
-            >
-              <RefreshCcw 
-                size={18} 
-                className="transition-transform duration-500 ease-in-out"
-                style={{ transform: isRefreshing ? 'rotate(360deg)' : 'rotate(0deg)' }}
-              />
-              <span className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap z-20 pointer-events-none">
-                Làm mới
-              </span>
-            </button>
+            <ResetButton iconOnly onReset={handleResetFilters} />
+            <RefreshButton iconOnly onRefresh={loadTimesheet} />
           </div>
         </div>
       </section>

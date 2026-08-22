@@ -1185,6 +1185,36 @@ public enum ErrorCode {
     // ============================================================
     // INFRASTRUCTURE
     // ============================================================
+    AI_API_KEY_MISSING(
+            400918,
+            HttpStatus.BAD_REQUEST,
+            "Chưa cấu hình Gemini API key"),
+
+    AI_PROMPT_EMPTY(
+            400919,
+            HttpStatus.BAD_REQUEST,
+            "Câu hỏi AI không được để trống"),
+
+    AI_PROMPT_TOO_LONG(
+            400920,
+            HttpStatus.BAD_REQUEST,
+            "Câu hỏi AI quá dài"),
+
+    AI_PROVIDER_ERROR(
+            500919,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Dịch vụ AI phản hồi lỗi"),
+
+    AI_RESPONSE_EMPTY(
+            500920,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Dịch vụ AI không trả nội dung"),
+    
+    AI_REQUEST_FAILED(
+            500918,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Gọi dịch vụ AI thất bại"),
+
     SYSTEM_ERROR(
             500001,
             HttpStatus.INTERNAL_SERVER_ERROR,

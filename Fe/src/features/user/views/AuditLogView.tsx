@@ -69,7 +69,7 @@ export function AuditLogView({ logs, summary, loading, realtimeStatus, error, pa
           </span>
           <div>
             <h2 className="font-extrabold text-base text-ink">Nhật ký Kiểm toán Hệ thống (System Audit Logs)</h2>
-            <p className="mt-0.5 text-xs text-muted font-medium">Theo dõi lịch sử truy cập, bảo mật tài khoản và thao tác nhạy cảm toàn hệ thống HICAS ONE.</p>
+            <p className="mt-0.5 text-xs text-muted font-medium">Theo dõi lịch sử truy cập, bảo mật tài khoản và thao tác nhạy cảm toàn hệ thống BICAS ONE.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">

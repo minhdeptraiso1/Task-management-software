@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Clock3, FolderKanban, Users2, AlertTriangle, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react'
 import { Button, ResetButton, RefreshButton, Input, Select } from '../../../components/ui'
+import { formatDate } from '../../../utils/format'
 import type { ProjectMember } from '../models/project.model'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
 import { getMyTimesheet, getMyTimesheetSummary, getProjectTimesheet, getProjectTimesheetSummary, exportProjectTimeLogsExcel, exportMyTimeLogsExcel } from '../services/timesheet.service'
@@ -332,7 +333,7 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
                       {pageData && pageData.content.map(entry => (
                         <tr key={entry.id} className="transition-colors hover:bg-slate-50/80">
                           <td className="px-6 py-3.5 font-semibold text-ink whitespace-nowrap">
-                            {new Date(entry.workDate).toLocaleDateString('vi-VN')}
+                            {formatDate(entry.workDate)}
                           </td>
                           {mode === 'project' && (
                             <td className="px-5 py-3.5 text-ink font-semibold whitespace-nowrap">

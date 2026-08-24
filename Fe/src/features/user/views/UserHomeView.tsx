@@ -41,7 +41,7 @@ export function UserHomeView({ user, onLogout }: UserHomeViewProps) {
           </span>
           <h1 className="mt-5 text-[28px] font-bold leading-9">Xin chào, {user.username}</h1>
           <p className="mt-3 max-w-xl leading-7 text-white/70">
-            Chào mừng bạn đến với HiCAS One. Giao diện này chỉ tải dữ liệu thuộc quyền của vai trò hiện tại, không gọi API quản trị.
+            Chào mừng bạn đến với BICAS One. Giao diện này chỉ tải dữ liệu thuộc quyền của vai trò hiện tại, không gọi API quản trị.
           </p>
         </div>
       </section>

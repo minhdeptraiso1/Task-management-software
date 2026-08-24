@@ -1,8 +1,9 @@
 package com.project.taskmanagement.ai.meeting.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
-import java.util.UUID;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MeetingSuggestionResponse {
     private String title, purpose, summary;
     private List<String> agenda = List.of(), discussionQuestions = List.of(), relatedRisks = List.of();
@@ -64,15 +65,16 @@ public class MeetingSuggestionResponse {
         summary = v;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class RelatedTaskItem {
-        private UUID taskId;
+        private String taskId;
         private String title, status, assigneeName, reason;
 
-        public UUID getTaskId() {
+        public String getTaskId() {
             return taskId;
         }
 
-        public void setTaskId(UUID v) {
+        public void setTaskId(String v) {
             taskId = v;
         }
 

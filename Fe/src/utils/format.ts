@@ -1,5 +1,11 @@
 export function formatDate(value?: string | null) {
   if (!value) return 'Chưa đặt'
+  const dateStr = value.split('T')[0]
+  const parts = dateStr.split('-')
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [year, month, day] = parts
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
+  }
   return new Intl.DateTimeFormat('vi-VN').format(new Date(value))
 }
 

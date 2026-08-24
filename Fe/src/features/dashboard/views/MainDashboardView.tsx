@@ -194,7 +194,7 @@ export function MainDashboardView({
       >
         <div className="flex items-center gap-3 font-bold">
           <span className="text-xl tracking-tighter text-white">
-            HI<span className="text-accent">CAS</span>
+            BI<span className="text-accent">CAS</span>
           </span>
           <span className="h-4 w-px bg-white/20" />
           <span className="text-xs tracking-widest text-white/70">WORKSPACE</span>
@@ -244,7 +244,7 @@ export function MainDashboardView({
         >
           <div className="flex items-center justify-between border-b border-line/60 pb-4 mb-4">
             <h2 className="font-bold text-base text-ink">Dự án của tôi</h2>
-            <span className="text-xs text-muted font-semibold">HiCAS Workspace</span>
+            <span className="text-xs text-muted font-semibold">BICAS Workspace</span>
           </div>
 
           <div className="space-y-2">
@@ -339,7 +339,7 @@ export function MainDashboardView({
                 >
                   <div className="relative z-10 max-w-xl">
                     <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-cyan-300">
-                      <ShieldCheck size={14} /> HiCAS Workstation 2026
+                      <ShieldCheck size={14} /> BICAS Workstation 2026
                     </span>
                     <h2 className="text-2xl font-bold mt-3 leading-snug">Vận hành dự án & công việc hiệu quả</h2>
                     <p className="text-xs text-white/70 mt-2 leading-relaxed">

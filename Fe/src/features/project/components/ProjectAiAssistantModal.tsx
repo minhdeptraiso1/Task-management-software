@@ -421,7 +421,7 @@ export function ProjectAiAssistantModal({ open, onClose, project, initialTab = '
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h3 className="font-extrabold text-white text-base tracking-tight">Trợ lý AI HiCAS</h3>
+                <h3 className="font-extrabold text-white text-base tracking-tight">Trợ lý AI BICAS</h3>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-300 border border-emerald-500/30 backdrop-blur-xs">
                   <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
                   Gemini 2.5 Flash

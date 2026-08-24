@@ -278,7 +278,7 @@ function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; 
   return <Modal open={open} onClose={onClose} title="Tạo dự án mới" description="Người tạo dự án sẽ tự động là OWNER." showClose={false}>
     <form className="space-y-4" onSubmit={submit}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Mã dự án" value={code} onChange={event => setCode(event.target.value)} required placeholder="HICAS-ERP" />
+        <Input label="Mã dự án" value={code} onChange={event => setCode(event.target.value)} required placeholder="BICAS-ERP" />
         <Input label="Tên dự án" value={name} onChange={event => setName(event.target.value)} required placeholder="Hệ thống ERP nội bộ" />
       </div>
       <div>
@@ -1573,7 +1573,7 @@ export function ProjectWorkspaceView({
         >
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">
-              Trợ lý AI HICAS
+              Trợ lý AI BICAS
             </span>
             <span className="text-xs font-bold text-slate-800 leading-snug">
               {bubbleMessage}

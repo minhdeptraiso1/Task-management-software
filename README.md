@@ -1,4 +1,4 @@
-# HICAS Task Management
+# Bicas Task Management
 
 Hệ thống quản lý dự án và công việc nội bộ theo Agile/Scrum, gồm giao diện React và REST API Spring Boot. Hệ thống hỗ trợ quản lý Project, thành viên, Product Backlog, Sprint, Kanban Task, Bug/QA, bình luận, time log, thông báo realtime, dashboard và báo cáo Excel/PDF.
 
@@ -100,12 +100,12 @@ Mật khẩu chung: `123456`.
 | Vai trò | Email đăng nhập |
 | --- | --- |
 | Admin hệ thống | `admin@example.com` |
-| Manager/Owner | `manager@hicas.demo` |
-| Project Manager | `pm@hicas.demo` |
-| Scrum Master | `scrum@hicas.demo` |
-| Product Owner | `po@hicas.demo` |
-| Developer | `dev.minh@hicas.demo` |
-| QA/Tester | `qa.linh@hicas.demo` |
+| Manager/Owner | `manager@Bicas.demo` |
+| Project Manager | `pm@Bicas.demo` |
+| Scrum Master | `scrum@Bicas.demo` |
+| Product Owner | `po@Bicas.demo` |
+| Developer | `dev.minh@Bicas.demo` |
+| QA/Tester | `qa.linh@Bicas.demo` |
 
 `locked.demo` là tài khoản bị khóa dùng để kiểm tra security. Không sử dụng các mật khẩu demo trong production.
 
@@ -142,7 +142,7 @@ Integration/repository test dùng PostgreSQL Testcontainers, không sử dụng 
 
 ## Kịch bản demo đề xuất
 
-1. Đăng nhập Manager và chọn Project `HICAS-DEMO`.
+1. Đăng nhập Manager và chọn Project `Bicas-DEMO`.
 2. Kiểm tra thành viên và các vai trò Project.
 3. Tạo Backlog Item và đưa vào Sprint đang lập kế hoạch.
 4. Bắt đầu Sprint, tạo và phân công Task.

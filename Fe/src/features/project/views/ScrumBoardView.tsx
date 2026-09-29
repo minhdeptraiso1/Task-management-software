@@ -3,7 +3,7 @@ import { CalendarDays, ChevronLeft, Clock3, Download, FolderKanban, Import, List
 import { 
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart 
 } from 'recharts'
-import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, Input, Modal, Select, CollapsiblePanel, toast } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, Input, Modal, Select, CollapsiblePanel, toast, Checkbox, Textarea } from '../../../components/ui'
 import { exportSprintExcelReport, exportSprintPdfReport } from '../services/report.service'
 import { SprintStatisticsView } from '../components/SprintStatisticsView'
 import { SprintClosingView } from '../components/SprintClosingView'
@@ -202,10 +202,7 @@ function CreateBacklogModal({ open, saving, onClose, onSave }: { open: boolean; 
   return <Modal open={open} onClose={onClose} title="Tạo backlog item" description="Backlog mới sẽ nằm trong Product Backlog và có thể kéo vào Sprint." showClose={false}>
     <form className="space-y-4" onSubmit={submit}>
       <Input label="Tiêu đề" value={title} onChange={event => setTitle(event.target.value)} required placeholder="Người dùng đăng nhập bằng email" />
-      <div>
-        <label className="mb-2 block text-sm font-medium text-[#3f3f46]">Mô tả</label>
-        <textarea className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={description} onChange={event => setDescription(event.target.value)} />
-      </div>
+      <Textarea label="Mô tả" value={description} onChange={event => setDescription(event.target.value)} />
       <div className="grid gap-4 sm:grid-cols-3">
         <Select label="Loại" value={type} onChange={event => setType(event.target.value as BacklogItemType)} options={itemTypes.map(item => ({ label: backlogTypeLabels[item], value: item }))} />
         <Select label="Ưu tiên" value={priority} onChange={event => setPriority(event.target.value as BacklogPriority)} options={priorities.map(item => ({ label: backlogPriorityLabels[item], value: item }))} />
@@ -289,10 +286,7 @@ function CreateTaskModal({
     <form className="space-y-4" onSubmit={submit}>
       <Select label="Backlog Item" required value={backlogItemId} onChange={event => setBacklogItemId(event.target.value)} options={[{ label: 'Chọn backlog item trong sprint', value: '' }, ...backlogItems.map(item => ({ label: item.title, value: item.id }))]} />
       <Input label="Tiêu đề Task" required value={title} onChange={event => setTitle(event.target.value)} placeholder="Xây dựng API đăng nhập" />
-      <div>
-        <label className="mb-2 block text-sm font-medium text-[#3f3f46]">Mô tả</label>
-        <textarea className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={description} onChange={event => setDescription(event.target.value)} />
-      </div>
+      <Textarea label="Mô tả" value={description} onChange={event => setDescription(event.target.value)} />
       <div className="grid gap-4 sm:grid-cols-3">
         <Select label="Loại" value={type} onChange={event => setType(event.target.value as TaskType)} options={taskTypes.map(item => ({ label: taskTypeLabels[item], value: item }))} />
         <Select label="Ưu tiên" value={priority} onChange={event => setPriority(event.target.value as TaskPriority)} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
@@ -551,7 +545,7 @@ function TaskDetailModal({
         </div>
         {editingTask && <div className="space-y-3">
           <Input label="Tiêu đề" value={editTitle} onChange={event => setEditTitle(event.target.value)} />
-          <textarea aria-label="Mô tả task" className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={editDescription} onChange={event => setEditDescription(event.target.value)} />
+          <Textarea label="Mô tả" aria-label="Mô tả task" value={editDescription} onChange={event => setEditDescription(event.target.value)} />
           <div className="grid gap-3 sm:grid-cols-3">
             <Select label="Loại" value={editType} onChange={event => setEditType(event.target.value as TaskType)} options={taskTypes.map(item => ({ label: taskTypeLabels[item], value: item }))} />
             <Select label="Ưu tiên" value={editPriority} onChange={event => setEditPriority(event.target.value as TaskPriority)} options={taskPriorities.map(item => ({ label: taskPriorityLabels[item], value: item }))} />
@@ -1558,33 +1552,21 @@ function SprintTaskKanban({
           </div>
           <div className="flex flex-col justify-end gap-2 pt-2 sm:pt-0">
             <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={taskFilters.unassignedOnly || false}
-                  onChange={e => setTaskFilters({ ...taskFilters, unassignedOnly: e.target.checked })}
-                  className="rounded border-line text-brand focus:ring-brand"
-                />
-                Chưa gán
-              </label>
-              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={taskFilters.overdueOnly || false}
-                  onChange={e => setTaskFilters({ ...taskFilters, overdueOnly: e.target.checked })}
-                  className="rounded border-line text-brand focus:ring-brand"
-                />
-                Quá hạn
-              </label>
-              <label className="flex items-center gap-1.5 font-semibold text-muted-dark select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={taskFilters.dueSoonOnly || false}
-                  onChange={e => setTaskFilters({ ...taskFilters, dueSoonOnly: e.target.checked })}
-                  className="rounded border-line text-brand focus:ring-brand"
-                />
-                Sắp hạn (≤3 ngày)
-              </label>
+              <Checkbox
+                label="Chưa gán"
+                checked={taskFilters.unassignedOnly || false}
+                onChange={e => setTaskFilters({ ...taskFilters, unassignedOnly: e.target.checked })}
+              />
+              <Checkbox
+                label="Quá hạn"
+                checked={taskFilters.overdueOnly || false}
+                onChange={e => setTaskFilters({ ...taskFilters, overdueOnly: e.target.checked })}
+              />
+              <Checkbox
+                label="Sắp hạn (≤3 ngày)"
+                checked={taskFilters.dueSoonOnly || false}
+                onChange={e => setTaskFilters({ ...taskFilters, dueSoonOnly: e.target.checked })}
+              />
             </div>
           </div>
         </div>

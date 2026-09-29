@@ -12,7 +12,7 @@ import type { Sprint } from '../models/scrum.model'
 import type { SprintTaskStatistics, SprintBurndown, TaskRiskScan } from '../models/task.model'
 import { taskStatusLabels, taskRiskLevelLabels, taskRiskReasonLabels } from '../models/task.model'
 import { scanProjectRisks } from '../services/task.service'
-import { formatShortDate } from '../../../utils/format'
+import { formatDate, formatShortDate } from '../../../utils/format'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, LineChart, Line
 } from 'recharts'
@@ -464,7 +464,7 @@ export function ProjectDashboardTab({ projectId, sprints, onOpenTask }: { projec
                 <tbody className="divide-y divide-line">
                   {timeReport.byDate.map(d => (
                     <tr key={d.workDate}>
-                      <td className="px-5 py-3">{d.workDate}</td>
+                      <td className="px-5 py-3 font-medium">{formatDate(d.workDate)}</td>
                       <td className="px-5 py-3 font-medium text-blue-600">{d.spentMinutes}m</td>
                       <td className="px-5 py-3">{d.logCount}</td>
                     </tr>

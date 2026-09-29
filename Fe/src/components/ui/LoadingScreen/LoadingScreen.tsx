@@ -17,12 +17,12 @@ const LOADING_STEPS = [
   { minProgress: 25, maxProgress: 49, status: 'ĐANG TẢI DỮ LIỆU DỰ ÁN...', detail: 'Đồng bộ danh sách công việc, backlog & sprint' },
   { minProgress: 50, maxProgress: 74, status: 'TÍNH TOÁN HIỆU SUẤT ĐỘI NGŨ...', detail: 'Phân tích tiến độ công việc & báo cáo lỗi QA' },
   { minProgress: 75, maxProgress: 98, status: 'ĐỒNG BỘ BẢNG KANBAN TIẾN ĐỘ...', detail: 'Kết nối máy chủ thời gian thực' },
-  { minProgress: 99, maxProgress: 100, status: 'HỆ THỐNG ĐÃ SẴN SÀNG', detail: 'Đang mở không gian làm việc HiCAS One' },
+  { minProgress: 99, maxProgress: 100, status: 'HỆ THỐNG ĐÃ SẴN SÀNG', detail: 'Đang mở không gian làm việc BICAS One' },
 ]
 
 export function LoadingScreen({
   onLoadingComplete,
-  brandName = 'HiCAS ONE',
+  brandName = 'BICAS ONE',
   subtitle = 'NỀN TẢNG QUẢN TRỊ DỰ ÁN & TIẾN ĐỘ DOANH NGHIỆP',
   tagline = 'TỐI ƯU HÓA QUY TRÌNH LÀM VIỆC DỰ ÁN',
   minDuration = 3600,
@@ -220,9 +220,9 @@ export function LoadingScreen({
             className="space-y-2"
           >
             <h1 className="font-cinzel text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.03em] uppercase leading-none">
-              {brandName === 'HiCAS ONE' ? (
+              {brandName === 'BICAS ONE' ? (
                 <>
-                  <span className="text-white">HI</span>
+                  <span className="text-white">BI</span>
                   <span className="text-gold-shimmer ml-1 sm:ml-2">CAS</span>
                   <span className="text-white/40 ml-3 font-light tracking-[0.15em] text-3xl sm:text-5xl md:text-6xl">ONE</span>
                 </>
@@ -289,7 +289,7 @@ export function LoadingScreen({
               {LOADING_STEPS[currentStepIndex]?.detail || 'Đang tải dữ liệu hệ thống'}
             </span>
             <span className="flex items-center gap-1 text-[#f7941d]/80 text-[10px]">
-              <Cpu size={12} /> HỆ THỐNG HICAS V2.6
+              <Cpu size={12} /> HỆ THỐNG BICAS V2.6
             </span>
           </div>
         </motion.div>

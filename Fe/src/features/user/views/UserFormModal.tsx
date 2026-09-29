@@ -39,7 +39,7 @@ export function UserFormModal({ open, user, roles, loading, onClose, onSave }: P
     open={open}
     onClose={onClose}
     title={user ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản mới'}
-    description={user ? 'Cập nhật quyền truy cập, trạng thái hoặc đặt lại mật khẩu.' : 'Tạo tài khoản HiCAS One và gán đúng vai trò ngay từ đầu.'}
+    description={user ? 'Cập nhật quyền truy cập, trạng thái hoặc đặt lại mật khẩu.' : 'Tạo tài khoản BICAS One và gán đúng vai trò ngay từ đầu.'}
   >
     <form className="space-y-5" onSubmit={submit}>
       <section className="rounded-xl border border-line bg-canvas p-4">
@@ -73,7 +73,7 @@ export function UserFormModal({ open, user, roles, loading, onClose, onSave }: P
             onChange={event => setEmail(event.target.value)}
             required={!user}
             disabled={Boolean(user)}
-            placeholder="name@hicas.vn"
+            placeholder="name@bicas.vn"
             leadingIcon={<AtSign size={17} />}
             hint={user ? 'Email không đổi trong màn hình chỉnh sửa này.' : 'Dùng email công ty hoặc email làm việc chính.'}
           />

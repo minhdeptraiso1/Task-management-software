@@ -6,12 +6,10 @@ import {
   RefreshCw,
   Eye,
   Clock,
-  ChevronLeft,
-  ChevronRight,
   Layers,
   FileText
 } from 'lucide-react'
-import { Button, Select } from '../../../components/ui'
+import { Button, Select, Input, Pagination } from '../../../components/ui'
 import type { TaskImportBatchResponse, TaskImportBatchPageResponse, TaskImportStatus } from '../models/import-history.model'
 import { getImportHistory } from '../services/import-history.service'
 import { TaskImportBatchDetailModal } from './TaskImportBatchDetailModal'
@@ -141,11 +139,10 @@ export function ProjectTaskImportHistoryTab({ projectId }: { projectId: string }
           options={statusOptions}
         />
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 font-medium">Từ ngày:</span>
-          <input
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500 font-medium text-xs whitespace-nowrap">Từ ngày:</span>
+          <Input
             type="date"
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-brand/30"
             value={fromDate}
             onChange={e => {
               setFromDate(e.target.value)
@@ -154,11 +151,10 @@ export function ProjectTaskImportHistoryTab({ projectId }: { projectId: string }
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 font-medium">Đến ngày:</span>
-          <input
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500 font-medium text-xs whitespace-nowrap">Đến ngày:</span>
+          <Input
             type="date"
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-brand/30"
             value={toDate}
             onChange={e => {
               setToDate(e.target.value)
@@ -274,30 +270,13 @@ export function ProjectTaskImportHistoryTab({ projectId }: { projectId: string }
           </table>
         </div>
 
-        {/* Footer / Pagination */}
-        <footer className="flex items-center justify-between border-t border-slate-100 px-5 py-3.5 text-xs text-slate-500 font-medium">
-          <p>Trang <span className="font-bold text-slate-800">{page + 1}</span> / {Math.max(data?.totalPages || 1, 1)}</p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page === 0 || loading}
-              leadingIcon={<ChevronLeft size={15} />}
-              onClick={() => setPage(p => p - 1)}
-            >
-              Trước
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page + 1 >= (data?.totalPages || 1) || loading}
-              trailingIcon={<ChevronRight size={15} />}
-              onClick={() => setPage(p => p + 1)}
-            >
-              Sau
-            </Button>
-          </div>
-        </footer>
+        <Pagination
+          page={page}
+          totalPages={data?.totalPages || 1}
+          onPageChange={setPage}
+          totalElements={data?.totalElements}
+          disabled={loading}
+        />
       </motion.div>
 
       {/* Batch Detail Modal */}

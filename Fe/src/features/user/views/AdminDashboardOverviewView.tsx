@@ -279,75 +279,75 @@ export function AdminDashboardOverviewView({
           onClick={() => onNavigateSection?.('members')}
         >
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
-              <Users size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/20">
+              <Users size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted bg-panel px-2.5 py-0.5 rounded-full border border-line">NGƯỜI DÙNG</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">NGƯỜI DÙNG</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Tổng số người dùng</p>
-            <p className="text-2xl font-bold text-ink mt-0.5">{userSummary.totalUsers}</p>
+            <p className="text-2xl font-black text-ink mt-0.5">{userSummary.totalUsers}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="flex items-center gap-1 text-success font-bold">
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="flex items-center gap-1 text-emerald-600 font-bold">
               <UserCheck size={12} /> {userSummary.activeUsers} hoạt động
             </span>
-            <span>{userSummary.disabledUsers} khóa</span>
+            <span className="text-slate-400">{userSummary.disabledUsers} khóa</span>
           </div>
         </motion.div>
 
         {/* Project Card */}
         <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-brand/10 text-brand border border-brand/20">
-              <FolderKanban size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+              <FolderKanban size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-dark bg-brand/10 px-2.5 py-0.5 rounded-full border border-brand/20">DỰ ÁN</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">DỰ ÁN</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Tổng số dự án</p>
-            <p className="text-2xl font-bold text-ink mt-0.5">{projectSummary.totalProjects}</p>
+            <p className="text-2xl font-black text-ink mt-0.5">{projectSummary.totalProjects}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="font-bold text-brand-dark">{projectSummary.activeProjects} đang chạy</span>
-            <span>{projectSummary.completedProjects} hoàn thành</span>
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="font-bold text-amber-600">{projectSummary.activeProjects} đang chạy</span>
+            <span className="text-slate-400">{projectSummary.completedProjects} hoàn thành</span>
           </div>
         </motion.div>
 
         {/* Sprint Card */}
         <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
-              <Zap size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-sky-500/10 text-sky-600 border border-sky-500/20">
+              <Zap size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-info bg-info/10 px-2.5 py-0.5 rounded-full border border-info/20">SPRINT</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-600 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">SPRINT</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Tổng số Sprint</p>
-            <p className="text-2xl font-bold text-ink mt-0.5">{sprintSummary.totalSprints}</p>
+            <p className="text-2xl font-black text-ink mt-0.5">{sprintSummary.totalSprints}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="font-bold text-info">{sprintSummary.activeSprints} đang mở</span>
-            <span>{sprintSummary.planningSprints} kế hoạch</span>
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="font-bold text-sky-600">{sprintSummary.activeSprints} đang mở</span>
+            <span className="text-slate-400">{sprintSummary.planningSprints} kế hoạch</span>
           </div>
         </motion.div>
 
         {/* Task Card */}
         <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-success/10 text-success border border-success/20">
-              <CheckSquare size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <CheckSquare size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-success bg-success/10 px-2.5 py-0.5 rounded-full border border-success/20">CÔNG VIỆC</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">CÔNG VIỆC</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Tổng số công việc</p>
-            <p className="text-2xl font-bold text-ink mt-0.5">{taskSummary.totalTasks}</p>
+            <p className="text-2xl font-black text-ink mt-0.5">{taskSummary.totalTasks}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="font-bold text-success">{taskSummary.doneTasks} hoàn thành</span>
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="font-bold text-emerald-600">{taskSummary.doneTasks} hoàn thành</span>
             {taskSummary.overdueTasks > 0 && (
-              <span className="font-bold text-danger flex items-center gap-0.5">
+              <span className="font-bold text-rose-600 flex items-center gap-0.5">
                 <AlertTriangle size={11} /> {taskSummary.overdueTasks} quá hạn
               </span>
             )}
@@ -357,19 +357,19 @@ export function AdminDashboardOverviewView({
         {/* Bug Card */}
         <motion.div variants={itemVariants} className="group relative overflow-hidden rounded-2xl border border-line/70 bg-white p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-danger/10 text-danger border border-danger/20">
-              <Bug size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-rose-500/10 text-rose-600 border border-rose-500/20">
+              <Bug size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-danger bg-danger/10 px-2.5 py-0.5 rounded-full border border-danger/20">LỖI (BUGS)</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">LỖI (BUGS)</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Tổng số lỗi</p>
-            <p className="text-2xl font-bold text-ink mt-0.5">{bugSummary.totalBugs}</p>
+            <p className="text-2xl font-black text-ink mt-0.5">{bugSummary.totalBugs}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="font-bold text-danger">{bugSummary.openBugs + bugSummary.inProgressBugs} cần xử lý</span>
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="font-bold text-rose-600">{bugSummary.openBugs + bugSummary.inProgressBugs} cần xử lý</span>
             {bugSummary.criticalBugs > 0 && (
-              <span className="font-bold text-danger bg-danger/10 px-1.5 py-0.5 rounded text-[10px] border border-danger/20">
+              <span className="font-bold text-rose-600 bg-rose-500/10 px-1.5 py-0.5 rounded text-[10px] border border-rose-500/20">
                 {bugSummary.criticalBugs} nghiêm trọng
               </span>
             )}
@@ -383,17 +383,17 @@ export function AdminDashboardOverviewView({
           onClick={() => onNavigateSection?.('files')}
         >
           <div className="flex items-center justify-between">
-            <div className="grid size-11 place-items-center rounded-xl bg-info/10 text-info border border-info/20">
-              <HardDrive size={22} />
+            <div className="grid size-11 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">
+              <HardDrive size={20} />
             </div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-info bg-info/10 px-2.5 py-0.5 rounded-full border border-info/20">LƯU TRỮ</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">LƯU TRỮ</span>
           </div>
           <div className="mt-4">
             <p className="text-xs font-medium text-muted">Dung lượng File</p>
-            <p className="text-2xl font-bold text-ink mt-0.5 truncate">{formatBytes(attachmentSummary.totalSizeBytes)}</p>
+            <p className="text-2xl font-black text-ink mt-0.5 truncate">{formatBytes(attachmentSummary.totalSizeBytes)}</p>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted font-medium pt-2 border-t border-line/50">
-            <span className="font-bold text-info">{attachmentSummary.totalAttachments} file đính kèm</span>
+          <div className="mt-3 flex items-center justify-between text-xs font-medium pt-2.5 border-t border-line/60">
+            <span className="font-bold text-indigo-600">{attachmentSummary.totalAttachments} file đính kèm</span>
           </div>
         </motion.div>
       </motion.div>

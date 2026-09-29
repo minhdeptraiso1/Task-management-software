@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getProjectAttachmentUsage, getFileSecuritySummary, getAllProjectAttachments, deleteAttachment } from '../services/attachment.service'
 import type { AttachmentUsage, FileSecuritySummary, AttachmentPage } from '../models/attachment.model'
-import { AlertCircle, ShieldCheck, Database, FileCode, Check, Ban, RefreshCw, Download, Trash2, FileText, Image as ImageIcon, Video, FileArchive, FileSpreadsheet, File, ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
-import { Button, RefreshButton, ConfirmDialog, toast } from '../../../components/ui'
+import { AlertCircle, ShieldCheck, Database, FileCode, Check, Ban, RefreshCw, Download, Trash2, FileText, Image as ImageIcon, Video, FileArchive, FileSpreadsheet, File, Paperclip } from 'lucide-react'
+import { Button, RefreshButton, ConfirmDialog, toast, PageHeader, Pagination, EmptyState } from '../../../components/ui'
 import { downloadExcelFile } from '../../../services/apiClient'
 
 function AnimatedNumber({ value, duration = 1000, formatter }: { value: number; duration?: number; formatter?: (val: number) => string }) {
@@ -182,13 +182,11 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6 animate-enter">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-ink">Lưu trữ & Bảo mật File</h3>
-          <p className="text-sm text-muted">Thông tin dung lượng lưu trữ dự án và các quy tắc bảo mật tệp đính kèm.</p>
-        </div>
-        <RefreshButton onRefresh={() => loadData(false)} />
-      </div>
+      <PageHeader
+        title="Lưu trữ & Bảo mật File"
+        description="Thông tin dung lượng lưu trữ dự án và các quy tắc bảo mật tệp đính kèm."
+        actions={<RefreshButton onRefresh={() => loadData(false)} />}
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left Column: Storage Usage */}
@@ -322,10 +320,13 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
             Đang tải danh sách file...
           </div>
         ) : !attachments || attachments.content.length === 0 ? (
-          <div className="py-12 text-center text-muted text-xs">
-            <Paperclip className="mx-auto text-muted/30 mb-2" size={32} />
-            <p className="font-bold text-ink">Chưa có tệp tin đính kèm nào</p>
-            <p className="mt-1">Dự án này chưa có tệp tin đính kèm nào được tải lên Task hoặc Bug.</p>
+          <div className="py-8">
+            <EmptyState
+              icon={<Paperclip size={24} />}
+              title="Chưa có tệp tin đính kèm nào"
+              description="Dự án này chưa có tệp tin đính kèm nào được tải lên Task hoặc Bug."
+              bordered={false}
+            />
           </div>
         ) : (
           <>
@@ -397,32 +398,12 @@ export function ProjectAttachmentsTab({ projectId }: { projectId: string }) {
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            {attachments.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
-                <p>Trang {attachments.number + 1} / {attachments.totalPages}</p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={attachments.first}
-                    leadingIcon={<ChevronLeft size={14} />}
-                    onClick={() => handlePageChange(attachments.number - 1)}
-                  >
-                    Trước
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={attachments.last}
-                    trailingIcon={<ChevronRight size={14} />}
-                    onClick={() => handlePageChange(attachments.number + 1)}
-                  >
-                    Sau
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              page={attachments.number}
+              totalPages={attachments.totalPages}
+              onPageChange={handlePageChange}
+              totalElements={attachments.totalElements}
+            />
           </>
         )}
       </div>

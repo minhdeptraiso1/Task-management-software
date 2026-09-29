@@ -254,7 +254,7 @@ export function DashboardView({
       className="hidden w-64 border-r border-line bg-brand-black p-5 text-white lg:flex lg:flex-col lg:justify-between shrink-0"
     >
       <div className="flex h-10 items-center gap-3 px-3 font-bold">
-        <span className="text-2xl tracking-[-.08em]">HI<span className="text-brand">CAS</span></span>
+        <span className="text-2xl tracking-[-.08em]">BI<span className="text-brand">CAS</span></span>
         <span className="h-6 w-px bg-white/20" />
         <span className="text-xs font-bold tracking-[.16em] text-white/55">ONE</span>
       </div>

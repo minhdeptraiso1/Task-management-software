@@ -14,7 +14,7 @@ import {
   Check,
   Copy,
 } from 'lucide-react'
-import { Button, Input, Modal, Textarea } from '../../../components/ui'
+import { Button, Input, Modal, Textarea, Select, EmptyState } from '../../../components/ui'
 import type { ProjectMeeting, ProjectMeetingType, CreateMeetingRequest } from '../models/meeting.model'
 import {
   getProjectMeetings,
@@ -351,52 +351,57 @@ export function ProjectMeetingsTab({
       <div className="bg-white p-4 rounded-2xl border border-line/70 shadow-2xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           {/* Search box */}
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-2.5 size-4 text-muted shrink-0" />
-            <input
-              type="text"
+          <div className="flex-1 min-w-[200px] max-w-md">
+            <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm theo tiêu đề, mô tả hoặc người tạo..."
-              className="w-full bg-canvas pl-9 pr-3 py-2 text-xs rounded-xl border border-line focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-all font-medium text-ink"
+              leadingIcon={<Search size={16} />}
+              trailing={
+                search ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="text-muted hover:text-ink text-xs font-bold"
+                    aria-label="Xóa tìm kiếm"
+                  >
+                    ✕
+                  </button>
+                ) : undefined
+              }
             />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-2.5 text-muted hover:text-ink text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
           </div>
 
           {/* Type filter dropdown */}
-          <select
-            value={selectedType}
-            onChange={e => setSelectedType(e.target.value)}
-            className="bg-canvas px-3 py-2 text-xs rounded-xl border border-line font-semibold text-ink focus:outline-none focus:border-brand cursor-pointer"
-          >
-            <option value="ALL">Tất cả loại cuộc họp</option>
-            <option value="DAILY">Daily Standup</option>
-            <option value="SPRINT_PLANNING">Sprint Planning</option>
-            <option value="SPRINT_REVIEW">Sprint Review</option>
-            <option value="RETROSPECTIVE">Retrospective</option>
-            <option value="ISSUE_RESOLUTION">Giải quyết rủi ro/Sự cố</option>
-            <option value="OTHER">Cuộc họp khác</option>
-          </select>
+          <div className="w-48">
+            <Select
+              value={selectedType}
+              onChange={e => setSelectedType(e.target.value)}
+              options={[
+                { label: 'Tất cả loại cuộc họp', value: 'ALL' },
+                { label: 'Daily Standup', value: 'DAILY' },
+                { label: 'Sprint Planning', value: 'SPRINT_PLANNING' },
+                { label: 'Sprint Review', value: 'SPRINT_REVIEW' },
+                { label: 'Retrospective', value: 'RETROSPECTIVE' },
+                { label: 'Giải quyết rủi ro/Sự cố', value: 'ISSUE_RESOLUTION' },
+                { label: 'Cuộc họp khác', value: 'OTHER' },
+              ]}
+            />
+          </div>
 
           {/* Status filter dropdown */}
-          <select
-            value={selectedStatusFilter}
-            onChange={e => setSelectedStatusFilter(e.target.value)}
-            className="bg-canvas px-3 py-2 text-xs rounded-xl border border-line font-semibold text-ink focus:outline-none focus:border-brand cursor-pointer"
-          >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="LIVE">🔴 Đang diễn ra</option>
-            <option value="UPCOMING">🔵 Sắp diễn ra</option>
-            <option value="FINISHED">⚪ Đã kết thúc</option>
-          </select>
+          <div className="w-44">
+            <Select
+              value={selectedStatusFilter}
+              onChange={e => setSelectedStatusFilter(e.target.value)}
+              options={[
+                { label: 'Tất cả trạng thái', value: 'ALL' },
+                { label: '🔴 Đang diễn ra', value: 'LIVE' },
+                { label: '🔵 Sắp diễn ra', value: 'UPCOMING' },
+                { label: '⚪ Đã kết thúc', value: 'FINISHED' },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="text-xs text-muted font-medium">
@@ -420,30 +425,27 @@ export function ProjectMeetingsTab({
           </Button>
         </div>
       ) : filteredMeetings.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-line/70 shadow-xs space-y-4">
-          <div className="size-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto text-amber-600">
-            <Video size={32} />
-          </div>
-          <div>
-            <h4 className="font-bold text-ink text-base">Chưa tìm thấy cuộc họp nào</h4>
-            <p className="text-xs text-muted max-w-md mx-auto mt-1">
-              {search || selectedType !== 'ALL' || selectedStatusFilter !== 'ALL'
-                ? 'Không có cuộc họp phù hợp với bộ lọc hiện tại. Hãy thử thay đổi từ khóa hoặc bộ lọc.'
-                : 'Dự án này chưa có cuộc họp nào được lên lịch. Hãy bấm nút tạo cuộc họp để bắt đầu!'}
-            </p>
-          </div>
-          {canManageMeetings && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreateModal}
-              leadingIcon={<Plus size={16} />}
-              className="bg-brand text-white font-bold"
-            >
-              Tạo cuộc họp mới
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={<Video size={28} className="text-amber-600" />}
+          title="Chưa tìm thấy cuộc họp nào"
+          description={
+            search || selectedType !== 'ALL' || selectedStatusFilter !== 'ALL'
+              ? 'Không có cuộc họp phù hợp với bộ lọc hiện tại. Hãy thử thay đổi từ khóa hoặc bộ lọc.'
+              : 'Dự án này chưa có cuộc họp nào được lên lịch. Hãy bấm nút tạo cuộc họp để bắt đầu!'
+          }
+          action={
+            canManageMeetings ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreateModal}
+                leadingIcon={<Plus size={16} />}
+              >
+                Tạo cuộc họp mới
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredMeetings.map(meeting => {
@@ -637,25 +639,22 @@ export function ProjectMeetingsTab({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-extrabold text-ink mb-1.5">
-                Loại cuộc họp <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={createForm.meetingType}
-                onChange={e =>
-                  setCreateForm({ ...createForm, meetingType: e.target.value as ProjectMeetingType })
-                }
-                className="w-full bg-white px-3 py-2 text-xs rounded-xl border border-line font-medium text-ink focus:outline-none focus:border-brand"
-              >
-                <option value="DAILY">Daily Standup</option>
-                <option value="SPRINT_PLANNING">Sprint Planning</option>
-                <option value="SPRINT_REVIEW">Sprint Review</option>
-                <option value="RETROSPECTIVE">Retrospective</option>
-                <option value="ISSUE_RESOLUTION">Giải quyết rủi ro/Sự cố</option>
-                <option value="OTHER">Cuộc họp khác</option>
-              </select>
-            </div>
+            <Select
+              label="Loại cuộc họp *"
+              value={createForm.meetingType}
+              onChange={e =>
+                setCreateForm({ ...createForm, meetingType: e.target.value as ProjectMeetingType })
+              }
+              options={[
+                { label: 'Daily Standup', value: 'DAILY' },
+                { label: 'Sprint Planning', value: 'SPRINT_PLANNING' },
+                { label: 'Sprint Review', value: 'SPRINT_REVIEW' },
+                { label: 'Retrospective', value: 'RETROSPECTIVE' },
+                { label: 'Giải quyết rủi ro/Sự cố', value: 'ISSUE_RESOLUTION' },
+                { label: 'Cuộc họp khác', value: 'OTHER' },
+              ]}
+              required
+            />
 
             <div>
               <label className="block text-xs font-extrabold text-ink mb-1.5">

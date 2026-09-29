@@ -7,7 +7,6 @@ import {
   Check,
   AlertTriangle,
   UserCheck,
-  Calendar,
   FileText,
   Clock,
   ShieldAlert,
@@ -15,6 +14,7 @@ import {
   HelpCircle,
   Link2,
 } from 'lucide-react'
+import { Input, Select, Textarea } from '../../../components/ui'
 import { getAiActionItems } from '../services/ai.service'
 import type {
   AiMeetingType,
@@ -160,42 +160,28 @@ export function ProjectAiActionItemsTab({
 
       {/* Input Metadata Grid */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* Meeting Title */}
-        <div>
-          <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <FileText size={14} className="text-brand" /> Tiêu đề cuộc họp (Tùy chọn):
-          </label>
-          <input
-            type="text"
-            value={meetingTitle}
-            onChange={e => setMeetingTitle(e.target.value)}
-            placeholder="Ví dụ: Họp xử lý task dashboard bị trễ..."
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-medium"
-          />
-        </div>
+        <Input
+          label="Tiêu đề cuộc họp (Tùy chọn)"
+          value={meetingTitle}
+          onChange={e => setMeetingTitle(e.target.value)}
+          placeholder="Ví dụ: Họp xử lý task dashboard bị trễ..."
+          leadingIcon={<FileText size={14} className="text-brand" />}
+        />
 
-        {/* Meeting Type Selector */}
-        <div>
-          <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Calendar size={14} className="text-brand" /> Loại cuộc họp:
-          </label>
-          <select
-            value={meetingType}
-            onChange={e => setMeetingType(e.target.value as AiMeetingType)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-semibold"
-          >
-            {MEETING_TYPE_OPTIONS.map(opt => (
-              <option key={opt.type} value={opt.type}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Loại cuộc họp"
+          value={meetingType}
+          onChange={e => setMeetingType(e.target.value as AiMeetingType)}
+          options={MEETING_TYPE_OPTIONS.map(opt => ({
+            label: opt.label,
+            value: opt.type,
+          }))}
+        />
       </div>
 
       {/* Meeting Content Textarea */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
           <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <FileText size={14} className="text-brand" /> Nội dung cuộc họp (Meeting Content)*:
           </label>
@@ -225,28 +211,22 @@ export function ProjectAiActionItemsTab({
           </div>
         </div>
 
-        <textarea
+        <Textarea
           rows={4}
           value={meetingContent}
           onChange={e => setMeetingContent(e.target.value)}
           placeholder="Dán diễn biến, ghi chú hoặc bản ghi nội dung họp tại đây (tối thiểu 20 ký tự)..."
-          className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-medium leading-relaxed"
         />
       </div>
 
       {/* Additional Note Input */}
-      <div>
-        <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-          <HelpCircle size={14} className="text-brand" /> Yêu cầu lọc bổ sung (Tùy chọn):
-        </label>
-        <input
-          type="text"
-          value={additionalNote}
-          onChange={e => setAdditionalNote(e.target.value)}
-          placeholder="Ví dụ: Chỉ lấy các việc cần hoàn thành trong tuần này..."
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-medium"
-        />
-      </div>
+      <Input
+        label="Yêu cầu lọc bổ sung (Tùy chọn)"
+        value={additionalNote}
+        onChange={e => setAdditionalNote(e.target.value)}
+        placeholder="Ví dụ: Chỉ lấy các việc cần hoàn thành trong tuần này..."
+        leadingIcon={<HelpCircle size={14} className="text-brand" />}
+      />
 
       {/* Submit Button */}
       <div>

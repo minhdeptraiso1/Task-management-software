@@ -14,7 +14,7 @@ function Brand() {
   return (
     <div className="flex items-center gap-3 font-bold">
       <span className="text-3xl tracking-[-.09em] text-white">
-        HI<span className="text-accent">CAS</span>
+        BI<span className="text-accent">CAS</span>
       </span>
       <span className="h-7 w-px bg-white/25" />
       <span className="text-sm tracking-[.18em] text-white/70">ONE</span>
@@ -155,7 +155,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
               style={{ willChange: 'transform, opacity' }}
               className="mt-6 max-w-lg text-lg leading-8 text-white/65"
             >
-              Một không gian thống nhất để HiCAS quản lý thành viên, dự án và tiến độ công việc.
+              Một không gian thống nhất để BICAS quản lý thành viên, dự án và tiến độ công việc.
             </motion.p>
 
             <motion.div
@@ -177,7 +177,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
             style={{ willChange: 'transform, opacity' }}
             className="relative text-xs text-white/35"
           >
-            © 2026 HiCAS · HiCAS One Workspace
+            © 2026 BICAS · BICAS One Workspace
           </motion.p>
         </motion.div>
       </motion.section>
@@ -219,7 +219,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
             style={{ willChange: 'transform, opacity' }}
             className="mt-2 text-[28px] font-bold leading-9 tracking-tight text-ink"
           >
-            Đăng nhập HiCAS One
+            Đăng nhập BICAS One
           </motion.h2>
 
           <motion.p
@@ -227,7 +227,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
             style={{ willChange: 'transform, opacity' }}
             className="mt-3 text-sm leading-6 text-muted"
           >
-            Sử dụng tài khoản do quản trị viên HiCAS cấp.
+            Sử dụng tài khoản do quản trị viên BICAS cấp.
           </motion.p>
 
           <form className="mt-8 space-y-5" onSubmit={submit}>
@@ -237,7 +237,7 @@ export function LoginPage({ loading, error, onSubmit, isLoaded = true }: LoginPa
                 label="Email"
                 type="email"
                 autoComplete="email"
-                placeholder="admin@hicas.vn"
+                placeholder="admin@bicas.vn"
                 leadingIcon={<Mail size={18} />}
                 value={email}
                 onChange={event => setEmail(event.target.value)}

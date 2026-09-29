@@ -31,6 +31,7 @@ import {
   Modal, 
   Select,
   Textarea,
+  EmptyState,
   toast
 } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
@@ -974,10 +975,11 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
 
             {/* Empty state */}
             {bugs.content.length === 0 && !loading && (
-              <div className="rounded-2xl border border-dashed border-line bg-white p-12 text-center">
-                <BugIcon size={36} className="mx-auto mb-2 text-muted" />
-                <p className="text-sm font-semibold text-muted">Chưa có lỗi nào phù hợp với bộ lọc.</p>
-              </div>
+              <EmptyState
+                icon={<BugIcon size={32} className="text-muted" />}
+                title="Chưa có lỗi nào"
+                description="Chưa có lỗi nào phù hợp với bộ lọc."
+              />
             )}
           </div>
         </div>
@@ -1591,45 +1593,33 @@ export function BugView({ projectId, projectName, members, backlogItems, tasks, 
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted uppercase">Mô tả lỗi</label>
-            <textarea 
-              className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              placeholder="Chi tiết về môi trường, hệ điều hành..."
-              value={formDesc}
-              onChange={e => setFormDesc(e.target.value)}
-            />
-          </div>
+          <Textarea 
+            label="Mô tả lỗi"
+            placeholder="Chi tiết về môi trường, hệ điều hành..."
+            value={formDesc}
+            onChange={e => setFormDesc(e.target.value)}
+          />
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted uppercase">Các bước tái hiện (Reproduction Steps)</label>
-            <textarea 
-              className="min-h-24 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              placeholder="1. Vào trang đăng nhập&#10;2. Bỏ trống mật khẩu&#10;3. Click Đăng nhập..."
-              value={formSteps}
-              onChange={e => setFormSteps(e.target.value)}
-            />
-          </div>
+          <Textarea 
+            label="Các bước tái hiện (Reproduction Steps)"
+            placeholder="1. Vào trang đăng nhập&#10;2. Bỏ trống mật khẩu&#10;3. Click Đăng nhập..."
+            value={formSteps}
+            onChange={e => setFormSteps(e.target.value)}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted uppercase">Kết quả mong muốn</label>
-              <textarea 
-                className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="Nên báo lỗi đỏ..."
-                value={formExpected}
-                onChange={e => setFormExpected(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted uppercase">Kết quả thực tế</label>
-              <textarea 
-                className="min-h-20 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="Trang web bị crash trắng màn hình..."
-                value={formActual}
-                onChange={e => setFormActual(e.target.value)}
-              />
-            </div>
+            <Textarea 
+              label="Kết quả mong muốn"
+              placeholder="Nên báo lỗi đỏ..."
+              value={formExpected}
+              onChange={e => setFormExpected(e.target.value)}
+            />
+            <Textarea 
+              label="Kết quả thực tế"
+              placeholder="Trang web bị crash trắng màn hình..."
+              value={formActual}
+              onChange={e => setFormActual(e.target.value)}
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

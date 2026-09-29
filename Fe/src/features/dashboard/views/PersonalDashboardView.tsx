@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert, FolderKanban, Bell, ChevronLeft, ChevronRight, Target, BookOpen } from 'lucide-react'
+import { Clock, CheckCircle2, AlertCircle, LayoutDashboard, CalendarDays, CalendarClock, ShieldAlert, FolderKanban, Bell, Target, BookOpen } from 'lucide-react'
 import type { User } from '../../user/models/user.model'
 import type { MyDashboardResponse, MyTaskPageResponse, MyTimeSummaryResponse } from '../models/dashboard.model'
-import { Button } from '../../../components/ui'
+import { Button, Pagination, EmptyState } from '../../../components/ui'
 import { taskStatusLabels, taskPriorityLabels, taskRiskReasonLabels } from '../../project/models/task.model'
 import { TimesheetView } from '../../project/components/TimesheetView'
 import { UserGuideModal } from '../../user/views/UserGuideModal'
@@ -311,21 +311,23 @@ export function PersonalDashboardView({
                   </tbody>
                 </table>
               ) : (
-                <div className="p-12 text-center text-muted text-xs">
-                  <CheckCircle2 className="mx-auto text-muted/30 mb-2" size={32} />
-                  Chưa có công việc nào được phân công.
-                </div>
+                <EmptyState
+                  icon={<CheckCircle2 size={32} />}
+                  title="Chưa có công việc nào"
+                  description="Chưa có công việc nào được phân công."
+                  className="py-12"
+                />
               )}
             </div>
 
             {tasks && tasks.totalPages > 1 && (
-              <footer className="flex items-center justify-between border-t border-line/60 px-6 py-3 text-xs text-muted">
-                <span>Trang {taskPage + 1} / {tasks.totalPages}</span>
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" disabled={tasks.first} leadingIcon={<ChevronLeft size={14} />} onClick={() => onTaskPageChange(taskPage - 1)}>Trước</Button>
-                  <Button variant="secondary" size="sm" disabled={tasks.last} trailingIcon={<ChevronRight size={14} />} onClick={() => onTaskPageChange(taskPage + 1)}>Sau</Button>
-                </div>
-              </footer>
+              <Pagination
+                page={taskPage}
+                totalPages={tasks.totalPages}
+                totalElements={tasks.totalElements}
+                onPageChange={onTaskPageChange}
+                compact
+              />
             )}
           </section>
 

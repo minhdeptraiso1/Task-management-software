@@ -19,7 +19,7 @@ import {
   Pencil,
   Clock
 } from 'lucide-react'
-import { Button, Input, Modal } from '../../../components/ui'
+import { Button, Input, Modal, Textarea } from '../../../components/ui'
 import type { ProjectMember } from '../models/project.model'
 import type {
   SprintClosingReportResponse,
@@ -776,12 +776,11 @@ export function SprintClosingView({
                 </span>
                 Tóm tắt phần Demo trình bày sản phẩm
               </label>
-              <textarea
+              <Textarea
                 value={demoSummary}
                 onChange={e => setDemoSummary(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Nội dung demo, phản hồi kỹ thuật lúc chạy thử sản phẩm..."
-                className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium h-28 resize-none shadow-2xs placeholder:text-muted-dark/50"
               />
             </div>
 
@@ -793,12 +792,11 @@ export function SprintClosingView({
                 </span>
                 Ý kiến phản hồi từ các bên liên quan (Stakeholders)
               </label>
-              <textarea
+              <Textarea
                 value={stakeholderFeedback}
                 onChange={e => setStakeholderFeedback(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Đóng góp, đánh giá từ khách hàng, Product Owner, Ban giám đốc..."
-                className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium h-28 resize-none shadow-2xs placeholder:text-muted-dark/50"
               />
             </div>
 
@@ -810,12 +808,11 @@ export function SprintClosingView({
                 </span>
                 Các công việc được nghiệm thu đóng lại (Accepted)
               </label>
-              <textarea
+              <Textarea
                 value={acceptedItemSummary}
                 onChange={e => setAcceptedItemSummary(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Danh sách User Stories hoặc nhiệm vụ được chấp nhận hoàn thành..."
-                className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium h-28 resize-none shadow-2xs placeholder:text-muted-dark/50"
               />
             </div>
 
@@ -827,24 +824,22 @@ export function SprintClosingView({
                 </span>
                 Công việc bị từ chối / cần chỉnh sửa (Rejected)
               </label>
-              <textarea
+              <Textarea
                 value={rejectedItemSummary}
                 onChange={e => setRejectedItemSummary(e.target.value)}
                 disabled={!canManage || saving}
                 placeholder="Nhiệm vụ lỗi, chưa đạt chuẩn yêu cầu, cần chuyển sang Sprint sau..."
-                className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium h-28 resize-none shadow-2xs placeholder:text-muted-dark/50"
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider">Ghi chú & Thống nhất thêm</label>
-            <textarea
+            <Textarea
               value={reviewNote}
               onChange={e => setReviewNote(e.target.value)}
               disabled={!canManage || saving}
               placeholder="Các lưu ý hoặc ghi chú bổ sung trong buổi họp nghiệm thu..."
-              className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium h-24 resize-none shadow-2xs placeholder:text-muted-dark/50"
             />
           </div>
 
@@ -998,12 +993,11 @@ export function SprintClosingView({
                     </button>
 
                     <div className="w-full md:w-36 shrink-0">
-                      <input
+                      <Input
                         type="date"
                         value={item.dueDate || ''}
                         onChange={e => updateActionItem(idx, 'dueDate', e.target.value || null)}
                         disabled={!canManage || saving}
-                        className="w-full rounded-xl border border-line/80 px-3 py-1.5 text-xs focus:border-brand focus:ring-2 focus:ring-brand/20 bg-slate-50/50 hover:bg-white text-ink font-medium shadow-2xs"
                       />
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
@@ -1048,12 +1042,11 @@ export function SprintClosingView({
 
           <div className="space-y-2">
             <label className="text-[11px] font-extrabold text-muted uppercase tracking-wider">Ghi chú chung</label>
-            <textarea
+            <Textarea
               value={retroNote}
               onChange={e => setRetroNote(e.target.value)}
               disabled={!canManage || saving}
               placeholder="Nhập các chú thích thảo luận chung trong buổi họp cải tiến..."
-              className="w-full text-xs p-3.5 rounded-xl border border-line/80 focus:border-brand focus:ring-2 focus:ring-brand/20 h-24 bg-slate-50/50 focus:bg-white transition-all text-ink font-medium resize-none shadow-2xs placeholder:text-muted-dark/50"
             />
           </div>
 

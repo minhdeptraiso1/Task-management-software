@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Activity, ChevronLeft, ChevronRight, Clock3, ShieldCheck, Search, Eye, CheckCircle2, XCircle, Globe } from 'lucide-react'
-import { Button, Input, Select } from '../../../components/ui'
+import { Activity, Clock3, ShieldCheck, Search, Eye, CheckCircle2, XCircle, Globe } from 'lucide-react'
+import { Button, Input, Select, Pagination, EmptyState } from '../../../components/ui'
 import { systemAuditActionLabels, type SystemAuditLogResponse, type SystemAuditLogPageResponse, type AdminAuditSummaryResponse } from '../models/admin.model'
 import { formatDateTime } from '../../../utils/format'
 import { AdminAuditDetailModal } from './AdminAuditDetailModal'
@@ -239,8 +239,12 @@ export function AuditLogView({ logs, summary, loading, realtimeStatus, error, pa
             })}
             {!items.length && !loading && (
               <tr>
-                <td colSpan={5} className="px-5 py-16 text-center text-muted font-medium">
-                  Chưa có hoạt động audit log nào được ghi nhận.
+                <td colSpan={5} className="py-12">
+                  <EmptyState
+                    title="Chưa có nhật ký kiểm toán"
+                    description="Chưa có hoạt động audit log nào được ghi nhận."
+                    bordered={false}
+                  />
                 </td>
               </tr>
             )}
@@ -248,17 +252,12 @@ export function AuditLogView({ logs, summary, loading, realtimeStatus, error, pa
         </table>
       </div>
 
-      <footer className="flex items-center justify-between border-t border-line/60 px-5 py-3.5 text-xs text-muted font-medium">
-        <p>Trang <span className="font-bold text-ink">{page + 1}</span> / {Math.max(logs?.totalPages || 1, 1)}</p>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" disabled={page === 0} leadingIcon={<ChevronLeft size={15} />} onClick={() => onPageChange(page - 1)}>
-            Trước
-          </Button>
-          <Button variant="secondary" size="sm" disabled={page + 1 >= (logs?.totalPages || 1)} trailingIcon={<ChevronRight size={15} />} onClick={() => onPageChange(page + 1)}>
-            Sau
-          </Button>
-        </div>
-      </footer>
+      <Pagination
+        page={page}
+        totalPages={logs?.totalPages || 1}
+        onPageChange={onPageChange}
+        totalElements={logs?.totalElements}
+      />
 
       {selectedLog && (
         <AdminAuditDetailModal

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { cleanupDeletedFiles, cleanupOrphanFiles } from '../../project/services/attachment.service'
 import { getFileAudits } from '../services/admin.service'
 import type { FileCleanupResult } from '../../project/models/attachment.model'
-import { Button, RefreshButton, Input } from '../../../components/ui'
-import { ShieldAlert, Trash2, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Button, RefreshButton, Input, PageHeader } from '../../../components/ui'
+import { Trash2, ShieldCheck, RefreshCw, AlertTriangle, HardDrive } from 'lucide-react'
 
 export function AdminFileCleanupView() {
   const [limit, setLimit] = useState(100)
@@ -47,13 +47,12 @@ export function AdminFileCleanupView() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-line bg-white p-5 shadow-sm">
-        <h2 className="text-base font-bold text-ink flex items-center gap-2">
-          <ShieldAlert className="text-brand" size={20} />
-          Quản lý & Dọn dẹp Hệ thống Tệp Tin (File Storage Administrator)
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          Công cụ quản trị hệ thống để giải phóng dung lượng đĩa cứng bằng cách dọn dẹp các tệp tin vật lý dư thừa.
-        </p>
+        <PageHeader
+          title="Quản lý & Dọn dẹp Hệ thống Tệp Tin"
+          description="Công cụ quản trị hệ thống để giải phóng dung lượng đĩa cứng bằng cách dọn dẹp các tệp tin vật lý dư thừa."
+          icon={<HardDrive size={22} />}
+          className="!mb-0"
+        />
 
         <div className="mt-4 rounded-xl border border-brand-line/60 bg-brand-cream/30 p-4 text-xs text-muted-dark space-y-1.5">
           <p className="font-bold text-ink">⏰ Lập lịch tự động dọn dẹp (System Cron Job):</p>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Clock3, FolderKanban, Users2, AlertTriangle, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react'
-import { Button, ResetButton, RefreshButton, Input, Select } from '../../../components/ui'
+import { Clock3, FolderKanban, Users2, AlertTriangle, Download, FileText } from 'lucide-react'
+import { Button, ResetButton, RefreshButton, Input, Select, Pagination } from '../../../components/ui'
 import { formatDate } from '../../../utils/format'
 import type { ProjectMember } from '../models/project.model'
 import type { TimesheetPage, TimesheetSummary } from '../models/timesheet.model'
@@ -370,13 +370,13 @@ export function TimesheetView({ mode, projectId, members = [] }: TimesheetViewPr
                 </div>
 
                 {pageData && pageData.totalPages > 1 && (
-                  <footer className="flex items-center justify-between border-t border-line/60 px-6 py-3 text-xs text-muted">
-                    <span>Trang {page + 1} / {pageData.totalPages}</span>
-                    <div className="flex gap-2">
-                      <Button variant="secondary" size="sm" iconOnly disabled={page === 0} leadingIcon={<ChevronLeft size={16} />} onClick={() => setPage(page - 1)} />
-                      <Button variant="secondary" size="sm" iconOnly disabled={page + 1 >= pageData.totalPages} leadingIcon={<ChevronRight size={16} />} onClick={() => setPage(page + 1)} />
-                    </div>
-                  </footer>
+                  <Pagination
+                    page={page}
+                    totalPages={pageData.totalPages}
+                    onPageChange={setPage}
+                    totalElements={pageData.totalElements}
+                    compact
+                  />
                 )}
               </div>
             )}

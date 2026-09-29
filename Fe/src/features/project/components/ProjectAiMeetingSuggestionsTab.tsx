@@ -12,6 +12,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import { getAiMeetingSuggestions } from '../services/ai.service'
+import { Textarea } from '../../../components/ui'
 import type {
   AiMeetingType,
   AiMeetingSuggestionResponse,
@@ -276,12 +277,11 @@ export function ProjectAiMeetingSuggestionsTab({
         <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <HelpCircle size={14} className="text-brand" /> Ghi chú bổ sung (tùy chọn):
         </label>
-        <textarea
+        <Textarea
           rows={2}
           value={additionalNote}
           onChange={e => setAdditionalNote(e.target.value)}
           placeholder="Ví dụ: Tập trung vào các task quá hạn và task đang bị block trong Sprint 3..."
-          className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all font-medium"
         />
 
         {/* Preset Suggestions */}

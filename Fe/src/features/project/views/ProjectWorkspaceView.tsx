@@ -27,7 +27,7 @@ import {
   Paperclip,
   Video,
 } from 'lucide-react'
-import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, DatePicker, Input, Modal, Select, CollapsiblePanel } from '../../../components/ui'
+import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, DatePicker, Input, Modal, Select, CollapsiblePanel, Textarea, Pagination } from '../../../components/ui'
 import type { User } from '../../user/models/user.model'
 import { UserGuideModal } from '../../user/views/UserGuideModal'
 import { ProjectAiAssistantModal } from '../components/ProjectAiAssistantModal'
@@ -281,10 +281,7 @@ function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; 
         <Input label="Mã dự án" value={code} onChange={event => setCode(event.target.value)} required placeholder="BICAS-ERP" />
         <Input label="Tên dự án" value={name} onChange={event => setName(event.target.value)} required placeholder="Hệ thống ERP nội bộ" />
       </div>
-      <div>
-        <label className="mb-2 block text-sm font-medium text-ink">Mô tả</label>
-        <textarea className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" value={description} onChange={event => setDescription(event.target.value)} placeholder="Mục tiêu, phạm vi, ghi chú..." />
-      </div>
+      <Textarea label="Mô tả" value={description} onChange={event => setDescription(event.target.value)} placeholder="Mục tiêu, phạm vi, ghi chú..." />
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Ngày bắt đầu" type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
         <Input label="Ngày kết thúc" type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
@@ -312,10 +309,7 @@ function ProjectEditModal({ open, project, saving, onClose, onSave }: { open: bo
   return <Modal open={open} onClose={onClose} title="Sửa dự án" description="Cập nhật thông tin tổng quan của dự án." showClose={false}>
     <form className="space-y-4" onSubmit={submit}>
       <Input name="name" label="Tên dự án" defaultValue={project.name ?? ''} required />
-      <div>
-        <label className="mb-2 block text-sm font-medium text-ink">Mô tả</label>
-        <textarea name="description" className="min-h-28 w-full rounded-lg border border-line bg-white px-3.5 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" defaultValue={project.description ?? ''} />
-      </div>
+      <Textarea name="description" label="Mô tả" defaultValue={project.description ?? ''} placeholder="Mục tiêu, phạm vi, ghi chú..." />
       <div className="grid gap-4 sm:grid-cols-2">
         <Input name="startDate" label="Ngày bắt đầu" type="date" defaultValue={project.startDate ?? ''} />
         <Input name="endDate" label="Ngày kết thúc" type="date" defaultValue={project.endDate ?? ''} />
@@ -664,7 +658,7 @@ export function ProjectWorkspaceView({
       className="flex h-14 items-center justify-between bg-brand-black px-5 text-white shadow-sm md:px-6 sticky top-0 z-30"
     >
       <div className="flex items-center gap-3 font-bold">
-        <span className="text-2xl tracking-[-.08em]">HI<span className="text-brand">CAS</span></span>
+        <span className="text-2xl tracking-[-.08em]">BI<span className="text-brand">CAS</span></span>
         <span className="h-6 w-px bg-white/20" />
         <span className="text-sm text-white/55">PROJECT</span>
       </div>
@@ -957,13 +951,13 @@ export function ProjectWorkspaceView({
           ))}
           {!projects.content.length && !loading && <p className="py-10 text-center text-sm text-muted">Chưa có dự án phù hợp.</p>}
         </div>
-        <footer className="flex items-center justify-between border-t border-line px-4 py-3 text-sm text-muted">
-          <span>Trang {page + 1} / {Math.max(projects.totalPages, 1)}</span>
-          <div className="flex gap-2">
-            <Button variant="secondary" size="sm" iconOnly disabled={page === 0} leadingIcon={<ChevronLeft size={16} />} aria-label="Trang trước" onClick={() => onPageChange(page - 1)} />
-            <Button variant="secondary" size="sm" iconOnly disabled={page + 1 >= projects.totalPages} leadingIcon={<ChevronRight size={16} />} aria-label="Trang sau" onClick={() => onPageChange(page + 1)} />
-          </div>
-        </footer>
+        <Pagination
+          page={page}
+          totalPages={Math.max(projects.totalPages, 1)}
+          onPageChange={onPageChange}
+          compact
+          className="border-t border-line px-4 py-3"
+        />
         </>}
       </motion.aside>
 

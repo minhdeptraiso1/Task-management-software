@@ -1,6 +1,8 @@
 package com.project.taskmanagement.repository.spec;
 
 import com.project.taskmanagement.entity.Project;
+import com.project.taskmanagement.entity.ProjectMember;
+import com.project.taskmanagement.enums.ProjectMemberRole;
 import com.project.taskmanagement.enums.ProjectStatus;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -86,6 +88,33 @@ public final class ProjectSpecification {
             return root
                     .get("id")
                     .in(projectIds);
+        };
+    }
+
+    public static Specification<Project> managedBy(
+            UUID managerUserId
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            if (managerUserId == null) {
+                return criteriaBuilder.conjunction();
+            }
+
+            var memberSubquery = query.subquery(UUID.class);
+            var memberRoot = memberSubquery.from(ProjectMember.class);
+
+            memberSubquery.select(memberRoot.get("projectId"))
+                    .where(
+                            criteriaBuilder.equal(
+                                    memberRoot.get("userId"),
+                                    managerUserId
+                            ),
+                            memberRoot.get("role").in(
+                                    ProjectMemberRole.OWNER,
+                                    ProjectMemberRole.PROJECT_MANAGER
+                            )
+                    );
+
+            return root.get("id").in(memberSubquery);
         };
     }
 

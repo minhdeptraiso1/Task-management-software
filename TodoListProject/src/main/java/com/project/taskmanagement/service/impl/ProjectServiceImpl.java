@@ -16,6 +16,7 @@ import com.project.taskmanagement.exception.ErrorCode;
 import com.project.taskmanagement.mapper.ProjectMapper;
 import com.project.taskmanagement.repository.ProjectMemberRepository;
 import com.project.taskmanagement.repository.ProjectRepository;
+import com.project.taskmanagement.repository.UserRepository;
 import com.project.taskmanagement.repository.spec.ProjectSpecification;
 import com.project.taskmanagement.service.AuditLogService;
 import com.project.taskmanagement.service.NotificationService;
@@ -28,6 +29,7 @@ import com.project.taskmanagement.service.model.NotificationCommand;
 import com.project.taskmanagement.service.model.ProjectActivityCommand;
 import com.project.taskmanagement.service.validation.DateRangeValidator;
 import com.project.taskmanagement.service.validation.PageableValidator;
+import com.project.taskmanagement.service.validation.ProjectMemberValidator;
 import com.project.taskmanagement.service.validation.ProjectValidator;
 import com.project.taskmanagement.util.TextNormalizer;
 import lombok.AccessLevel;
@@ -59,6 +61,7 @@ public class ProjectServiceImpl
 
     ProjectRepository projectRepository;
     ProjectMemberRepository projectMemberRepository;
+    UserRepository userRepository;
     ProjectMapper projectMapper;
     AuditLogService auditLogService;
 
@@ -82,6 +85,11 @@ public class ProjectServiceImpl
 
         ProjectValidator.validateCreator(
                 currentUser
+        );
+
+        User ownerUser = resolveProjectOwner(
+                currentUser,
+                request.ownerUserId()
         );
 
         ProjectValidator.validateDates(
@@ -135,7 +143,7 @@ public class ProjectServiceImpl
                                 savedProject.getId()
                         )
                         .userId(
-                                currentUser.getId()
+                                ownerUser.getId()
                         )
                         .role(
                                 ProjectMemberRole.OWNER
@@ -165,6 +173,11 @@ public class ProjectServiceImpl
                 savedProject.getStatus()
         );
 
+        newValue.put(
+                "ownerUserId",
+                ownerUser.getId()
+        );
+
         projectActivityService.log(
                 new ProjectActivityCommand(
                         savedProject.getId(),
@@ -177,6 +190,23 @@ public class ProjectServiceImpl
                 )
         );
 
+        if (!currentUser.getId().equals(ownerUser.getId())) {
+            notificationService.create(
+                    new NotificationCommand(
+                            NotificationType.PROJECT_MEMBER_ADDED,
+                            "Bạn đã được giao quản lý dự án",
+                            "ADMIN đã giao dự án "
+                                    + savedProject.getCode()
+                                    + " cho bạn với vai trò OWNER",
+                            currentUser.getId(),
+                            savedProject.getId(),
+                            ActivityEntityType.PROJECT_MEMBER,
+                            owner.getId(),
+                            List.of(ownerUser.getId())
+                    )
+            );
+        }
+
         auditLogService.log(
                 currentUser.getId(),
                 AuditAction.CREATE_PROJECT.name()
@@ -188,8 +218,38 @@ public class ProjectServiceImpl
 
         return projectMapper.toResponse(
                 savedProject,
+                currentUser.getId().equals(ownerUser.getId())
+                        ? ProjectMemberRole.OWNER
+                        : null
+        );
+    }
+
+    private User resolveProjectOwner(
+            User creator,
+            UUID requestedOwnerUserId
+    ) {
+        if (creator.getRole() == UserRole.MANAGER) {
+            return creator;
+        }
+
+        if (requestedOwnerUserId == null) {
+            throw new BusinessException(
+                    ErrorCode.MISSING_REQUIRED_FIELD,
+                    "ADMIN phải chọn tài khoản MANAGER nhận dự án"
+            );
+        }
+
+        User ownerUser = userRepository.findById(requestedOwnerUserId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.USER_NOT_FOUND
+                ));
+
+        ProjectMemberValidator.validateRoleAssignment(
+                ownerUser,
                 ProjectMemberRole.OWNER
         );
+
+        return ownerUser;
     }
 
     // ===================== SEARCH PROJECT =====================
@@ -254,6 +314,9 @@ public class ProjectServiceImpl
                         ),
                         ProjectSpecification.hasStatus(
                                 status
+                        ),
+                        ProjectSpecification.managedBy(
+                                request == null ? null : request.managerUserId()
                         ),
                         ProjectSpecification.startDateBetween(
                                 request == null ? null : request.startDateFrom(),

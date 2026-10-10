@@ -16,7 +16,7 @@ import {
   Database,
   Server,
   Layers,
-  FolderArchive
+  FolderArchive,
 } from 'lucide-react'
 import { Button, RefreshButton, toast } from '../../../components/ui'
 import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
@@ -63,7 +63,7 @@ export function AdminDashboardOverviewView({
   systemStatusLoading,
   systemStatusError,
   onRefresh,
-  onNavigateSection
+  onNavigateSection,
 }: {
   dashboard: AdminDashboardResponse | null
   loading: boolean
@@ -132,7 +132,6 @@ export function AdminDashboardOverviewView({
 
   // Calculate percentages safely
   const activeUserPercent = userSummary.totalUsers > 0 ? Math.round((userSummary.activeUsers / userSummary.totalUsers) * 100) : 0
-  const activeProjectPercent = projectSummary.totalProjects > 0 ? Math.round((projectSummary.activeProjects / projectSummary.totalProjects) * 100) : 0
   const taskDonePercent = taskSummary.totalTasks > 0 ? Math.round((taskSummary.doneTasks / taskSummary.totalTasks) * 100) : 0
   const healthUp = systemStatus?.health.status === 'UP'
   const healthComponents = systemStatus?.health.components
@@ -463,38 +462,38 @@ export function AdminDashboardOverviewView({
           </div>
         </motion.div>
 
-        {/* Project Status Breakdown */}
-        <motion.div variants={itemVariants} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        {/* Project status summary */}
+        <motion.div variants={itemVariants} className="rounded-2xl border border-line bg-white p-5 shadow-2xs">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <div className="flex items-center gap-2">
-              <FolderKanban className="text-indigo-600" size={18} />
-              <h3 className="text-sm font-bold text-slate-900">Trạng thái Dự án & Sprint</h3>
+              <FolderKanban className="text-brand" size={18} />
+              <h3 className="text-sm font-bold text-ink">Trạng thái Dự án & Sprint</h3>
             </div>
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
-              {activeProjectPercent}% Đang thực thi
+            <span className="rounded-full border border-brand/20 bg-brand/10 px-2 py-1 text-xs font-bold text-brand-dark">
+              {projectSummary.completedProjects}/{projectSummary.totalProjects} hoàn thành
             </span>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 text-xs font-semibold">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-              <p className="text-slate-400">Đang lập kế hoạch</p>
-              <p className="text-lg font-black text-slate-800 mt-1">{projectSummary.planningProjects}</p>
+            <div className="rounded-xl border border-line bg-canvas p-3">
+              <p className="text-muted">Đang lập kế hoạch</p>
+              <p className="mt-1 text-lg font-black text-ink tabular-nums">{projectSummary.planningProjects}</p>
             </div>
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
-              <p className="text-indigo-600">Đang hoạt động</p>
-              <p className="text-lg font-black text-indigo-700 mt-1">{projectSummary.activeProjects}</p>
+            <div className="rounded-xl border border-info/20 bg-info/5 p-3">
+              <p className="text-info">Đang hoạt động</p>
+              <p className="mt-1 text-lg font-black text-info tabular-nums">{projectSummary.activeProjects}</p>
             </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3">
-              <p className="text-amber-600">Tạm dừng (On Hold)</p>
-              <p className="text-lg font-black text-amber-700 mt-1">{projectSummary.onHoldProjects}</p>
+            <div className="rounded-xl border border-warning/30 bg-warning/10 p-3">
+              <p className="text-brand-dark">Tạm dừng</p>
+              <p className="mt-1 text-lg font-black text-brand-dark tabular-nums">{projectSummary.onHoldProjects}</p>
             </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
-              <p className="text-emerald-600">Đã hoàn thành</p>
-              <p className="text-lg font-black text-emerald-700 mt-1">{projectSummary.completedProjects}</p>
+            <div className="rounded-xl border border-success/20 bg-success/5 p-3">
+              <p className="text-success">Đã hoàn thành</p>
+              <p className="mt-1 text-lg font-black text-success tabular-nums">{projectSummary.completedProjects}</p>
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-            <span>Sprint đang hoạt động: <strong className="text-slate-800">{sprintSummary.activeSprints}</strong></span>
-            <span>Tổng Sprint: <strong className="text-slate-800">{sprintSummary.totalSprints}</strong></span>
+          <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
+            <span>{sprintSummary.activeSprints} Sprint đang chạy</span>
+            <span>{sprintSummary.totalSprints} Sprint tổng cộng</span>
           </div>
         </motion.div>
 

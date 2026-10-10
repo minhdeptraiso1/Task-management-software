@@ -76,7 +76,7 @@ public class ProjectController {
                     description = "Mã dự án đã tồn tại"
             )
     })
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @PostMapping
     public ResponseEntity<
             ApiResponseSever<ProjectResponse>

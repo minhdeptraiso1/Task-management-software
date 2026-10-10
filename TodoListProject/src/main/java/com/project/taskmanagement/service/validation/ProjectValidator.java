@@ -27,7 +27,8 @@ public final class ProjectValidator {
             );
         }
 
-        if (user.getRole() != UserRole.MANAGER) {
+        if (user.getRole() != UserRole.MANAGER
+                && user.getRole() != UserRole.ADMIN) {
             throw new BusinessException(
                     ErrorCode.PROJECT_CREATE_FORBIDDEN
             );

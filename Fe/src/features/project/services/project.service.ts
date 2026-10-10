@@ -27,6 +27,7 @@ export function searchProjects(filters: ProjectFilters, page = 0, size = 9) {
   const params = new URLSearchParams({ page: String(page), size: String(size), sort: 'updatedAt,desc' })
   if (filters.keyword) params.set('keyword', filters.keyword)
   if (filters.status) params.set('status', filters.status)
+  if (filters.managerUserId) params.set('managerUserId', filters.managerUserId)
   if (filters.startDateFrom) params.set('startDateFrom', filters.startDateFrom)
   if (filters.startDateTo) params.set('startDateTo', filters.startDateTo)
   if (filters.endDateFrom) params.set('endDateFrom', filters.endDateFrom)

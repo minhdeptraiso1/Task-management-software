@@ -1,3 +1,5 @@
+import type { ProjectStatus } from '../../project/models/project.model'
+
 export interface AdminUserSummaryResponse {
   totalUsers: number
   activeUsers: number
@@ -87,6 +89,28 @@ export interface AdminDashboardResponse {
   bugSummary: AdminBugSummaryResponse
   attachmentSummary: AdminAttachmentSummaryResponse
   systemSummary: AdminSystemSummaryResponse
+}
+
+export interface AdminProjectProgressItem {
+  id: string
+  code: string
+  name: string
+  status: ProjectStatus
+  startDate: string | null
+  endDate: string | null
+  totalTasks: number
+  completedTasks: number
+  completionRate: number
+  timelineProgress: number
+  managerUserId: string | null
+  managerUsername: string | null
+  managerEmail: string | null
+}
+
+export interface AdminProjectProgressFilters {
+  keyword: string
+  status: '' | ProjectStatus
+  managerUserId: string
 }
 
 export interface AdminUserResponse {

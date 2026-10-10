@@ -39,6 +39,7 @@ export interface ProjectPage {
 export interface ProjectFilters {
   keyword: string
   status: '' | ProjectStatus
+  managerUserId?: string
   startDateFrom?: string
   startDateTo?: string
   endDateFrom?: string
@@ -53,6 +54,7 @@ export interface CreateProjectData {
   description?: string
   startDate?: string
   endDate?: string
+  ownerUserId?: string
 }
 
 export interface UpdateProjectData {

@@ -222,7 +222,7 @@ public enum ErrorCode {
     PROJECT_CREATE_FORBIDDEN(
             403005,
             HttpStatus.FORBIDDEN,
-            "Chỉ tài khoản quản lý mới được tạo dự án"
+            "Chỉ ADMIN hoặc MANAGER mới được tạo dự án"
     ),
 
     PROJECT_ACCESS_DENIED(

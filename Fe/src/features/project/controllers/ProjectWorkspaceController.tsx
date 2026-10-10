@@ -92,7 +92,7 @@ import { subscribeRealtimeNotifications } from '../services/notification.websock
 import { subscribeKanbanEvents } from '../services/kanban.websocket'
 import { ProjectWorkspaceView } from '../views/ProjectWorkspaceView'
 import type { SearchResultItem } from '../models/search.model'
-import { searchProjectCandidateUsers } from '../../user/services/user.service'
+import { searchProjectCandidateUsers, searchUsers } from '../../user/services/user.service'
 import type { ProjectActivityFilters } from '../services/project.service'
 import type { UserPage } from '../../user/models/user.model'
 import { toast } from '../../../components/ui'
@@ -120,6 +120,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [appliedActivityFilters, setAppliedActivityFilters] = useState<ProjectActivityFilters>({})
   const [notifications, setNotifications] = useState(emptyNotificationPage)
   const [candidateUsers, setCandidateUsers] = useState(emptyCandidatePage)
+  const [managerCandidates, setManagerCandidates] = useState(emptyCandidatePage)
   const [backlogItems, setBacklogItems] = useState(emptyBacklogPage)
   const [sprints, setSprints] = useState(emptySprintPage)
   const [sprintItems, setSprintItems] = useState<Record<string, BacklogItem[]>>({})
@@ -140,10 +141,11 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [openBugId, setOpenBugId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'board' | 'members' | 'activities' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'>('dashboard')
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [candidateLoading, setCandidateLoading] = useState(false)
+  const [managerCandidateLoading, setManagerCandidateLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<{id: string, message: string}[]>([])
   const [taskDependencies, setTaskDependencies] = useState<TaskDependency[]>([])
@@ -349,7 +351,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
     })
   }, [])
 
-  const handleCreateProject = async (data: { code: string; name: string; description: string; startDate: string; endDate: string }) => {
+  const handleCreateProject = async (data: { code: string; name: string; description: string; startDate: string; endDate: string; ownerUserId?: string }) => {
     setSaving(true)
     setError('')
     try {
@@ -359,6 +361,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
         description: data.description || undefined,
         startDate: data.startDate || undefined,
         endDate: data.endDate || undefined,
+        ownerUserId: data.ownerUserId || undefined,
       })
       setSelectedProject(project)
       setPage(0)
@@ -408,6 +411,18 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       setError(error instanceof Error ? error.message : 'Không tìm được thành viên phù hợp')
     } finally {
       setCandidateLoading(false)
+    }
+  }
+
+  const handleManagerCandidateSearch = async (keyword: string) => {
+    setManagerCandidateLoading(true)
+    setError('')
+    try {
+      setManagerCandidates(await searchUsers({ keyword, role: 'MANAGER', enabled: 'true' }, 0, 20))
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Không tìm được tài khoản quản lý phù hợp')
+    } finally {
+      setManagerCandidateLoading(false)
     }
   }
 
@@ -1114,6 +1129,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       taskDependencies={taskDependencies}
       taskRisk={taskRisk}
       candidateUsers={candidateUsers.content}
+      managerCandidates={managerCandidates.content}
       unreadCount={unreadCount}
       filters={filters}
       activityFilters={activityFilters}
@@ -1130,6 +1146,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       detailLoading={detailLoading}
       taskDetailLoading={taskDetailLoading}
       candidateLoading={candidateLoading}
+      managerCandidateLoading={managerCandidateLoading}
       saving={saving}
       errors={errors}
       onDismissError={dismissError}
@@ -1163,6 +1180,7 @@ export function ProjectWorkspaceController({ user, onLogout, onOpenSettings }: {
       onSelectSearchResult={handleSelectSearchResult}
       onAddMember={handleAddMember}
       onCandidateSearch={handleCandidateSearch}
+      onManagerCandidateSearch={handleManagerCandidateSearch}
       onRoleChange={handleRoleChange}
       onRemoveMember={setConfirmRemoveMember}
       onReadNotification={handleReadNotification}

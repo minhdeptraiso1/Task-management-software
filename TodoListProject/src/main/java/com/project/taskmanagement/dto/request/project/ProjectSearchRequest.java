@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record ProjectSearchRequest(
 
@@ -21,6 +22,12 @@ public record ProjectSearchRequest(
                 example = "ACTIVE"
         )
         ProjectStatus status,
+
+        @Schema(
+                description = "Lọc các dự án được giao cho tài khoản MANAGER",
+                example = "14f39a47-5018-4d11-ae90-8f2db3daf63a"
+        )
+        UUID managerUserId,
 
         LocalDate startDateFrom,
 

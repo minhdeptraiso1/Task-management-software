@@ -10,12 +10,27 @@ import { UserFormModal } from '../views/UserFormModal'
 import { getAdminDashboard, getAdminSystemStatus, enableUser, disableUser, updateUserRole, searchSystemAuditLogs, getAuditSummary } from '../services/admin.service'
 import type { AdminDashboardResponse, AdminAuditSummaryResponse, AdminSystemStatusResponse } from '../models/admin.model'
 import { AdminUserActivityModal } from '../views/AdminUserActivityModal'
+import { createProject, searchProjects } from '../../project/services/project.service'
+import { ProjectCreateModal, type ProjectCreateFormData } from '../../project/components/ProjectCreateModal'
+import { getProjectDashboard } from '../../dashboard/services/dashboard.service'
+import type { AdminProjectProgressFilters, AdminProjectProgressItem } from '../models/admin.model'
 
 const emptyPage: UserPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 8 }
 const emptyAuditPage: AuditLogPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 12, numberOfElements: 0, first: true, last: true, empty: true }
 const initialFilters: UserFilters = { keyword: '', role: '', enabled: '' }
 const fallbackRoles: UserRole[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
-export type AdminSection = 'overview' | 'members' | 'audit' | 'files'
+export type AdminSection = 'overview' | 'projects' | 'members' | 'audit' | 'files'
+
+function calculateTimelineProgress(startDate: string | null, endDate: string | null) {
+  if (!startDate || !endDate) return 0
+  const start = new Date(`${startDate}T00:00:00`).getTime()
+  const end = new Date(`${endDate}T23:59:59`).getTime()
+  const now = Date.now()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0
+  if (now <= start) return 0
+  if (now >= end) return 100
+  return Math.round(((now - start) / (end - start)) * 100)
+}
 
 export function DashboardController({ me, onLogout, onOpenSettings }: { me: User; onLogout: () => void; onOpenSettings: () => void }) {
   const [users, setUsers] = useState(emptyPage)
@@ -35,6 +50,13 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<User | null>(null)
   const [pendingDelete, setPendingDelete] = useState<User | null>(null)
+  const [projectModalOpen, setProjectModalOpen] = useState(false)
+  const [projectSaving, setProjectSaving] = useState(false)
+  const [managerCandidates, setManagerCandidates] = useState(emptyPage)
+  const [managerCandidateLoading, setManagerCandidateLoading] = useState(false)
+  const [projectProgressItems, setProjectProgressItems] = useState<AdminProjectProgressItem[]>([])
+  const [projectProgressLoading, setProjectProgressLoading] = useState(false)
+  const [projectProgressFilters, setProjectProgressFilters] = useState<AdminProjectProgressFilters>({ keyword: '', status: '', managerUserId: '' })
 
   const [adminDashboard, setAdminDashboard] = useState<AdminDashboardResponse | null>(null)
   const [adminDashboardLoading, setAdminDashboardLoading] = useState(false)
@@ -67,9 +89,63 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     }
   }, [])
 
+  const loadProjectProgress = useCallback(async () => {
+    setProjectProgressLoading(true)
+    try {
+      const projectPage = await searchProjects({
+        keyword: '',
+        status: '',
+        managerUserId: projectProgressFilters.managerUserId || undefined,
+      }, 0, 12)
+      const progressItems = await Promise.all(projectPage.content.map(async project => {
+        try {
+          const projectDashboard = await getProjectDashboard(project.id)
+          const manager = projectDashboard.workload.find(member => member.projectRole === 'OWNER')
+            ?? projectDashboard.workload.find(member => member.projectRole === 'PROJECT_MANAGER')
+          return {
+            id: project.id,
+            code: project.code,
+            name: project.name,
+            status: project.status,
+            startDate: project.startDate,
+            endDate: project.endDate,
+            totalTasks: projectDashboard.taskSummary.totalTasks,
+            completedTasks: projectDashboard.taskSummary.completedTasks,
+            completionRate: project.status === 'COMPLETED' ? 100 : projectDashboard.taskSummary.completionRate,
+            timelineProgress: calculateTimelineProgress(project.startDate, project.endDate),
+            managerUserId: manager?.userId ?? null,
+            managerUsername: manager?.username ?? null,
+            managerEmail: manager?.email ?? null,
+          } satisfies AdminProjectProgressItem
+        } catch {
+          return {
+            id: project.id,
+            code: project.code,
+            name: project.name,
+            status: project.status,
+            startDate: project.startDate,
+            endDate: project.endDate,
+            totalTasks: 0,
+            completedTasks: 0,
+            completionRate: project.status === 'COMPLETED' ? 100 : 0,
+            timelineProgress: calculateTimelineProgress(project.startDate, project.endDate),
+            managerUserId: null,
+            managerUsername: null,
+            managerEmail: null,
+          } satisfies AdminProjectProgressItem
+        }
+      }))
+      setProjectProgressItems(progressItems)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không tải được tiến độ dự án')
+    } finally {
+      setProjectProgressLoading(false)
+    }
+  }, [projectProgressFilters.managerUserId])
+
   const refreshAdminOverview = useCallback(async () => {
-    await Promise.all([loadAdminDashboard(), loadAdminSystemStatus()])
-  }, [loadAdminDashboard, loadAdminSystemStatus])
+    await Promise.all([loadAdminDashboard(), loadAdminSystemStatus(), loadProjectProgress()])
+  }, [loadAdminDashboard, loadAdminSystemStatus, loadProjectProgress])
 
   useEffect(() => {
     void Promise.resolve().then(loadAdminDashboard)
@@ -78,6 +154,10 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
   useEffect(() => {
     void Promise.resolve().then(loadAdminSystemStatus)
   }, [loadAdminSystemStatus])
+
+  useEffect(() => {
+    void Promise.resolve().then(loadProjectProgress)
+  }, [loadProjectProgress])
 
   useEffect(() => {
     getUserRoles()
@@ -169,6 +249,7 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       }
       await loadUsers()
       await loadAdminDashboard()
+      await loadProjectProgress()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể thay đổi trạng thái tài khoản'
       setError(msg)
@@ -240,6 +321,52 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
     }
   }
 
+  const handleManagerSearch = async (keyword: string) => {
+    setManagerCandidateLoading(true)
+    try {
+      setManagerCandidates(await searchUsers({ keyword, role: 'MANAGER', enabled: 'true' }, 0, 20))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không tìm được tài khoản quản lý phù hợp')
+    } finally {
+      setManagerCandidateLoading(false)
+    }
+  }
+
+  const openProjectModal = () => {
+    setProjectModalOpen(true)
+    void handleManagerSearch('')
+  }
+
+  const handleCreateProject = async (data: ProjectCreateFormData) => {
+    setProjectSaving(true)
+    try {
+      const project = await createProject({
+        code: data.code,
+        name: data.name,
+        description: data.description || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
+        ownerUserId: data.ownerUserId,
+      })
+      setProjectModalOpen(false)
+      toast.success(`Đã tạo dự án ${project.code} và giao cho quản lý được chọn`)
+      await Promise.all([loadAdminDashboard(), loadProjectProgress()])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tạo dự án')
+    } finally {
+      setProjectSaving(false)
+    }
+  }
+
+  const visibleProjectProgressItems = projectProgressItems.filter(project => {
+    const keyword = projectProgressFilters.keyword.trim().toLocaleLowerCase('vi-VN')
+    const matchesKeyword = !keyword
+      || project.code.toLocaleLowerCase('vi-VN').includes(keyword)
+      || project.name.toLocaleLowerCase('vi-VN').includes(keyword)
+    const matchesStatus = !projectProgressFilters.status || project.status === projectProgressFilters.status
+    return matchesKeyword && matchesStatus
+  })
+
   return <>
     <DashboardView
       me={me}
@@ -250,7 +377,13 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       adminSystemStatus={adminSystemStatus}
       adminSystemStatusLoading={adminSystemStatusLoading}
       adminSystemStatusError={adminSystemStatusError}
+      visibleProjectProgressItems={visibleProjectProgressItems}
+      projectProgressLoading={projectProgressLoading}
+      projectProgressFilters={projectProgressFilters}
+      onProjectProgressFiltersChange={setProjectProgressFilters}
+      managerFilterOptions={managerCandidates.content}
       onRefreshAdminDashboard={refreshAdminOverview}
+      onCreateProject={openProjectModal}
       users={users}
       auditLogs={auditLogs}
       auditSummary={auditSummary}
@@ -263,7 +396,12 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
       auditError={auditError}
       page={page}
       auditPage={auditPage}
-      onSectionChange={setActiveSection}
+      onSectionChange={section => {
+        setActiveSection(section)
+        if (section === 'projects' && managerCandidates.content.length === 0) {
+          void handleManagerSearch('')
+        }
+      }}
       onFiltersChange={newFilters => {
         setFilters(newFilters)
         setAppliedFilters(newFilters)
@@ -313,6 +451,16 @@ export function DashboardController({ me, onLogout, onOpenSettings }: { me: User
         onClose={() => setActivityUser(null)}
       />
     )}
+    <ProjectCreateModal
+      open={projectModalOpen}
+      saving={projectSaving}
+      isAdmin
+      managerCandidates={managerCandidates.content}
+      managerCandidateLoading={managerCandidateLoading}
+      onManagerSearch={handleManagerSearch}
+      onClose={() => setProjectModalOpen(false)}
+      onSave={handleCreateProject}
+    />
     <ConfirmDialog
       open={Boolean(pendingDelete)}
       title={`${pendingDelete?.enabled ? 'Vô hiệu hóa' : 'Xóa'} tài khoản?`}

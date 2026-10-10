@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 public record CreateProjectRequest(
 
@@ -54,7 +55,13 @@ public record CreateProjectRequest(
                 description = "Ngày kết thúc dự kiến",
                 example = "2026-12-31"
         )
-        LocalDate endDate
+        LocalDate endDate,
+
+        @Schema(
+                description = "ID tài khoản MANAGER nhận dự án. Bắt buộc khi ADMIN tạo dự án",
+                example = "14f39a47-5018-4d11-ae90-8f2db3daf63a"
+        )
+        UUID ownerUserId
 
 ) {
 }

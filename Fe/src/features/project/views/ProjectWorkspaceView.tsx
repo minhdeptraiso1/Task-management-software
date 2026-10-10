@@ -2,10 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Activity,
-  Bell,
   Bug,
   CalendarDays,
-  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -31,6 +29,8 @@ import { ActionMenu, ActionItem, Button, ResetButton, ConfirmDialog, DatePicker,
 import type { User } from '../../user/models/user.model'
 import { UserGuideModal } from '../../user/views/UserGuideModal'
 import { ProjectAiAssistantModal } from '../components/ProjectAiAssistantModal'
+import { ProjectCreateModal } from '../components/ProjectCreateModal'
+import { NotificationDropdown } from '../components/NotificationDropdown'
 import {
   entityTypeLabels,
   projectActivityLabels,
@@ -145,9 +145,10 @@ interface Props {
   onRemoveDependency: (taskId: string, dependencyId: string) => void
   onUnblockTask: (taskId: string, targetStatus: TaskStatus) => void
   candidateUsers: User[]
+  managerCandidates: User[]
   unreadCount: number
   filters: ProjectFilters
-  activeTab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'
+  activeTab: 'board' | 'members' | 'activities' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings'
   page: number
   activityPage: number
   activityFilters: ProjectActivityFilters
@@ -157,6 +158,7 @@ interface Props {
   detailLoading: boolean
   taskDetailLoading: boolean
   candidateLoading: boolean
+  managerCandidateLoading: boolean
   saving: boolean
   errors?: { id: string; message: string }[]
   onDismissError?: (id: string) => void
@@ -165,14 +167,15 @@ interface Props {
   onSearch: (forceFilters?: ProjectFilters) => void
   onPageChange: (page: number) => void
   onSelectProject: (project: Project) => void
-  onCreateProject: (data: { code: string; name: string; description: string; startDate: string; endDate: string }) => void
+  onCreateProject: (data: { code: string; name: string; description: string; startDate: string; endDate: string; ownerUserId?: string }) => void
   onUpdateProject: (data: { name?: string; description?: string; startDate?: string; endDate?: string }) => void
   onDeleteProject: () => void
   onStatusChange: (status: ProjectStatus) => void
-  onTabChange: (tab: 'board' | 'members' | 'activities' | 'notifications' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings') => void
+  onTabChange: (tab: 'board' | 'members' | 'activities' | 'dashboard' | 'reports' | 'timesheet' | 'bugs' | 'attachments' | 'imports' | 'meetings') => void
   onActivityPageChange: (page: number) => void
   onAddMember: (userId: string, role: ProjectMemberRole) => void
   onCandidateSearch: (keyword: string) => void
+  onManagerCandidateSearch: (keyword: string) => void
   onRoleChange: (memberId: string, role: ProjectMemberRole) => void
   onRemoveMember: (member: ProjectMember) => void
   onReadNotification: (id: string) => void
@@ -263,36 +266,6 @@ function getProjectStatusCardStyle(st: ProjectStatus, isCurrent: boolean) {
   }
 }
 
-function ProjectCreateModal({ open, saving, onClose, onSave }: { open: boolean; saving: boolean; onClose: () => void; onSave: Props['onCreateProject'] }) {
-  const [code, setCode] = useState('')
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    onSave({ code, name, description, startDate, endDate })
-  }
-
-  return <Modal open={open} onClose={onClose} title="Tạo dự án mới" description="Người tạo dự án sẽ tự động là OWNER." showClose={false}>
-    <form className="space-y-4" onSubmit={submit}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Mã dự án" value={code} onChange={event => setCode(event.target.value)} required placeholder="BICAS-ERP" />
-        <Input label="Tên dự án" value={name} onChange={event => setName(event.target.value)} required placeholder="Hệ thống ERP nội bộ" />
-      </div>
-      <Textarea label="Mô tả" value={description} onChange={event => setDescription(event.target.value)} placeholder="Mục tiêu, phạm vi, ghi chú..." />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Ngày bắt đầu" type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
-        <Input label="Ngày kết thúc" type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
-      </div>
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="secondary" onClick={onClose}>Hủy</Button>
-        <Button type="submit" loading={saving} leadingIcon={<Plus size={17} />}>Tạo dự án</Button>
-      </div>
-    </form>
-  </Modal>
-}
 function ProjectEditModal({ open, project, saving, onClose, onSave }: { open: boolean; project: Project | null; saving: boolean; onClose: () => void; onSave: Props['onUpdateProject'] }) {
   if (!project) return null
 
@@ -410,6 +383,7 @@ export function ProjectWorkspaceView({
   taskDependencies,
   taskRisk,
   candidateUsers,
+  managerCandidates,
   unreadCount,
   filters,
   activeTab,
@@ -422,6 +396,7 @@ export function ProjectWorkspaceView({
   detailLoading,
   taskDetailLoading,
   candidateLoading,
+  managerCandidateLoading,
   saving,
   errors: _errors,
   onDismissError: _onDismissError,
@@ -438,6 +413,7 @@ export function ProjectWorkspaceView({
   onActivityPageChange,
   onAddMember,
   onCandidateSearch,
+  onManagerCandidateSearch,
   onRoleChange,
   onRemoveMember,
   onReadNotification,
@@ -639,7 +615,7 @@ export function ProjectWorkspaceView({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const canCreateProject = user.role === 'MANAGER'
+  const canCreateProject = user.role === 'MANAGER' || user.role === 'ADMIN'
   const canManageMembers = selectedProject?.currentUserRole === 'OWNER' || selectedProject?.currentUserRole === 'PROJECT_MANAGER'
   const canManageTasks = !!selectedProject?.currentUserRole
   const [guideModalOpen, setGuideModalOpen] = useState(false)
@@ -684,6 +660,13 @@ export function ProjectWorkspaceView({
         >
           <Search size={18} />
         </button>
+        <NotificationDropdown
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onRead={onReadNotification}
+          onDelete={onDeleteNotification}
+          onReadAll={onReadAllNotifications}
+        />
         <button type="button" className="flex items-center gap-2 rounded-full p-1 hover:bg-white/10 transition" onClick={onOpenSettings}>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand font-bold text-white uppercase text-sm">
             {user.username.charAt(0)}
@@ -811,7 +794,10 @@ export function ProjectWorkspaceView({
               <Select aria-label="Trạng thái" value={filters.status} onChange={event => onFiltersChange({ ...filters, status: event.target.value as ProjectFilters['status'] })} options={[{ label: 'Mọi trạng thái', value: '' }, ...statuses.map(status => ({ label: projectStatusLabels[status], value: status }))]} />
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="secondary" loading={loading} leadingIcon={<Search size={17} />} onClick={() => handleSearch()}>Tìm</Button>
-                {canCreateProject && <Button type="button" leadingIcon={<Plus size={17} />} onClick={() => setCreateOpen(true)}>Tạo</Button>}
+                {canCreateProject && <Button type="button" leadingIcon={<Plus size={17} />} onClick={() => {
+                  setCreateOpen(true)
+                  if (user.role === 'ADMIN') onManagerCandidateSearch('')
+                }}>Tạo</Button>}
               </div>
             </div>
 
@@ -999,9 +985,6 @@ export function ProjectWorkspaceView({
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'activities' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Activity size={16} />} onClick={() => onTabChange('activities')}>Hoạt động</Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button variant="secondary" className={activeTab === 'notifications' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Bell size={16} />} onClick={() => onTabChange('notifications')}>Thông báo {unreadCount ? `(${unreadCount})` : ''}</Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
                 <Button variant="secondary" className={activeTab === 'timesheet' ? '!bg-brand !text-white !border-transparent shadow-xs' : ''} size="sm" leadingIcon={<Clock size={16} />} onClick={() => onTabChange('timesheet')}>Timesheet</Button>
@@ -1388,53 +1371,6 @@ export function ProjectWorkspaceView({
               )}
             </div>}
 
-            {activeTab === 'notifications' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">Thông báo hệ thống ({notifications.content.length})</h3>
-                  {notifications.content.length > 0 && (
-                    <Button variant="outline-teal" size="sm" leadingIcon={<CheckCheck size={16} />} onClick={onReadAllNotifications}>
-                      Đánh dấu tất cả đã đọc
-                    </Button>
-                  )}
-                </div>
-
-                <div className="max-h-[580px] overflow-y-auto pr-1.5 space-y-3">
-                  {notifications.content.map(item => (
-                    <div
-                      key={item.id}
-                      className={`flex items-start gap-4 rounded-xl border p-4 transition ${
-                        item.read ? 'border-line bg-white hover:border-slate-300' : 'border-brand bg-[#fff7ed] shadow-2xs'
-                      }`}
-                    >
-                      <button type="button" className="flex-1 text-left" onClick={() => onReadNotification(item.id)}>
-                        <div className="flex items-center gap-2 font-semibold">
-                          <span>{item.title ? item.title.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : ''}</span>
-                          {!item.read && <span className="size-2 rounded-full bg-brand" />}
-                        </div>
-                        <p className="mt-1 text-sm text-muted">{item.content ? item.content.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1') : ''}</p>
-                        <p className="mt-2 text-xs text-muted font-medium">{formatDate(item.createdAt)}</p>
-                      </button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        iconOnly
-                        aria-label="Xóa thông báo"
-                        leadingIcon={<Trash2 size={16} className="text-rose-500" />}
-                        onClick={() => onDeleteNotification(item.id)}
-                      />
-                    </div>
-                  ))}
-
-                  {!notifications.content.length && (
-                    <div className="py-16 text-center text-sm text-muted bg-white rounded-2xl border border-line">
-                      Chưa có thông báo nào.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {activeTab === 'timesheet' && (
               <TimesheetView mode="project" projectId={selectedProject.id} members={members} />
             )}
@@ -1479,7 +1415,16 @@ export function ProjectWorkspaceView({
       </section>
     </main>
 
-    <ProjectCreateModal open={createOpen} saving={saving} onClose={() => setCreateOpen(false)} onSave={data => { onCreateProject(data); setCreateOpen(false) }} />
+    <ProjectCreateModal
+      open={createOpen}
+      saving={saving}
+      isAdmin={user.role === 'ADMIN'}
+      managerCandidates={managerCandidates}
+      managerCandidateLoading={managerCandidateLoading}
+      onManagerSearch={onManagerCandidateSearch}
+      onClose={() => setCreateOpen(false)}
+      onSave={data => { onCreateProject(data); setCreateOpen(false) }}
+    />
     <ProjectEditModal open={projectEditOpen} project={selectedProject} saving={saving} onClose={() => setProjectEditOpen(false)} onSave={data => { onUpdateProject(data); setProjectEditOpen(false) }} />
     <ConfirmDialog open={deleteProjectOpen} title="Xóa dự án?" description="Dự án sẽ bị xóa mềm khỏi hệ thống. Hành động này có thể ảnh hưởng dữ liệu Sprint, Task và thành viên." confirmLabel="Xóa dự án" loading={saving} onCancel={() => setDeleteProjectOpen(false)} onConfirm={() => { onDeleteProject(); setDeleteProjectOpen(false) }} />
 

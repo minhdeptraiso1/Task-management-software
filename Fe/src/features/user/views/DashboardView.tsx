@@ -16,6 +16,7 @@ import {
   UsersRound,
   HardDrive,
   LayoutDashboard,
+  FolderKanban,
 } from 'lucide-react'
 import { Button, Input, Select } from '../../../components/ui'
 import type { AuditLogPage } from '../models/audit-log.model'
@@ -24,7 +25,8 @@ import { UserGuideModal } from './UserGuideModal'
 import { AuditLogView } from './AuditLogView'
 import { AdminFileCleanupView } from './AdminFileCleanupView'
 import { AdminDashboardOverviewView } from './AdminDashboardOverviewView'
-import type { AdminDashboardResponse, AdminSystemStatusResponse } from '../models/admin.model'
+import { AdminProjectsView } from './AdminProjectsView'
+import type { AdminDashboardResponse, AdminProjectProgressFilters, AdminProjectProgressItem, AdminSystemStatusResponse } from '../models/admin.model'
 
 const EXPO_OUT_EASE = [0.16, 1, 0.3, 1] as const
 
@@ -133,7 +135,7 @@ const tableRowVariants = {
   },
 }
 
-type AdminSection = 'overview' | 'members' | 'audit' | 'files'
+type AdminSection = 'overview' | 'projects' | 'members' | 'audit' | 'files'
 
 interface Props {
   me: User
@@ -144,7 +146,13 @@ interface Props {
   adminSystemStatus: AdminSystemStatusResponse | null
   adminSystemStatusLoading: boolean
   adminSystemStatusError: string
+  visibleProjectProgressItems: AdminProjectProgressItem[]
+  projectProgressLoading: boolean
+  projectProgressFilters: AdminProjectProgressFilters
+  onProjectProgressFiltersChange: (filters: AdminProjectProgressFilters) => void
+  managerFilterOptions: User[]
   onRefreshAdminDashboard: () => void
+  onCreateProject: () => void
   users: UserPage
   auditLogs: AuditLogPage
   roles: UserRole[]
@@ -183,7 +191,13 @@ export function DashboardView({
   adminSystemStatus,
   adminSystemStatusLoading,
   adminSystemStatusError,
+  visibleProjectProgressItems,
+  projectProgressLoading,
+  projectProgressFilters,
+  onProjectProgressFiltersChange,
+  managerFilterOptions,
   onRefreshAdminDashboard,
+  onCreateProject,
   users,
   auditLogs,
   auditSummary,
@@ -212,6 +226,13 @@ export function DashboardView({
   onOpenSettings,
 }: Props) {
   const [guideModalOpen, setGuideModalOpen] = useState(false)
+  const sectionMeta: Record<AdminSection, { breadcrumb: string; title: string }> = {
+    overview: { breadcrumb: 'Tổng quan', title: 'Admin Dashboard Tổng quan' },
+    projects: { breadcrumb: 'Dự án', title: 'Quản lý dự án' },
+    members: { breadcrumb: 'Thành viên', title: 'Quản lý thành viên' },
+    audit: { breadcrumb: 'Hoạt động', title: 'Quản lý hoạt động' },
+    files: { breadcrumb: 'Quản lý File', title: 'Quản lý File & Dọn dẹp' },
+  }
   const active = users.content.filter(user => user.enabled).length
   const adminCount = users.content.filter(user => user.role === 'ADMIN').length
   const roleOptions = [
@@ -245,13 +266,13 @@ export function DashboardView({
     },
   ]
 
-  return <div className="min-h-screen bg-canvas lg:flex">
+  return <div className="min-h-screen bg-canvas">
     <motion.aside
       variants={sidebarVariants}
       initial="initial"
       animate="animate"
       style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
-      className="hidden w-64 border-r border-line bg-brand-black p-5 text-white lg:flex lg:flex-col lg:justify-between shrink-0"
+      className="fixed inset-y-0 left-0 z-40 hidden w-64 overflow-y-auto border-r border-line bg-brand-black p-5 text-white lg:flex lg:flex-col lg:justify-between"
     >
       <div className="flex h-10 items-center gap-3 px-3 font-bold">
         <span className="text-2xl tracking-[-.08em]">BI<span className="text-brand">CAS</span></span>
@@ -267,6 +288,14 @@ export function DashboardView({
           onClick={() => onSectionChange('overview')}
         >
           Tổng quan
+        </Button>
+        <Button
+          variant="ghost"
+          className={`relative w-full !justify-start ${activeSection === 'projects' ? '!bg-brand/10 !text-brand before:absolute before:bottom-1 before:left-0 before:top-1 before:w-0.5 before:bg-brand font-bold' : '!text-white/65 hover:!bg-white/5 hover:!text-white'}`}
+          leadingIcon={<FolderKanban size={18} />}
+          onClick={() => onSectionChange('projects')}
+        >
+          Dự án
         </Button>
         <Button
           variant="ghost"
@@ -301,7 +330,7 @@ export function DashboardView({
       </div>
     </motion.aside>
 
-    <main className="min-w-0 flex-1">
+    <main className="min-w-0 lg:ml-64">
       <motion.header
         variants={headerVariants}
         initial="initial"
@@ -313,8 +342,8 @@ export function DashboardView({
           <span className="text-2xl tracking-[-.08em] lg:hidden">HI<span className="text-brand">CAS</span></span>
           <span className="h-6 w-px bg-white/20 lg:hidden" />
           <motion.div variants={titleVariants}>
-            <p className="text-[11px] text-white/45 font-medium">Quản trị / {activeSection === 'overview' ? 'Tổng quan' : activeSection === 'members' ? 'Thành viên' : activeSection === 'audit' ? 'Hoạt động' : 'Quản lý File'}</p>
-            <h1 className="text-sm font-bold">{activeSection === 'overview' ? 'Admin Dashboard Tổng quan' : activeSection === 'members' ? 'Quản lý thành viên' : activeSection === 'audit' ? 'Quản lý hoạt động' : 'Quản lý File & Dọn dẹp'}</h1>
+            <p className="text-[11px] text-white/45 font-medium">Quản trị / {sectionMeta[activeSection].breadcrumb}</p>
+            <h1 className="text-sm font-bold">{sectionMeta[activeSection].title}</h1>
           </motion.div>
         </div>
 
@@ -354,7 +383,16 @@ export function DashboardView({
           />
         )}
 
-        {activeSection !== 'overview' && (
+        {activeSection === 'projects' && <AdminProjectsView
+          projects={visibleProjectProgressItems}
+          loading={projectProgressLoading}
+          filters={projectProgressFilters}
+          onFiltersChange={onProjectProgressFiltersChange}
+          managerOptions={managerFilterOptions}
+          onCreateProject={onCreateProject}
+        />}
+
+        {activeSection !== 'overview' && activeSection !== 'projects' && (
           <motion.section variants={statsContainerVariants} className="grid gap-5 sm:grid-cols-3">
             {stats.map(({ value, icon: Icon, badgeText, iconBoxClass }) => (
               <motion.article key={badgeText} variants={statCardVariants} style={{ willChange: 'transform, opacity' }} className="rounded-2xl border border-line/70 bg-white p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 flex items-center gap-4">
